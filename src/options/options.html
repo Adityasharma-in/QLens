@@ -66,13 +66,6 @@
         </span>
         <span class="tgl-track"><input type="checkbox" id="opt-suggestions" class="tgl-input"><span class="tgl-thumb" aria-hidden="true"></span></span>
       </label>
-      <label class="tgl-row" for="opt-showRecent">
-        <span class="tgl-text">
-          <span class="tgl-title">Recent searches</span>
-          <span class="tgl-desc">Remember the last 10 queries locally</span>
-        </span>
-        <span class="tgl-track"><input type="checkbox" id="opt-showRecent" class="tgl-input"><span class="tgl-thumb" aria-hidden="true"></span></span>
-      </label>
       <label class="tgl-row" for="opt-blurClose">
         <span class="tgl-text">
           <span class="tgl-title">Close on blur</span>
@@ -100,22 +93,23 @@
       <h2>Shortcut</h2>
       <div class="shortcut-row">
         <div>
-          <div class="shortcut-key" id="shortcut-display">Ctrl+Shift+K</div>
-          <p class="shortcut-note">Global hotkey that summons the overlay. Rebinding happens in Chrome, not here.</p>
+          <label class="field-label" for="shortcut-input">Overlay shortcut</label>
+          <input type="text" id="shortcut-input" class="shortcut-input" value="Ctrl+Shift+K" readonly>
+          <p class="shortcut-note" id="shortcut-note">Click the field and press the keys you want to use (Ctrl or Alt + a key).</p>
         </div>
-        <a class="btn btn-secondary" href="chrome://extensions/shortcuts" target="_blank" rel="noopener">Change shortcut</a>
+        <button type="button" class="btn btn-secondary" id="shortcut-save">Save shortcut</button>
+      </div>
+      <div class="data-row">
+        <div>
+          <p class="data-title">Chrome shortcut manager</p>
+          <p class="data-note">For advanced rebinding or conflicts, Chrome's own manager always wins.</p>
+        </div>
+        <a class="btn btn-secondary" href="chrome://extensions/shortcuts" target="_blank" rel="noopener">Open Chrome shortcuts</a>
       </div>
     </section>
 
     <section class="card">
       <h2>Data</h2>
-      <div class="data-row">
-        <div>
-          <p class="data-title">Recent searches</p>
-          <p class="data-note">Stored only on this device.</p>
-        </div>
-        <button type="button" class="btn btn-secondary" id="clear-recent">Clear recent searches</button>
-      </div>
       <div class="data-row">
         <div>
           <p class="data-title">Reset everything</p>

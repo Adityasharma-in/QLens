@@ -48,6 +48,25 @@ globalThis.QLENS = globalThis.QLENS || {};
     return typeof window.__QLENS_LISTENER__ !== 'function';
   }
 
+  function registerShortcutHandler() {
+    if (typeof window.__QLENS_KEYHANDLER__ === 'function') return;
+    window.__QLENS_KEYHANDLER__ = (e) => {
+      if (e.defaultPrevented) return;
+      QLENS.storage
+        .getShortcut()
+        .then((combo) => {
+          if (!combo || !QLENS.matchesCombo(e, combo)) return;
+          try {
+            chrome.runtime.sendMessage({ type: QLENS.MSG.OPEN_OVERLAY }).catch(() => {});
+          } catch (err) {
+            /* ignore */
+          }
+        })
+        .catch(() => {});
+    };
+    document.addEventListener('keydown', window.__QLENS_KEYHANDLER__, true);
+  }
+
   if (needsRegister()) {
     if (typeof window.__QLENS_LISTENER__ === 'function') {
       try {
@@ -64,4 +83,5 @@ globalThis.QLENS = globalThis.QLENS || {};
       /* registration failed — SW will retry injection */
     }
   }
+  registerShortcutHandler();
 })();

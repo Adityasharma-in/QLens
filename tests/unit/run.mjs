@@ -161,6 +161,10 @@ test('manifest: required fields present', () => {
   assert.ok(m.commands['open-quick-search']);
   assert.equal(typeof m.commands['open-quick-search'].suggested_key.default, 'string');
   assert.ok(m.options_page.endsWith('.html'));
+  assert.ok(m.action.default_popup.endsWith('.html'));
+  assert.ok(Array.isArray(m.web_accessible_resources) && m.web_accessible_resources.some(
+    (entry) => entry.resources && entry.resources.some((r) => r.endsWith('.woff2'))
+  ));
   for (const s of [16, 32, 48, 128]) {
     const p = join(ROOT, m.icons[String(s)]);
     assert.ok(statSync(p).size > 0, 'icon ' + s + ' exists');
@@ -168,9 +172,19 @@ test('manifest: required fields present', () => {
 });
 test('manifest: every referenced file exists', () => {
   const m = JSON.parse(readFileSync(join(ROOT, 'manifest.json'), 'utf8'));
-  const refs = [m.background.service_worker, m.options_page, ...Object.values(m.icons)];
+  const refs = [m.background.service_worker, m.options_page, m.action.default_popup, ...Object.values(m.icons)];
   for (const rel of refs) {
     assert.ok(statSync(join(ROOT, rel)).isFile(), 'missing ' + rel);
+  }
+  for (const entry of m.web_accessible_resources || []) {
+    for (const r of entry.resources || []) {
+      if (r.includes('*')) {
+        const dir = join(ROOT, r.slice(0, r.indexOf('*')));
+        assert.ok(readdirSync(dir).length > 0, 'glob empty ' + r);
+      } else {
+        assert.ok(statSync(join(ROOT, r)).isFile(), 'missing WAR file ' + r);
+      }
+    }
   }
   for (const rel of Q.CONTENT_FILES) {
     assert.ok(statSync(join(ROOT, rel)).isFile(), 'missing content file ' + rel);
@@ -207,37 +221,67 @@ await testAsync('storage: setSettings merges patch', async () => {
   const raw = await area.get('settings');
   assert.equal(raw.settings.theme, 'dark');
 });
-await testAsync('storage: recent dedupe + cap 10', async () => {
-  loadWithChromeStub('src/shared/storage.js', {});
-  for (let i = 1; i <= 12; i++) await Q.storage.addRecent('query' + i, 'google');
-  await Q.storage.addRecent('QUERY5', 'brave');
-  const rec = await Q.storage.getRecent();
-  assert.equal(rec.length, 10);
-  assert.equal(rec[0].query, 'QUERY5');
-  assert.equal(rec[0].engine, 'brave');
-  assert.equal(rec.filter((r) => r.query === 'query5' || r.query === 'QUERY5').length, 1);
-});
-await testAsync('storage: recent removes + clears', async () => {
-  const area = loadWithChromeStub('src/shared/storage.js', {});
-  await Q.storage.addRecent('a', 'google');
-  await Q.storage.addRecent('b', 'bing');
-  await Q.storage.removeRecent('a');
-  let rec = await Q.storage.getRecent();
-  assert.deepEqual(rec.map((r) => r.query), ['b']);
-  await Q.storage.clearRecent();
-  rec = await Q.storage.getRecent();
-  assert.deepEqual(rec, []);
-  assert.equal(area.backing.size, 0);
-});
-await testAsync('storage: corrupted recent sanitized', async () => {
-  loadWithChromeStub('src/shared/storage.js', { recent: [{ query: 42, engine: 'x', ts: 'bad' }, null, 'junk'] });
-  const rec = await Q.storage.getRecent();
-  assert.deepEqual(rec, []);
-});
 await testAsync('storage: last engine falls back to default', async () => {
   loadWithChromeStub('src/shared/storage.js', { lastEngine: 'bogus' });
   const e = await Q.storage.getLastEngine();
   assert.equal(e, 'google');
+});
+
+test('combo: buildCombo normalizes combos', () => {
+  assert.equal(Q.buildCombo({ ctrlKey: true, shiftKey: true }, 'k', 'KeyK'), 'Ctrl+Shift+K');
+  assert.equal(Q.buildCombo({ ctrlKey: true }, 'K', 'KeyK'), 'Ctrl+K');
+  assert.equal(Q.buildCombo({ altKey: true }, '5', 'Digit5'), 'Alt+5');
+  assert.equal(Q.buildCombo({ ctrlKey: true, altKey: true, shiftKey: true }, 'F9', 'F9'), 'Ctrl+Alt+Shift+F9');
+  assert.equal(Q.buildCombo({ ctrlKey: true }, 'F5', 'F5'), 'Ctrl+F5');
+});
+test('combo: buildCombo rejects invalid keys', () => {
+  assert.equal(Q.buildCombo({ ctrlKey: true }, 'Control', 'ControlLeft'), null);
+  assert.equal(Q.buildCombo({ ctrlKey: true }, ' ', 'Space'), null);
+  assert.equal(Q.buildCombo({ ctrlKey: true }, 'Enter', 'Enter'), null);
+  assert.equal(Q.buildCombo({ ctrlKey: true }, 'ArrowUp', 'ArrowUp'), null);
+  assert.equal(Q.buildCombo({ ctrlKey: true }, 'a b', ''), null);
+  assert.equal(Q.buildCombo({}, 'k', 'KeyK'), null);
+  assert.equal(Q.buildCombo({ shiftKey: true }, 'k', 'KeyK'), null);
+  assert.equal(Q.buildCombo({ shiftKey: true, metaKey: true }, 'k', 'KeyK'), null);
+  assert.equal(Q.buildCombo({ ctrlKey: true, metaKey: true }, 'k', 'KeyK'), 'Ctrl+K');
+});
+test('combo: matchesCombo matches pressed keys', () => {
+  assert.equal(Q.matchesCombo({ ctrlKey: true, key: 'k' }, 'Ctrl+K'), true);
+  assert.equal(Q.matchesCombo({ ctrlKey: true, key: 'K' }, 'Ctrl+K'), true);
+  assert.equal(Q.matchesCombo({ ctrlKey: true, altKey: true, key: 'q' }, 'Ctrl+Alt+Q'), true);
+  assert.equal(Q.matchesCombo({ ctrlKey: true, key: '5' }, 'Ctrl+5'), true);
+  assert.equal(Q.matchesCombo({ ctrlKey: true, key: 'F5' }, 'Ctrl+F5'), true);
+  assert.equal(Q.matchesCombo({ ctrlKey: true, shiftKey: true, key: 'k' }, 'Ctrl+K'), false);
+  assert.equal(Q.matchesCombo({ ctrlKey: true, key: 'j' }, 'Ctrl+K'), false);
+  assert.equal(Q.matchesCombo({ altKey: true, key: 'k' }, 'Ctrl+K'), false);
+  assert.equal(Q.matchesCombo({ ctrlKey: true, key: 'k' }, ''), false);
+  assert.equal(Q.matchesCombo(null, 'Ctrl+K'), false);
+});
+await testAsync('storage: shortcut roundtrip + validation', async () => {
+  const area = loadWithChromeStub('src/shared/storage.js', {});
+  assert.equal(await Q.storage.getShortcut(), 'Ctrl+Shift+K');
+  assert.equal(await Q.storage.setShortcut('Ctrl+Alt+Q'), true);
+  assert.equal(await Q.storage.getShortcut(), 'Ctrl+Alt+Q');
+  assert.equal(await Q.storage.setShortcut('K'), false);
+  assert.equal(await Q.storage.getShortcut(), 'Ctrl+Alt+Q');
+  assert.equal(await Q.storage.setShortcut(42), false);
+  await Q.storage.resetAll();
+  assert.equal(area.backing.size, 0);
+  assert.equal(await Q.storage.getShortcut(), 'Ctrl+Shift+K');
+});
+test('combo: isValidCombo validates strings', () => {
+  assert.equal(Q.isValidCombo('Ctrl+Shift+K'), true);
+  assert.equal(Q.isValidCombo('Alt+9'), true);
+  assert.equal(Q.isValidCombo('Ctrl+F12'), true);
+  assert.equal(Q.isValidCombo('Ctrl+Alt+Shift+P'), true);
+  assert.equal(Q.isValidCombo('Shift+K'), false);
+  assert.equal(Q.isValidCombo('K'), false);
+  assert.equal(Q.isValidCombo('Ctrl+Ctrl+K'), false);
+  assert.equal(Q.isValidCombo('Ctrl+Space'), false);
+  assert.equal(Q.isValidCombo('Ctrl+Enter'), false);
+  assert.equal(Q.isValidCombo('Ctrl+'), false);
+  assert.equal(Q.isValidCombo(''), false);
+  assert.equal(Q.isValidCombo('Ctrl+Meta+K'), false);
 });
 
 loadScript('src/content/selection.js');

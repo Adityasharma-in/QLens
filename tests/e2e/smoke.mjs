@@ -340,6 +340,60 @@ const restricted = await inWorker(async () => {
 });
 check('chrome://version: blocked without crash', restricted === 'blocked', restricted);
 
+const popupPage = await browser.newPage();
+const popupErrs = [];
+popupPage.on('pageerror', (e) => popupErrs.push(String(e)));
+await popupPage.goto('chrome-extension://' + extId + '/src/popup/popup.html', { waitUntil: 'domcontentloaded' });
+await new Promise((r) => setTimeout(r, 400));
+const popupOk = await popupPage.evaluate(() => ({
+  input: Boolean(document.getElementById('pop-query')),
+  pills: document.querySelectorAll('.pop-pill').length,
+  swatches: document.querySelectorAll('.swatch').length,
+  shortcut: document.getElementById('pop-shortcut') ? document.getElementById('pop-shortcut').textContent : null,
+  themeBtns: document.querySelectorAll('#pop-theme .seg-btn').length
+}));
+check(
+  'popup renders (input, 4 pills, swatches, shortcut, theme)',
+  popupOk.input && popupOk.pills >= 4 && popupOk.swatches >= 4 && popupOk.themeBtns === 3 && Boolean(popupOk.shortcut),
+  JSON.stringify(popupOk)
+);
+await popupPage.type('#pop-query', 'popup test query');
+await popupPage.click('#pop-go');
+await new Promise((r) => setTimeout(r, 3000));
+const popupTab = browser.targets().find(
+  (t) => t.type() === 'page' && t.url().includes('google.com') && (t.url().includes('search') || t.url().includes('q=')) && t.url().includes('popup')
+);
+check('popup search opens results tab', Boolean(popupTab), 'pageerrors=' + JSON.stringify(popupErrs));
+await popupPage.close().catch(() => {});
+
+const optionsPage = await browser.newPage();
+await optionsPage.goto('chrome-extension://' + extId + '/src/options/options.html', { waitUntil: 'domcontentloaded' });
+const setRes = await optionsPage.evaluate(async () => {
+  const ok = await QLENS.storage.setShortcut('Ctrl+Alt+Q');
+  const cur = await QLENS.storage.getShortcut();
+  return { ok, cur };
+});
+check('shortcut saved to storage (Ctrl+Alt+Q)', setRes.ok === true && setRes.cur === 'Ctrl+Alt+Q', JSON.stringify(setRes));
+await mainPage.bringToFront();
+await mainPage.keyboard.down('Control');
+await mainPage.keyboard.down('Alt');
+await mainPage.keyboard.press('KeyQ');
+await mainPage.keyboard.up('Alt');
+await mainPage.keyboard.up('Control');
+await new Promise((r) => setTimeout(r, 700));
+check('custom combo opens overlay', (await overlayState(mainPage)).visible);
+await mainPage.keyboard.press('Escape');
+await new Promise((r) => setTimeout(r, 400));
+const badRes = await optionsPage.evaluate(async () => {
+  const ok = await QLENS.storage.setShortcut('K');
+  return { ok };
+});
+check('invalid shortcut rejected by storage', badRes.ok === false, JSON.stringify(badRes));
+await optionsPage.evaluate(async () => {
+  await QLENS.storage.setShortcut('Ctrl+Shift+K');
+});
+await optionsPage.close().catch(() => {});
+
 await browser.close();
 server.close();
 console.log('\n' + pass + ' passed, ' + fail + ' failed');

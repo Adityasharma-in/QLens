@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8">
+  <title>QLens</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header class="pop-head">
+    <span class="pop-logo" aria-hidden="true"></span>
+    <span class="pop-title">QLens</span>
+    <span class="pop-shortcut" id="pop-shortcut">Ctrl+Shift+K</span>
+  </header>
+
+  <section class="pop-search">
+    <input type="text" id="pop-query" class="pop-input" placeholder="Search or paste a URL…" aria-label="Quick search">
+    <div class="pop-pills" id="pop-pills" role="radiogroup" aria-label="Search engine"></div>
+    <button type="button" id="pop-go" class="pop-go">Search</button>
+  </section>
+
+  <section class="pop-sec">
+    <div class="pop-label">Appearance</div>
+    <div class="pop-row">
+      <span class="pop-name">Theme</span>
+      <div class="pop-seg" id="pop-theme" role="radiogroup" aria-label="Theme">
+        <button type="button" class="seg-btn" data-value="system">Auto</button>
+        <button type="button" class="seg-btn" data-value="light">Light</button>
+        <button type="button" class="seg-btn" data-value="dark">Dark</button>
+      </div>
+    </div>
+    <div class="pop-row">
+      <span class="pop-name">Accent</span>
+      <div class="pop-swatches" id="pop-swatches" role="radiogroup" aria-label="Accent color"></div>
+    </div>
+  </section>
+
+  <section class="pop-sec">
+    <div class="pop-label">Behavior</div>
+    <label class="pop-row pop-toggle" for="pop-suggestions">
+      <span class="pop-name">Search suggestions</span>
+      <span class="tgl-track"><input type="checkbox" id="pop-suggestions" class="tgl-input"><span class="tgl-thumb" aria-hidden="true"></span></span>
+    </label>
+  </section>
+
+  <footer class="pop-foot">
+    <button type="button" id="pop-settings" class="pop-link">Full settings…</button>
+  </footer>
+
+  <script src="../shared/config.js"></script>
+  <script src="../shared/messaging.js"></script>
+  <script src="../shared/engines.js"></script>
+  <script src="../shared/logos.js"></script>
+  <script src="../shared/storage.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

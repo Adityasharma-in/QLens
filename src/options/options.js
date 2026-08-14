@@ -205,7 +205,6 @@ globalThis.QLENS = globalThis.QLENS || {};
 
   const TOGGLE_MAP = {
     'opt-suggestions': 'suggestions',
-    'opt-showRecent': 'showRecent',
     'opt-blurClose': 'blurClose',
     'opt-autoCopy': 'autoCopySelection'
   };
@@ -226,16 +225,52 @@ globalThis.QLENS = globalThis.QLENS || {};
   }
 
   function showShortcut() {
-    if (!chrome || !chrome.commands || typeof chrome.commands.getAll !== 'function') return;
-    chrome.commands
-      .getAll()
-      .then((commands) => {
-        const cmd = (commands || []).find((c) => c.name === 'open-quick-search');
-        if (cmd && cmd.shortcut) {
-          $('shortcut-display').textContent = cmd.shortcut;
-        }
+    QLENS.storage
+      .getShortcut()
+      .then((combo) => {
+        $('shortcut-input').value = combo;
       })
       .catch(() => {});
+  }
+
+  function bindShortcutCapture() {
+    const input = $('shortcut-input');
+    const note = $('shortcut-note');
+    let pending = null;
+    input.addEventListener('focus', () => {
+      note.textContent = 'Press the keys you want to use (Ctrl or Alt + a key), then click Save.';
+    });
+    input.addEventListener('keydown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.key === 'Escape') {
+        input.blur();
+        return;
+      }
+      const combo = QLENS.buildCombo(e, e.key, e.code);
+      if (!combo) {
+        note.textContent = 'Use a modifier (Ctrl or Alt) plus a letter, number, or F-key.';
+        return;
+      }
+      pending = combo;
+      input.value = combo;
+      note.textContent = 'Shortcut: ' + combo + ' — click Save to apply.';
+    });
+    $('shortcut-save').addEventListener('click', async () => {
+      const combo = pending || (input.value.trim() || '');
+      if (!QLENS.isValidCombo(combo)) {
+        note.textContent = 'Invalid shortcut. Use Ctrl or Alt plus a key.';
+        return;
+      }
+      const ok = await QLENS.storage.setShortcut(combo);
+      if (!ok) {
+        note.textContent = 'Could not save the shortcut.';
+        return;
+      }
+      pending = null;
+      note.textContent = 'Saved — QLens now opens with ' + combo + ' on any page.';
+      showToast('Shortcut updated');
+    });
   }
 
   function showVersion() {
@@ -270,14 +305,11 @@ globalThis.QLENS = globalThis.QLENS || {};
     bindDnD();
     bindData();
     showShortcut();
+    bindShortcutCapture();
     showVersion();
   }
 
   function bindData() {
-    $('clear-recent').addEventListener('click', async () => {
-      await QLENS.storage.clearRecent();
-      showToast('Recent searches cleared');
-    });
     $('reset-all').addEventListener('click', async () => {
       await QLENS.storage.resetAll();
       settings = await QLENS.storage.getSettings();

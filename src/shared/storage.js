@@ -2,17 +2,13 @@ globalThis.QLENS = globalThis.QLENS || {};
 
 const KEY_SETTINGS = QLENS.CONFIG.STORAGE_KEYS.SETTINGS;
 const KEY_LAST_ENGINE = QLENS.CONFIG.STORAGE_KEYS.LAST_ENGINE;
-const KEY_RECENT = QLENS.CONFIG.STORAGE_KEYS.RECENT;
+const KEY_SHORTCUT = QLENS.CONFIG.STORAGE_KEYS.SHORTCUT;
 
 const VALID_THEMES = ['system', 'light', 'dark'];
 const VALID_ACTIONS = ['overlay', 'direct'];
 
 function engineIds() {
   return Object.keys(QLENS.ENGINES);
-}
-
-function modeIds() {
-  return Object.keys(QLENS.QUICK_MODES);
 }
 
 function isPlainObject(v) {
@@ -50,27 +46,10 @@ function sanitizeSettings(raw) {
     autoCopySelection: toBool(raw.autoCopySelection, d.autoCopySelection),
     suggestions: toBool(raw.suggestions, d.suggestions),
     maxSelection: toInt(raw.maxSelection, d.maxSelection, QLENS.CONFIG.MAX_SELECTION_MIN, QLENS.CONFIG.MAX_SELECTION_MAX),
-    showRecent: toBool(raw.showRecent, d.showRecent),
     contextMenuAction: typeof raw.contextMenuAction === 'string' && VALID_ACTIONS.includes(raw.contextMenuAction)
       ? raw.contextMenuAction
       : d.contextMenuAction
   };
-}
-
-function sanitizeRecent(raw) {
-  if (!Array.isArray(raw)) return [];
-  const known = new Set([...engineIds(), ...modeIds()]);
-  const out = [];
-  for (const item of raw) {
-    if (!isPlainObject(item)) continue;
-    const query = typeof item.query === 'string' ? item.query.trim() : '';
-    const engine = typeof item.engine === 'string' ? item.engine : '';
-    const ts = Number(item.ts);
-    if (!query || query.length > 500 || !known.has(engine) || !Number.isFinite(ts)) continue;
-    out.push({ query, engine, ts: Math.floor(ts) });
-    if (out.length >= QLENS.CONFIG.MAX_RECENT) break;
-  }
-  return out;
 }
 
 async function getSettings() {
@@ -117,51 +96,30 @@ async function setLastEngine(id) {
   }
 }
 
-async function getRecent() {
+async function getShortcut() {
   try {
-    const res = await chrome.storage.local.get(KEY_RECENT);
-    return sanitizeRecent(res[KEY_RECENT]);
+    const res = await chrome.storage.local.get(KEY_SHORTCUT);
+    const combo = res[KEY_SHORTCUT];
+    if (typeof combo === 'string' && QLENS.isValidCombo(combo)) return combo;
   } catch (err) {
-    return [];
+    return QLENS.CONFIG.SHORTCUT_DEFAULT;
   }
+  return QLENS.CONFIG.SHORTCUT_DEFAULT;
 }
 
-async function addRecent(query, engine) {
-  const q = typeof query === 'string' ? query.trim() : '';
-  if (!q || q.length > 500) return;
-  const current = await getRecent();
-  const next = current.filter((item) => item.query.toLowerCase() !== q.toLowerCase());
-  next.unshift({ query: q, engine: typeof engine === 'string' ? engine : '', ts: Date.now() });
-  if (next.length > QLENS.CONFIG.MAX_RECENT) next.length = QLENS.CONFIG.MAX_RECENT;
+async function setShortcut(combo) {
+  if (typeof combo !== 'string' || !QLENS.isValidCombo(combo)) return false;
   try {
-    await chrome.storage.local.set({ [KEY_RECENT]: sanitizeRecent(next) });
+    await chrome.storage.local.set({ [KEY_SHORTCUT]: combo });
+    return true;
   } catch (err) {
-    return;
-  }
-}
-
-async function removeRecent(query) {
-  const q = typeof query === 'string' ? query.trim() : '';
-  const current = await getRecent();
-  const next = current.filter((item) => item.query.toLowerCase() !== q.toLowerCase());
-  try {
-    await chrome.storage.local.set({ [KEY_RECENT]: next });
-  } catch (err) {
-    return;
-  }
-}
-
-async function clearRecent() {
-  try {
-    await chrome.storage.local.remove(KEY_RECENT);
-  } catch (err) {
-    return;
+    return false;
   }
 }
 
 async function resetAll() {
   try {
-    await chrome.storage.local.remove([KEY_SETTINGS, KEY_LAST_ENGINE, KEY_RECENT]);
+    await chrome.storage.local.remove([KEY_SETTINGS, KEY_LAST_ENGINE, KEY_SHORTCUT]);
   } catch (err) {
     return;
   }
@@ -172,9 +130,7 @@ QLENS.storage = {
   setSettings,
   getLastEngine,
   setLastEngine,
-  getRecent,
-  addRecent,
-  removeRecent,
-  clearRecent,
+  getShortcut,
+  setShortcut,
   resetAll
 };

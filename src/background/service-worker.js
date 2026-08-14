@@ -115,13 +115,6 @@ async function handleOpenTab(payload) {
   const p = payload || {};
   const url = typeof p.url === 'string' ? p.url : '';
   if (!QLENS.isSafeHttpUrl(url)) return false;
-  if (typeof p.query === 'string' && p.query.trim()) {
-    const engine = typeof p.engine === 'string' ? p.engine : '';
-    const known = Boolean(QLENS.ENGINES[engine] || QLENS.QUICK_MODES[engine]);
-    if (known) {
-      await QLENS.storage.addRecent(p.query, engine);
-    }
-  }
   if (typeof p.engine === 'string' && QLENS.ENGINES[p.engine]) {
     await QLENS.storage.setLastEngine(p.engine);
   }
@@ -157,6 +150,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     handleOpenTab(msg.payload)
       .then((ok) => sendResponse({ ok }))
       .catch((err) => sendResponse({ ok: false, error: String(err) }));
+    return true;
+  }
+  if (msg.type === QLENS.MSG.OPEN_OVERLAY) {
+    openQuickSearch();
+    sendResponse({ ok: true });
     return true;
   }
   if (msg.type === QLENS.MSG.FETCH_SUGGESTIONS) {

@@ -1,6 +1,16 @@
 globalThis.QLENS = globalThis.QLENS || {};
 
+const FONT_FACE = [400, 500, 600, 700]
+  .map((w) =>
+    "@font-face{font-family:'Inter';font-style:normal;font-weight:" + w +
+      ";font-display:swap;src:url('" +
+      chrome.runtime.getURL('src/fonts/inter-latin-' + w + '-normal.woff2') +
+      "') format('woff2');}"
+  )
+  .join('\n');
+
 const CSS = `
+${FONT_FACE}
 :host {
   all: initial;
   --ql-accent: #6366F1;
@@ -17,7 +27,7 @@ const CSS = `
   position: fixed;
   inset: 0;
   z-index: 2147483647;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
   font-size: 15px;
   line-height: 1.4;
   color: var(--ql-text);
@@ -352,52 +362,6 @@ const CSS = `
   min-width: 0;
 }
 
-.ql-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11.5px;
-  color: var(--ql-text-dim);
-  background: var(--ql-hover);
-  border-radius: 999px;
-  padding: 3px 10px 3px 6px;
-  flex: none;
-}
-
-.ql-badge .ql-icon {
-  width: 14px;
-  height: 14px;
-}
-
-.ql-recent {
-  display: flex;
-  align-items: center;
-}
-
-.ql-recent-del {
-  flex: none;
-  width: 40px;
-  height: 44px;
-  border: none;
-  background: transparent;
-  color: var(--ql-text-dim);
-  border-radius: 10px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ql-recent-del:hover {
-  color: var(--ql-text);
-  background: var(--ql-hover);
-}
-
-.ql-recent-del:focus-visible {
-  outline: 2px solid var(--ql-accent);
-  outline-offset: -2px;
-}
-
 .ql-row-enter {
   font-size: 11px;
   font-weight: 700;
@@ -455,7 +419,6 @@ const CSS = `
 `;
 
 const SEARCH_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>';
-const CLOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
 const X_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 const ENTER_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>';
 const SITE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><path d="M10 14L21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
@@ -491,7 +454,6 @@ const Overlay = (() => {
   let suggestionReqId = 0;
   let suggestions = [];
   let suggestionHighlight = -1;
-  let recentItems = [];
   let actionSite = null;
   let selectionText = null;
   let selectionActive = false;
@@ -779,7 +741,6 @@ const Overlay = (() => {
     modeRow.classList.toggle('ql-hidden', !value.trim());
     const site = QLENS.detectSmartUrl(value);
     if (site) {
-      hideRecent();
       hideSuggestions();
       renderActionRow(site);
     } else if (value.trim()) {
@@ -792,9 +753,6 @@ const Overlay = (() => {
     } else {
       hideAction();
       hideSuggestions();
-      if (settings && settings.showRecent) {
-        renderRecentList();
-      }
     }
   }
 
@@ -860,7 +818,6 @@ const Overlay = (() => {
 
   function renderSuggestions(list, query) {
     if (!host) return;
-    if (sectionsEl.dataset.mode === 'recent') sectionsEl.dataset.mode = '';
     sectionsEl.textContent = '';
     hideAction();
     const sec = el('div', 'ql-section');
@@ -947,104 +904,12 @@ const Overlay = (() => {
     actionSite = null;
   }
 
-  function hideRecent() {
-    recentItems = [];
-    if (sectionsEl) {
-      sectionsEl.textContent = '';
-    }
-  }
-
-  async function renderRecent() {
-    let items = [];
-    try {
-      items = await QLENS.storage.getRecent();
-    } catch (err) {
-      items = [];
-    }
-    if (!host) return;
-    recentItems = items;
-    renderRecentList();
-  }
-
-  function renderRecentList() {
-    if (!host) return;
-    if (inputEl.value.trim()) return;
-    sectionsEl.textContent = '';
-    if (!recentItems.length) return;
-    const sec = el('div', 'ql-section');
-    const head = el('div', 'ql-section-head');
-    head.appendChild(el('span', null, 'Recent'));
-    const clearAll = el('button', 'ql-link');
-    clearAll.type = 'button';
-    clearAll.textContent = 'Clear all';
-    clearAll.addEventListener('click', async () => {
-      try {
-        await QLENS.storage.clearRecent();
-      } catch (err) {
-        return;
-      }
-      recentItems = [];
-      renderRecentList();
-    });
-    head.appendChild(clearAll);
-    sec.appendChild(head);
-    const listEl = el('ul', 'ql-list');
-    for (const item of recentItems) {
-      const li = el('li', 'ql-recent');
-      const main = el('button', 'ql-row');
-      main.type = 'button';
-      main.dataset.action = 'recent';
-      main.dataset.query = item.query;
-      main.dataset.engine = item.engine;
-      main.appendChild(iconSvg(CLOCK_SVG));
-      main.appendChild(el('span', 'ql-row-text', item.query));
-      const badge = engineBadge(item.engine);
-      if (badge) main.appendChild(badge);
-      const del = el('button', 'ql-recent-del');
-      del.type = 'button';
-      del.dataset.action = 'recent-del';
-      del.dataset.query = item.query;
-      del.setAttribute('aria-label', 'Remove from history');
-      del.appendChild(iconSvg(X_SVG));
-      li.appendChild(main);
-      li.appendChild(del);
-      listEl.appendChild(li);
-    }
-    sec.appendChild(listEl);
-    sectionsEl.appendChild(sec);
-  }
-
-  function engineBadge(id) {
-    if (QLENS.ENGINES[id]) {
-      const badge = el('span', 'ql-badge');
-      badge.appendChild(iconSvg(svgLogo(id)));
-      badge.appendChild(el('span', null, QLENS.ENGINES[id].name));
-      return badge;
-    }
-    if (QLENS.QUICK_MODES[id]) {
-      const badge = el('span', 'ql-badge');
-      badge.appendChild(el('span', null, QLENS.QUICK_MODES[id].name));
-      return badge;
-    }
-    return null;
-  }
-
   function onSectionClick(e) {
     const row = e.target.closest('[data-action]');
     if (!row) return;
     const action = row.dataset.action;
     if (action === 'suggest') {
       if (row.dataset.query) submitQuery(row.dataset.query);
-    } else if (action === 'recent') {
-      if (row.dataset.query) {
-        submitQuery(row.dataset.query, row.dataset.engine || undefined);
-      }
-    } else if (action === 'recent-del') {
-      const q = row.dataset.query;
-      QLENS.storage.removeRecent(q).then(() => {
-        recentItems = recentItems.filter((item) => item.query.toLowerCase() !== q.toLowerCase());
-        renderRecentList();
-      }).catch(() => {});
     } else if (action === 'site') {
       if (actionSite) goToSite(actionSite);
     }
@@ -1085,7 +950,6 @@ const Overlay = (() => {
     actionSite = null;
     suggestions = [];
     suggestionHighlight = -1;
-    recentItems = [];
     selectionText = null;
     selectionActive = false;
     settings = null;
@@ -1143,9 +1007,6 @@ const Overlay = (() => {
     }
     if (s.blurClose) {
       root.addEventListener('focusout', onFocusOut);
-    }
-    if (s.showRecent && !inputEl.value.trim()) {
-      renderRecent();
     }
   }
 

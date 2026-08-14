@@ -20,8 +20,15 @@
 - [x] T013: README.md + CHANGELOG.md + PRD.md copy — Done when: instructions accurate
 
 ## Phase 4: Verify & Ship
-- [ ] T014: FULL VERIFY — syntax check every JS file; run unit suite; run puppeteer smoke (if feasible); re-read every file end-to-end for bugs; fix issues found — Done when: all green, zero known bugs
+- [x] T014: FULL VERIFY — syntax check every JS file; run unit suite; run puppeteer smoke (if feasible); re-read every file end-to-end for bugs; fix issues found — Done when: all green, zero known bugs
 - [x] T016: Fix selection capture order bug (capture before focusInput in overlay show) — Done when: smoke test "selection auto-filled" passes
 - [x] T017: Fix smart-URL render bugs (hideRecent wiping row; actionSite never set) — Done when: smoke "smart URL" + "Enter opens the site" pass
 - [x] T018: Make smoke test runnable — Chrome for Testing install, SW wake+ping, inject-then-send replication, shadow-piercing focus — Done when: 13/13 smoke PASS
-- [ ] T015: Pre-ship checklist (AC1–AC11), final commit, delivery summary — Done when: checklist complete
+- [x] T015: Pre-ship checklist (AC1–AC11), final commit, delivery summary — Done when: checklist complete (commit 16c3100)
+
+## Phase 5: v1.1 (user request)
+- [x] T019: Remove recent-search history from overlay + options (storage API, overlay CSS/rows, options card, SW write) — Done when: unit tests updated, 30/30
+- [x] T020: Inter font (bundled woff2, options + overlay @font-face, manifest web_accessible_resources) — Done when: syntax/unit/lint green
+- [x] T021: Toolbar action popup (search, engine pills, theme/accent, suggestions toggle, shortcut badge, settings link) — Done when: smoke popup render + popup search PASS
+- [x] T022: Rebinding the shortcut — DISCOVERY: chrome.commands.update does NOT exist (SW has only onCommand/getAll) → design pivot: combo stored in storage, content-script keydown listener matches + routes via SW OPEN_OVERLAY; manifest command kept as default — Done when: unit shortcut tests + smoke custom-combo opens overlay PASS
+- [ ] T023: Final v1.1 pass — full syntax/unit/lint/smoke re-run, docs, commit, delivery summary

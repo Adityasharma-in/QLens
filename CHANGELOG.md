@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## [1.1.0] — 2026-08-14
+
+### Added
+- Toolbar action popup: quick search with engine pills, theme/accent controls, suggestions toggle, shortcut badge, link to full settings
+- Rebindable overlay shortcut: capture field in options (Ctrl/Alt + letter/number/F-key); combo is matched by a content-script keydown listener (works on any page; manifest command kept as default trigger)
+- Inter typeface bundled locally (400/500/600/700, OFL) — options page and overlay both use it
+
+### Removed
+- Recent-search history (overlay rows, options card, storage API)
+
+### Technical notes
+- Chrome exposes no programmatic shortcut-update API (`chrome.commands.update` does not exist even in the service worker) — the rebind feature stores the combo and matches keydowns in the content script instead
+- Fix: popup page now loads shared/messaging.js (previously QLENS.MSG was undefined there, silently breaking popup search)
+
 ## [1.0.0] — 2026-08-14
 
 Initial release per PRD.
