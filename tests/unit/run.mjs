@@ -240,6 +240,26 @@ await testAsync('storage: last engine falls back to default', async () => {
   assert.equal(e, 'google');
 });
 
+loadScript('src/content/selection.js');
+test('selection: truncate short text unchanged', () => {
+  assert.equal(Q.Selection.truncate('  hello   world  ', 200), 'hello world');
+});
+test('selection: truncate long text at limit with ellipsis', () => {
+  const long = 'a'.repeat(500);
+  const out = Q.Selection.truncate(long, 200);
+  assert.equal(out.length, 201);
+  assert.equal(out.endsWith('…'), true);
+  assert.equal(out.slice(0, 200), 'a'.repeat(200));
+});
+test('selection: truncate empty returns null', () => {
+  assert.equal(Q.Selection.truncate('   \n  ', 200), null);
+  assert.equal(Q.Selection.truncate(null, 200), null);
+});
+test('selection: truncate default limit 200', () => {
+  const out = Q.Selection.truncate('x'.repeat(300), NaN);
+  assert.equal(out.length, 201);
+});
+
 console.log('\n' + results.pass + ' passed, ' + results.fail + ' failed');
 if (results.fail > 0) {
   for (const f of results.failures) console.log('\nFAILED: ' + f.name + '\n  ' + f.err.stack);

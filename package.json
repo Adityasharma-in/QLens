@@ -1,0 +1,15 @@
+{
+  "name": "qlens",
+  "version": "1.0.0",
+  "private": true,
+  "description": "QLens — Quick Search Overlay Chrome extension (MV3, zero build)",
+  "scripts": {
+    "check": "node tests/check-syntax.mjs",
+    "test": "node tests/unit/run.mjs",
+    "smoke": "node tests/e2e/smoke.mjs",
+    "lint": "eslint src"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0"
+  }
+}
