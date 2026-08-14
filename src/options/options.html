@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QLens — Options</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div class="hero-logo" aria-hidden="true">
+        <svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#4F46E5"/>
+              <stop offset="1" stop-color="#7C3AED"/>
+            </linearGradient>
+          </defs>
+          <rect x="0" y="0" width="128" height="128" rx="28" fill="url(#bg)"/>
+          <circle cx="51" cy="51" r="33" fill="rgba(255,255,255,0.28)" stroke="#ffffff" stroke-width="11"/>
+          <line x1="74" y1="74" x2="107" y2="107" stroke="#ffffff" stroke-width="14" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="hero-text">
+        <h1>QLens <span class="hero-version" id="version">1.0.0</span></h1>
+        <p class="hero-sub">Quick Search Overlay — search any page without leaving your flow.</p>
+      </div>
+      <p class="privacy">100% local — no data leaves your device.</p>
+    </header>
+
+    <section class="card">
+      <h2>Search engines</h2>
+      <div class="field">
+        <label class="field-label" for="default-engine">Default engine</label>
+        <div class="pill-radio" id="default-engine" role="radiogroup" aria-label="Default engine"></div>
+      </div>
+      <div class="field">
+        <label class="field-label" id="order-label">Engine order — drag to reorder, or use the arrows</label>
+        <ul class="order-list" id="order-list" aria-labelledby="order-label"></ul>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Appearance</h2>
+      <div class="field">
+        <label class="field-label" id="theme-label">Theme</label>
+        <div class="seg" id="theme" role="radiogroup" aria-labelledby="theme-label">
+          <button type="button" class="seg-btn" data-theme="system">System</button>
+          <button type="button" class="seg-btn" data-theme="light">Light</button>
+          <button type="button" class="seg-btn" data-theme="dark">Dark</button>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label" id="accent-label">Accent color</label>
+        <div class="swatches" id="swatches" role="radiogroup" aria-labelledby="accent-label"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Behavior</h2>
+      <label class="tgl-row" for="opt-suggestions">
+        <span class="tgl-text">
+          <span class="tgl-title">Search suggestions</span>
+          <span class="tgl-desc">Show suggestions while typing (fetch-light, silently disabled offline)</span>
+        </span>
+        <span class="tgl-track"><input type="checkbox" id="opt-suggestions" class="tgl-input"><span class="tgl-thumb" aria-hidden="true"></span></span>
+      </label>
+      <label class="tgl-row" for="opt-showRecent">
+        <span class="tgl-text">
+          <span class="tgl-title">Recent searches</span>
+          <span class="tgl-desc">Remember the last 10 queries locally</span>
+        </span>
+        <span class="tgl-track"><input type="checkbox" id="opt-showRecent" class="tgl-input"><span class="tgl-thumb" aria-hidden="true"></span></span>
+      </label>
+      <label class="tgl-row" for="opt-blurClose">
+        <span class="tgl-text">
+          <span class="tgl-title">Close on blur</span>
+          <span class="tgl-desc">Dismiss the overlay when it loses focus</span>
+        </span>
+        <span class="tgl-track"><input type="checkbox" id="opt-blurClose" class="tgl-input"><span class="tgl-thumb" aria-hidden="true"></span></span>
+      </label>
+      <label class="tgl-row" for="opt-autoCopy">
+        <span class="tgl-text">
+          <span class="tgl-title">Auto-copy selection</span>
+          <span class="tgl-desc">Copy selected text to the clipboard when the overlay opens</span>
+        </span>
+        <span class="tgl-track"><input type="checkbox" id="opt-autoCopy" class="tgl-input"><span class="tgl-thumb" aria-hidden="true"></span></span>
+      </label>
+      <div class="field">
+        <label class="field-label" id="ctx-label">Right-click search</label>
+        <div class="seg" id="ctx" role="radiogroup" aria-labelledby="ctx-label">
+          <button type="button" class="seg-btn" data-action="overlay">Open overlay</button>
+          <button type="button" class="seg-btn" data-action="direct">Search directly</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Shortcut</h2>
+      <div class="shortcut-row">
+        <div>
+          <div class="shortcut-key" id="shortcut-display">Ctrl+Shift+K</div>
+          <p class="shortcut-note">Global hotkey that summons the overlay. Rebinding happens in Chrome, not here.</p>
+        </div>
+        <a class="btn btn-secondary" href="chrome://extensions/shortcuts" target="_blank" rel="noopener">Change shortcut</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Data</h2>
+      <div class="data-row">
+        <div>
+          <p class="data-title">Recent searches</p>
+          <p class="data-note">Stored only on this device.</p>
+        </div>
+        <button type="button" class="btn btn-secondary" id="clear-recent">Clear recent searches</button>
+      </div>
+      <div class="data-row">
+        <div>
+          <p class="data-title">Reset everything</p>
+          <p class="data-note">Restore default settings and clear local data.</p>
+        </div>
+        <button type="button" class="btn btn-danger" id="reset-all">Reset to defaults</button>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <span id="foot-version"></span>
+      <span class="foot-dot">·</span>
+      <span>Free · No ads · No tracking</span>
+    </footer>
+  </main>
+
+  <script src="../shared/config.js"></script>
+  <script src="../shared/messaging.js"></script>
+  <script src="../shared/engines.js"></script>
+  <script src="../shared/logos.js"></script>
+  <script src="../shared/storage.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>
