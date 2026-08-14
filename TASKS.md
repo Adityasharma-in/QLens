@@ -31,4 +31,4 @@
 - [x] T020: Inter font (bundled woff2, options + overlay @font-face, manifest web_accessible_resources) — Done when: syntax/unit/lint green
 - [x] T021: Toolbar action popup (search, engine pills, theme/accent, suggestions toggle, shortcut badge, settings link) — Done when: smoke popup render + popup search PASS
 - [x] T022: Rebinding the shortcut — DISCOVERY: chrome.commands.update does NOT exist (SW has only onCommand/getAll) → design pivot: combo stored in storage, content-script keydown listener matches + routes via SW OPEN_OVERLAY; manifest command kept as default — Done when: unit shortcut tests + smoke custom-combo opens overlay PASS
-- [ ] T023: Final v1.1 pass — full syntax/unit/lint/smoke re-run, docs, commit, delivery summary
+- [x] T023: Final v1.1 pass — full syntax/unit/lint/smoke re-run, docs, commit, delivery summary — Done when: all green, commit 359a6b9
