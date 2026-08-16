@@ -39,6 +39,13 @@
 ## Phase 7: v1.2 follow-ups (user request)
 - [x] T025: Suggestions always Google-only — suggestUrlFor now returns the Google suggestqueries URL for every engine (bing/ddg/unknown included; engine param ignored); .ql-suggest gained overflow-x:hidden and .ql-sug-sub ellipsis so no horizontal scrollbar ever appears — Done when: syntax 13/13, unit 32/32 (suggest-url test asserts google for all engines)
 
+## Phase 8: v1.3 image search (user request)
+- [x] T026: Pure Lens upload payload — engines.js gains LENS_UPLOAD + lensUploadBody(base64, text, filename, boundary) → Uint8Array (multipart encoded_image + image_content), 4 new unit tests — Done when: unit 43/43
+- [x] T027: Config + message — IMAGE_SEARCH_TIMEOUT_MS/IMAGE_MAX_BYTES/IMAGE_MAX_DIM/IMAGE_JPEG_QUALITY/LENS_FILENAME constants; MSG.IMAGE_SEARCH — Done when: syntax green
+- [x] T028: SW handleImageSearch — decode, cap, build multipart, POST /searchbyimage/upload (20 s abort), redirect allowlist, lens.google.com fallback; wired into onMessage — Done when: syntax green
+- [x] T029: Overlay image attach — camera button + hidden file input, thumbnail chip (renderImageChip), paste/drop handlers, local canvas re-encode (≤2048 px, ≤5 MB, JPEG 0.9), Esc-removes-first, Enter→searchImage (IMAGE_SEARCH + destroy-before-tab) — Done when: syntax green + re-review
+- [x] T030: Docs + QA — manual-checklist image rows M1–M7, README feature row, CHANGELOG v1.3 entry, TASKS/MEMORY update, full syntax+unit verify — Done when: all green
+
 ## Phase 8: Google AI Mode (user request)
 - [x] T026: AI Mode search template + ai flag — engines.js google.aiSearch = 'search?atvm=2&q={q}'; buildSearchUrl(engineId, query, modeId, ai) uses aiSearch when ai && google && !modeId — Done when: unit tests (ai URL, off-google ignore, mode-wins, null) pass
 - [x] T027: Overlay AI Mode toggle — .ql-pill-ai switch (spark icon, role=switch, aria-checked) on own row above engine pills, always visible; Tab on input toggles aiMode (Shift+Tab focus-traversal kept); setAi forces google engine; setEngine/setMode/prefix clear aiMode; cycleEngine removed; footer engine label 'Google AI'; suggestion sub + smart-url sub gain '· AI'; footer hint tab→ai; submit passes aiMode — Done when: syntax 13/13, unit 39/39

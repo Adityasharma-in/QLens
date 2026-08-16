@@ -67,5 +67,16 @@ extension log. Record every row: PASS / FAIL + note.
 2. Wait for the results tab to load, switch back to the original tab.
 3. Screenshot: the page must be exactly as it was — no overlay, no dim, no blur.
 
-## 10. Logs
+## 10. Image search
+| # | Scenario | Expected | Result |
+|---|----------|----------|--------|
+| M1 | Camera button → pick a PNG | Thumbnail chip appears; Enter opens Google Lens showing results for that image | |
+| M2 | Copy an image, `Ctrl+V` into the overlay input | Same as M1 (clipboard paste) | |
+| M3 | Drag & drop an image onto the overlay | Same as M1 (drop) | |
+| M4 | Attach an image + type text → Enter | Lens results reflect the image AND the text query | |
+| M5 | Attach image → `Esc` | Removes the attachment (overlay stays); `Esc` again closes | |
+| M6 | Click the thumbnail × | Removes the attachment | |
+| M7 | Pasting non-image text (while input focused) | Inserts text normally; no image state | |
+
+## 11. Logs
 - `chrome://extensions` → "Errors" must be empty after the full matrix above.
