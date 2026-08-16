@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 
 const ROOT = decodeURIComponent(new URL('../..', import.meta.url).pathname).replace(/^\/([A-Za-z]:)\//, '$1/');
 const results = { pass: 0, fail: 0, failures: [] };
+const textDecoder = new TextDecoder();
 
 function loadScript(relPath) {
   const code = readFileSync(join(ROOT, relPath), 'utf8');
@@ -180,6 +181,28 @@ test('engines: isSafeHttpUrl allowlist', () => {
   assert.equal(Q.isSafeHttpUrl('chrome://extensions'), false);
   assert.equal(Q.isSafeHttpUrl('not a url'), false);
   assert.equal(Q.isSafeHttpUrl(null), false);
+});
+test('lens: endpoint constant', () => {
+  assert.equal(Q.LENS_UPLOAD, 'https://www.google.com/searchbyimage/upload');
+});
+test('lens: empty text body structure', () => {
+  const b = Q.lensUploadBody('aGVsbG8=', '', 'f.png', 'qlb');
+  const s = textDecoder.decode(b);
+  assert.equal(s.startsWith('--qlb\r\n'), true);
+  assert.ok(s.includes('name="encoded_image"; filename="f.png"'));
+  assert.ok(s.includes('name="image_content"\r\n\r\n'));
+  assert.ok(s.endsWith('--qlb--\r\n'));
+});
+test('lens: non-empty text goes to image_content', () => {
+  const b = Q.lensUploadBody('aGVsbG8=', 'red car', 'f.png', 'qlb');
+  const s = textDecoder.decode(b);
+  assert.ok(s.includes('red car'), 'typed text present as image_content');
+});
+test('lens: decodes base64 into binary encoded_image content', () => {
+  const b = Q.lensUploadBody('aGVsbG8=', '', 'f.png', 'qqq');
+  const s = textDecoder.decode(b);
+  const marker = s.indexOf('hello');
+  assert.ok(marker > 0, 'decoded "hello" bytes embedded (no loss)');
 });
 test('manifest: required fields present', () => {
   const m = JSON.parse(readFileSync(join(ROOT, 'manifest.json'), 'utf8'));

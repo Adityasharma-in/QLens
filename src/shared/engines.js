@@ -152,6 +152,43 @@ function isSafeHttpUrl(url) {
   }
 }
 
+const LENS_UPLOAD = 'https://www.google.com/searchbyimage/upload';
+const LENS_FILENAME_DEFAULT = 'qlens-search.png';
+
+function lensUploadBody(base64Bytes, text, filename, boundary) {
+  const enc = new TextEncoder();
+  const b = boundary || '----qlens';
+  const name = typeof filename === 'string' && filename ? filename : LENS_FILENAME_DEFAULT;
+  const query = String(text == null ? '' : text).trim();
+  let bin;
+  try {
+    const raw = globalThis.atob(String(base64Bytes == null ? '' : base64Bytes));
+    const n = raw.length;
+    bin = new Uint8Array(n);
+    for (let i = 0; i < n; i++) bin[i] = raw.charCodeAt(i);
+  } catch (err) {
+    bin = new Uint8Array(0);
+  }
+  const head =
+    '--' + b + '\r\n' +
+    'Content-Disposition: form-data; name="encoded_image"; filename="' + name + '"\r\n' +
+    'Content-Type: image/png\r\n\r\n';
+  const mid =
+    '\r\n--' + b + '\r\n' +
+    'Content-Disposition: form-data; name="image_content"\r\n\r\n' +
+    query;
+  const tail = '\r\n--' + b + '--\r\n';
+  const headBytes = enc.encode(head);
+  const midBytes = enc.encode(mid);
+  const tailBytes = enc.encode(tail);
+  const out = new Uint8Array(headBytes.length + bin.length + midBytes.length + tailBytes.length);
+  out.set(headBytes, 0);
+  out.set(bin, headBytes.length);
+  out.set(midBytes, headBytes.length + bin.length);
+  out.set(tailBytes, headBytes.length + bin.length + midBytes.length);
+  return out;
+}
+
 QLENS.ENGINES = ENGINES;
 QLENS.QUICK_MODES = QUICK_MODES;
 QLENS.ENGINE_PREFIXES = ENGINE_PREFIXES;
@@ -161,3 +198,5 @@ QLENS.suggestUrlFor = suggestUrlFor;
 QLENS.parsePrefix = parsePrefix;
 QLENS.detectSmartUrl = detectSmartUrl;
 QLENS.isSafeHttpUrl = isSafeHttpUrl;
+QLENS.LENS_UPLOAD = LENS_UPLOAD;
+QLENS.lensUploadBody = lensUploadBody;
