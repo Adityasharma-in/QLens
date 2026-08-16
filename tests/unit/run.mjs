@@ -98,17 +98,49 @@ test('engines: empty query returns null', () => {
   assert.equal(Q.buildSearchUrl('google', ''), null);
   assert.equal(Q.buildSearchUrl('google', null), null);
 });
+test('engines: ai flag uses Google AI Mode URL', () => {
+  assert.equal(
+    Q.buildSearchUrl('google', 'cats', null, true),
+    'https://www.google.com/search?atvm=2&q=cats'
+  );
+});
+test('engines: ai flag ignored off google', () => {
+  assert.equal(
+    Q.buildSearchUrl('brave', 'cats', null, true),
+    'https://search.brave.com/search?q=cats'
+  );
+  assert.equal(
+    Q.buildSearchUrl('bing', 'cats', null, true),
+    'https://www.bing.com/search?q=cats'
+  );
+});
+test('engines: mode wins over ai', () => {
+  assert.equal(
+    Q.buildSearchUrl('google', 'cats', 'images', true),
+    'https://www.google.com/search?tbm=isch&q=cats'
+  );
+});
+test('engines: ai empty query still null', () => {
+  assert.equal(Q.buildSearchUrl('google', '', null, true), null);
+});
+test('engines: bogus engine with ai falls back to google ai', () => {
+  assert.equal(
+    Q.buildSearchUrl('bogus', 'x', null, true),
+    'https://www.google.com/search?atvm=2&q=x'
+  );
+});
 test('engines: unknown engine falls back to default', () => {
   assert.equal(Q.buildSearchUrl('bogus', 'x'), 'https://www.google.com/search?q=x');
 });
 test('engines: bogus mode falls back to engine search', () => {
   assert.equal(Q.buildSearchUrl('google', 'x', 'bogusmode'), 'https://www.google.com/search?q=x');
 });
-test('engines: suggest urls', () => {
+test('engines: suggest urls always google', () => {
   assert.equal(Q.suggestUrlFor('google', 'c'), 'https://suggestqueries.google.com/complete/search?client=firefox&q=c');
   assert.equal(Q.suggestUrlFor('brave', 'c'), 'https://suggestqueries.google.com/complete/search?client=firefox&q=c');
-  assert.equal(Q.suggestUrlFor('bing', 'c'), 'https://api.bing.com/osjson.aspx?query=c');
-  assert.equal(Q.suggestUrlFor('duckduckgo', 'c'), 'https://duckduckgo.com/ac/?q=c');
+  assert.equal(Q.suggestUrlFor('bing', 'c'), 'https://suggestqueries.google.com/complete/search?client=firefox&q=c');
+  assert.equal(Q.suggestUrlFor('duckduckgo', 'c'), 'https://suggestqueries.google.com/complete/search?client=firefox&q=c');
+  assert.equal(Q.suggestUrlFor('bogus', 'c'), 'https://suggestqueries.google.com/complete/search?client=firefox&q=c');
 });
 test('engines: prefix parse engine', () => {
   assert.deepEqual(Q.parsePrefix('b cats'), { type: 'engine', id: 'brave', rest: 'cats' });
@@ -189,6 +221,20 @@ test('manifest: every referenced file exists', () => {
   for (const rel of Q.CONTENT_FILES) {
     assert.ok(statSync(join(ROOT, rel)).isFile(), 'missing content file ' + rel);
   }
+});
+test('manifest: no static content_scripts (on-demand + gated keydown preflight only)', () => {
+  const m = JSON.parse(readFileSync(join(ROOT, 'manifest.json'), 'utf8'));
+  assert.equal(m.content_scripts, undefined);
+});
+test('manifest: keydown files exist, lean, subset of CONTENT_FILES', () => {
+  for (const rel of Q.KEYDOWN_FILES) {
+    assert.ok(statSync(join(ROOT, rel)).isFile(), 'missing keydown file ' + rel);
+  }
+  assert.ok(Q.KEYDOWN_FILES.every((f) => Q.CONTENT_FILES.includes(f)), 'keydown files subset of CONTENT_FILES');
+  assert.ok(
+    !Q.KEYDOWN_FILES.some((f) => f === 'src/content/overlay.js' || f === 'src/content/selection.js'),
+    'overlay/selection not pre-injected'
+  );
 });
 
 await testAsync('storage: defaults when empty', async () => {
