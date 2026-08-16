@@ -56,6 +56,8 @@ ${FONT_FACE}
   --ql-radius-lg: 14px;
   --ql-radius-input: 16px;
   --ql-radius-card: 20px;
+  --ql-radius-img: 10px;
+  --ql-radius-img: 10px;
   --ql-radius-full: 999px;
   --ql-dur-fast: 140ms;
   --ql-dur-med: 240ms;
@@ -422,6 +424,107 @@ ${FONT_FACE}
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.ql-img-btn {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--ql-radius-sm);
+  border: 1px solid var(--ql-hairline);
+  background: var(--ql-liner);
+  color: var(--ql-text-dim);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background var(--ql-dur-fast), color var(--ql-dur-fast), transform var(--ql-dur-fast) var(--ql-ease-spring);
+}
+
+.ql-img-btn:hover {
+  background: var(--ql-liner-hover);
+  color: var(--ql-text);
+}
+
+.ql-img-btn:active {
+  transform: scale(.92);
+}
+
+.ql-img-btn:focus-visible {
+  outline: 2px solid var(--ql-accent);
+  outline-offset: 2px;
+}
+
+.ql-img-btn .ql-icon {
+  color: var(--ql-text-faint);
+}
+
+.ql-img-btn:hover .ql-icon {
+  color: var(--ql-accent);
+}
+
+.ql-img-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 2px 8px 2px 3px;
+  border-radius: var(--ql-radius-img);
+  border: 1px solid rgba(var(--ql-accent-rgb), .35);
+  background: rgba(var(--ql-accent-rgb), .1);
+  color: var(--ql-text);
+  cursor: pointer;
+  transition: background var(--ql-dur-fast), border-color var(--ql-dur-fast);
+}
+
+.ql-img-chip:hover {
+  background: rgba(var(--ql-accent-rgb), .18);
+}
+
+.ql-img-chip:focus-visible {
+  outline: 2px solid var(--ql-accent);
+  outline-offset: 2px;
+}
+
+.ql-img-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  flex: none;
+}
+
+.ql-img-x {
+  flex: none;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--ql-text-faint);
+  display: grid;
+  place-items: center;
+}
+
+.ql-err {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 7;
+  max-width: 80%;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(244, 63, 94, .16);
+  border: 1px solid rgba(244, 63, 94, .4);
+  color: var(--ql-text);
+  font-size: 11.5px;
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--ql-dur-fast) var(--ql-ease-out);
+}
+
+.ql-err.is-open {
+  opacity: 1;
 }
 
 .ql-close {
@@ -898,6 +1001,7 @@ const ICON_SPARK = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" 
 const ICON_ARROW = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg>';
 const ICON_GLOBE = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg>';
 const ICON_RETICLE = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4"/></svg>';
+const ICON_CAMERA = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8a2 2 0 0 1 2-2h2l1.2-2h7.6L17 6h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.5" r="3.2"/></svg>';
 
 function iconSvg(markup, cls) {
   const wrap = document.createElement('span');
@@ -949,6 +1053,11 @@ const Overlay = (() => {
   let actionSite = null;
   let selectionText = null;
   let selectionActive = false;
+  let attachment = null;
+  let imgBtn = null;
+  let fileInput = null;
+  let errEl = null;
+  let toastTimer = null;
   let closing = false;
 
   function el(tag, cls, text) {
@@ -1024,6 +1133,21 @@ const Overlay = (() => {
 
     chipZoneEl = el('div', 'ql-chip-zone');
     inputRow.appendChild(chipZoneEl);
+
+    fileInput = el('input', 'ql-hidden');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    inputRow.appendChild(fileInput);
+
+    imgBtn = el('button', 'ql-img-btn');
+    imgBtn.type = 'button';
+    imgBtn.setAttribute('aria-label', 'Search an image');
+    imgBtn.title = 'Search an image (paste works too)';
+    imgBtn.appendChild(iconSvg(ICON_CAMERA));
+    inputRow.appendChild(imgBtn);
+
+    errEl = el('div', 'ql-err');
+    panel.appendChild(errEl);
 
     closeBtn = el('button', 'ql-close');
     closeBtn.type = 'button';
@@ -1133,18 +1257,173 @@ const Overlay = (() => {
   function renderChip() {
     if (!chipZoneEl) return;
     chipZoneEl.textContent = '';
-    if (!selectionActive || !selectionText) return;
-    const chip = el('button', 'ql-chip');
+    if (selectionActive && selectionText) {
+      const chip = el('button', 'ql-chip');
+      chip.type = 'button';
+      chip.title = selectionText;
+      chip.setAttribute('aria-label', 'Searching selected text. Click to remove.');
+      chip.appendChild(iconSvg(ICON_SPARK));
+      chip.appendChild(el('span', null, selectionText));
+      chip.addEventListener('click', () => {
+        selectionActive = false;
+        renderChip();
+      });
+      chipZoneEl.appendChild(chip);
+    }
+    renderImageChip();
+  }
+
+  function renderImageChip() {
+    if (!chipZoneEl || !attachment) return;
+    const chip = el('button', 'ql-img-chip');
     chip.type = 'button';
-    chip.title = selectionText;
-    chip.setAttribute('aria-label', 'Searching selected text. Click to remove.');
-    chip.appendChild(iconSvg(ICON_SPARK));
-    chip.appendChild(el('span', null, selectionText));
+    chip.setAttribute('aria-label', 'Search this image. Click to remove.');
+    chip.title = 'Search this image';
+    const thumb = el('span', 'ql-img-thumb');
+    thumb.style.backgroundImage = 'url(' + attachment.src + ')';
+    const label = el('span', 'ql-img-x');
+    label.textContent = '×';
+    chip.appendChild(thumb);
+    chip.appendChild(label);
     chip.addEventListener('click', () => {
-      selectionActive = false;
-      renderChip();
+      removeImage();
     });
     chipZoneEl.appendChild(chip);
+  }
+
+  function showError(text) {
+    if (!errEl) return;
+    errEl.textContent = text;
+    errEl.classList.add('is-open');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      errEl.classList.remove('is-open');
+    }, 3200);
+  }
+
+  function base64FromBytes(bytes) {
+    let binary = '';
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    return btoa(binary);
+  }
+
+  function decodeImageToBytes(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          resolve(new Uint8Array(reader.result));
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = () => reject(reader.error || new Error('read failed'));
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  function sniffImageType(bytes) {
+    if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return 'image/png';
+    if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg';
+    if (bytes.length >= 4 && bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38) return 'image/gif';
+    if (bytes.length >= 12 && bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+      bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) return 'image/webp';
+    if (bytes.length >= 2 && bytes[0] === 0x42 && bytes[1] === 0x4d) return 'image/bmp';
+    return null;
+  }
+
+  async function attachImage(file) {
+    if (!file || !host) return;
+    let bytes;
+    try {
+      bytes = await decodeImageToBytes(file);
+    } catch (err) {
+      showError('Could not read that image.');
+      return;
+    }
+    if (!bytes || bytes.length === 0) {
+      showError('The selected file is empty.');
+      return;
+    }
+    if (bytes.length > QLENS.CONFIG.IMAGE_MAX_BYTES) {
+      showError('Image is too large (max 5 MB).');
+      return;
+    }
+    const mime = sniffImageType(bytes) || (typeof file.type === 'string' && file.type.startsWith('image/') ? file.type : null);
+    if (!mime) {
+      showError('That does not look like an image.');
+      return;
+    }
+    const name = (typeof file.name === 'string' && file.name) ? file.name : QLENS.CONFIG.LENS_FILENAME;
+    let blob = null;
+    let src = null;
+    let outBytes = bytes;
+    try {
+      const bitmap = await createImageBitmap(new Blob([bytes], { type: mime }));
+      const max = QLENS.CONFIG.IMAGE_MAX_DIM;
+      const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
+      if (scale < 1) {
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+        canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+          const resized = await new Promise((resolve) => {
+            canvas.toBlob(resolve, 'image/jpeg', QLENS.CONFIG.IMAGE_JPEG_QUALITY);
+          });
+          if (resized) {
+            outBytes = new Uint8Array(await resized.arrayBuffer());
+            blob = resized;
+          }
+        }
+        bitmap.close();
+      }
+    } catch (err) {
+      /* keep original bytes when canvas resize fails */
+    }
+    if (blob) {
+      src = URL.createObjectURL(blob);
+    } else {
+      const safeType = mime === 'image/png' || mime === 'image/gif' || mime === 'image/webp'
+        ? mime : 'image/jpeg';
+      src = URL.createObjectURL(new Blob([bytes], { type: safeType }));
+    }
+    attachment = { bytes: outBytes, src, name };
+    renderChip();
+  }
+
+  function removeImage() {
+    if (attachment && attachment.src) {
+      try {
+        URL.revokeObjectURL(attachment.src);
+      } catch (err) {
+        /* best-effort */
+      }
+    }
+    attachment = null;
+    renderChip();
+  }
+
+  function searchImage() {
+    if (!attachment) return;
+    const text = inputEl.value.trim();
+    const bytes = attachment.bytes;
+    const name = attachment.name || '';
+    const payload = {
+      bytes: base64FromBytes(bytes),
+      text,
+      name
+    };
+    try {
+      chrome.runtime.sendMessage({ type: QLENS.MSG.IMAGE_SEARCH, payload }).catch(() => {});
+    } catch (err) {
+      /* send is best-effort; overlay still destroyed */
+    }
+    destroy(false);
   }
 
   function updateFootEngine() {
@@ -1171,6 +1450,25 @@ const Overlay = (() => {
   function addListeners() {
     root.addEventListener('keydown', onKeyDown);
     inputEl.addEventListener('input', onInput);
+    imgBtn.addEventListener('click', () => {
+      try {
+        fileInput.click();
+      } catch (err) {
+        /* file picker denied — silently skipped */
+      }
+    });
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files && fileInput.files.length > 0) {
+        attachImage(fileInput.files[0]);
+      }
+      fileInput.value = '';
+      focusInput();
+    });
+    root.addEventListener('drop', onDrop);
+    root.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+    root.addEventListener('paste', onPaste);
     closeBtn.addEventListener('click', () => {
       if (inputEl.value) {
         inputEl.value = '';
@@ -1196,6 +1494,43 @@ const Overlay = (() => {
     updateInputState();
   }
 
+  function onDrop(e) {
+    e.preventDefault();
+    if (!host) return;
+    const files = e.dataTransfer && e.dataTransfer.files ? e.dataTransfer.files : null;
+    if (!files || files.length === 0) return;
+    for (const f of files) {
+      if (typeof f.type === 'string' && f.type.startsWith('image/')) {
+        attachImage(f);
+        return;
+      }
+    }
+    showError('Drop an image file to search it.');
+  }
+
+  function onPaste(e) {
+    if (!host) return;
+    const target = e.target;
+    if (target && host && !host.contains(target)) return;
+    let item = null;
+    try {
+      const items = e.clipboardData && e.clipboardData.items ? e.clipboardData.items : [];
+      for (const it of items) {
+        const t = typeof it.type === 'string' ? it.type : '';
+        if (t.startsWith('image/')) {
+          item = it.getAsFile();
+          break;
+        }
+      }
+    } catch (err) {
+      item = null;
+    }
+    if (!item) return;
+    e.preventDefault();
+    e.stopPropagation();
+    attachImage(item);
+  }
+
   function onPillKeydown(e) {
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
     e.preventDefault();
@@ -1214,7 +1549,11 @@ const Overlay = (() => {
   function onKeyDown(e) {
     if (e.key === 'Escape') {
       e.preventDefault();
-      destroy(true);
+      if (attachment) {
+        removeImage();
+      } else {
+        destroy(true);
+      }
       return;
     }
     if (e.key === 'Tab') {
@@ -1225,7 +1564,9 @@ const Overlay = (() => {
     if (e.key === 'Enter') {
       if (e.isComposing) return;
       e.preventDefault();
-      if (suggestionHighlight >= 0 && suggestions[suggestionHighlight] && suggestions[suggestionHighlight].dataset.query) {
+      if (attachment) {
+        searchImage();
+      } else if (suggestionHighlight >= 0 && suggestions[suggestionHighlight] && suggestions[suggestionHighlight].dataset.query) {
         submitQuery(suggestions[suggestionHighlight].dataset.query);
       } else if (actionSite) {
         goToSite(actionSite);
@@ -1520,6 +1861,10 @@ function handleTab(e) {
   function submitQuery(query, engineOverride) {
     const q = String(query == null ? '' : query).trim();
     if (!q) return;
+    if (attachment) {
+      searchImage();
+      return;
+    }
     const engine = engineOverride || engineId;
     const url = QLENS.buildSearchUrl(engine, q, modeId, aiMode);
     if (!url) return;
@@ -1555,6 +1900,7 @@ function handleTab(e) {
     suggestionHighlight = -1;
     selectionText = null;
     selectionActive = false;
+    attachment = null;
     settings = null;
 
     const p = payload || {};
@@ -1667,9 +2013,15 @@ function handleTab(e) {
     smartZone = null;
     suggestEl = null;
     footEngine = null;
+    imgBtn = null;
+    fileInput = null;
+    errEl = null;
     closing = false;
     suggestions = [];
     suggestionHighlight = -1;
+    clearTimeout(toastTimer);
+    toastTimer = null;
+    removeImage();
     restoreFocus();
   }
 
