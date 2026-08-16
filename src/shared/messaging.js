@@ -19,3 +19,14 @@ QLENS.CONTENT_FILES = [
   'src/content/overlay.js',
   'src/content/injector.js'
 ];
+
+// Lean set injected by the SW on http(s) pages ONLY while a custom
+// shortcut is configured: carries the keydown handler so the custom
+// combo works before the overlay has ever been opened.
+QLENS.KEYDOWN_FILES = [
+  'src/shared/config.js',
+  'src/shared/messaging.js',
+  'src/shared/engines.js',
+  'src/shared/storage.js',
+  'src/content/injector.js'
+];

@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## [Unreleased]
+
+### Added
+- Google AI Mode: `Tab` in the overlay toggles Google normal ⇄ Google AI (searches with `atvm=2` so Google returns the AI-answer page); always-visible `AI Mode` switch pill with spark icon; footer, suggestion rows, and smart-URL row label the state ("Google AI" / `· AI`). Toggling AI snaps the engine to Google; choosing another engine or mode, or typing any prefix, clears it.
+
 ## [1.1.0] — 2026-08-14
 
 ### Added

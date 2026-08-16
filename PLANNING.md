@@ -67,7 +67,7 @@ QLens/
 | Module format | ES modules vs global namespace | `globalThis.QLENS` namespace | One file set works in SW (importScripts), CS (executeScript files), options (<script src>) |
 | Overlay CSS | <style> element vs adoptedStyleSheets | adoptedStyleSheets + <style> fallback | CSP-proof, page cannot block |
 | Injection guard | boolean flag vs nonce | Nonce + removeListener(prev) | Survives extension reload (dead context) without double listeners |
-| Tab key | engine cycle vs focus trap | Input+non-empty query → cycle; else trap | Matches PRD 5.2 + a11y focus trap |
+| Tab key | engine cycle vs focus trap vs AI toggle | Input → always toggle Google AI Mode (empty query too); Shift+Tab keeps focus trap | User request: Tab switches Google ⇄ Google AI, not engine-changing |
 | Suggestion fetch location | CS vs SW | SW proxy | Host permissions; avoids page CORS/consent issues |
 | Recent write | CS vs SW | SW on OPEN_TAB | Single writer, atomic with tab creation |
 

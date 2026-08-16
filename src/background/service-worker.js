@@ -8,6 +8,53 @@ importScripts(
 let injectNonce = '';
 let openInFlight = false;
 
+const KEYDOWN_CS_ID = 'qlens-keydown';
+
+function scriptRemoverApi() {
+  try {
+    if (typeof chrome.scripting.removeContentScripts === 'function') return chrome.scripting.removeContentScripts;
+    if (typeof chrome.scripting.unregisterContentScripts === 'function') return chrome.scripting.unregisterContentScripts;
+  } catch (err) {
+    return null;
+  }
+  return null;
+}
+
+const contentScriptRemover = scriptRemoverApi();
+
+async function syncKeydownContent() {
+  if (
+    !chrome.scripting ||
+    typeof chrome.scripting.getRegisteredContentScripts !== 'function' ||
+    typeof chrome.scripting.registerContentScripts !== 'function' ||
+    !contentScriptRemover
+  ) {
+    return;
+  }
+  const custom = (await QLENS.storage.getShortcut()) !== QLENS.CONFIG.SHORTCUT_DEFAULT;
+  try {
+    const registered = await chrome.scripting.getRegisteredContentScripts();
+    const have = registered && registered.some((s) => s.id === KEYDOWN_CS_ID);
+    if (custom && !have) {
+      await chrome.scripting.registerContentScripts([
+        {
+          id: KEYDOWN_CS_ID,
+          matches: ['http://*/*', 'https://*/*'],
+          runAt: 'document_idle',
+          persistAcrossSessions: true,
+          js: QLENS.KEYDOWN_FILES.slice()
+        }
+      ]);
+    } else if (!custom && have) {
+      await contentScriptRemover([KEYDOWN_CS_ID]);
+    }
+  } catch (err) {
+    /* best-effort; on-demand injection remains the fallback */
+  }
+}
+
+syncKeydownContent();
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -39,6 +86,13 @@ async function sendOpenOverlay(tabId, payload) {
   return resp && resp.ok === true;
 }
 
+// Files already guaranteed on the page when the keydown (lean) dynamic content
+// script is registered: re-injecting them would re-`const` their top-level
+// bindings (SyntaxError: Identifier already declared). Inject only the delta.
+const KEYDOWN_DELTA_FILES = QLENS.CONTENT_FILES.filter(
+  (f) => !QLENS.KEYDOWN_FILES.includes(f)
+);
+
 async function injectContent(tabId) {
   try {
     await chrome.scripting.executeScript({
@@ -48,9 +102,18 @@ async function injectContent(tabId) {
       },
       args: [injectNonce]
     });
+    // Probe: is the lean set (config/storage/injector) already evaluated on this
+    // page? If so, only inject what the overlay additionally needs (logos,
+    // selection, overlay). Otherwise inject the full set as before.
+    const probe = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => Boolean(window.QLENS && QLENS.CONFIG && QLENS.storage)
+    });
+    const leanPresent = probe && probe.length > 0 && probe[0].result === true;
+    const files = leanPresent ? KEYDOWN_DELTA_FILES : QLENS.CONTENT_FILES.slice();
     await chrome.scripting.executeScript({
       target: { tabId },
-      files: QLENS.CONTENT_FILES
+      files
     });
     return true;
   } catch (err) {
@@ -194,6 +257,13 @@ function ensureContextMenu() {
 
 chrome.runtime.onInstalled.addListener(() => {
   ensureContextMenu();
+  syncKeydownContent();
+});
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes[QLENS.CONFIG.STORAGE_KEYS.SHORTCUT]) {
+    syncKeydownContent();
+  }
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {

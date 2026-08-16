@@ -32,3 +32,13 @@
 - [x] T021: Toolbar action popup (search, engine pills, theme/accent, suggestions toggle, shortcut badge, settings link) — Done when: smoke popup render + popup search PASS
 - [x] T022: Rebinding the shortcut — DISCOVERY: chrome.commands.update does NOT exist (SW has only onCommand/getAll) → design pivot: combo stored in storage, content-script keydown listener matches + routes via SW OPEN_OVERLAY; manifest command kept as default — Done when: unit shortcut tests + smoke custom-combo opens overlay PASS
 - [x] T023: Final v1.1 pass — full syntax/unit/lint/smoke re-run, docs, commit, delivery summary — Done when: all green, commit 359a6b9
+
+## Phase 6: v1.2 (user request)
+- [x] T024: Redesign overlay to match searchbar-ui.html reference — glass prism card (aurora orbs, tint, specular top line, noise), input row with search icon + selection chip + close, engine pills with logo badges + light rail, smart-URL row with shine sweep, numbered suggestion rows with arrow, footer kbd hints + engine dot, empty state, animated multicolor inner edge glow on all four sides (.ql-rim, pr-flow/wave keyframes), light/dark/system theme tokens, caret/glow/pill-pop/badge-pop/rise-in animations — Done when: syntax + unit + lint green, all selectors used by smoke test (.ql-panel/.ql-input/.ql-pill) intact
+
+## Phase 7: v1.2 follow-ups (user request)
+- [x] T025: Suggestions always Google-only — suggestUrlFor now returns the Google suggestqueries URL for every engine (bing/ddg/unknown included; engine param ignored); .ql-suggest gained overflow-x:hidden and .ql-sug-sub ellipsis so no horizontal scrollbar ever appears — Done when: syntax 13/13, unit 32/32 (suggest-url test asserts google for all engines)
+
+## Phase 8: Google AI Mode (user request)
+- [x] T026: AI Mode search template + ai flag — engines.js google.aiSearch = 'search?atvm=2&q={q}'; buildSearchUrl(engineId, query, modeId, ai) uses aiSearch when ai && google && !modeId — Done when: unit tests (ai URL, off-google ignore, mode-wins, null) pass
+- [x] T027: Overlay AI Mode toggle — .ql-pill-ai switch (spark icon, role=switch, aria-checked) on own row above engine pills, always visible; Tab on input toggles aiMode (Shift+Tab focus-traversal kept); setAi forces google engine; setEngine/setMode/prefix clear aiMode; cycleEngine removed; footer engine label 'Google AI'; suggestion sub + smart-url sub gain '· AI'; footer hint tab→ai; submit passes aiMode — Done when: syntax 13/13, unit 39/39

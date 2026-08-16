@@ -19,7 +19,8 @@ current selection), press **Enter** — results open in Google, Brave, Bing, or 
 
 | Feature | How |
 |---|---|
-| 4 engines | Google, Brave, Bing, DuckDuckGo — `Tab` cycles, pills click, prefixes `g b k d` |
+| 4 engines | Google, Brave, Bing, DuckDuckGo — pills click, prefixes `g b k d`, Arrow keys cycle |
+| Google AI Mode | `Tab` toggles Google ⇄ Google AI (AI answer page); AI Mode switch pill, spark icon |
 | Selection search | Highlight text on any page → shortcut → text is already in the box |
 | Suggestions | Debounced 250 ms, silent when offline; Brave labeled "via Google" |
 | Recent searches | Last 10 queries, one click re-searches; delete per-item or clear all |

@@ -6,6 +6,8 @@ const ENGINES = {
     name: 'Google',
     base: 'https://www.google.com/',
     search: 'search?q={q}',
+    // Google AI Mode (atvm=2) — same engine, alternate result page.
+    aiSearch: 'search?atvm=2&q={q}',
     suggestion: 'https://suggestqueries.google.com/complete/search?client=firefox&q={q}',
     prefix: 'g'
   },
@@ -81,13 +83,14 @@ const QUICK_MODES = {
   }
 };
 
-function buildSearchUrl(engineId, query, modeId) {
+function buildSearchUrl(engineId, query, modeId, ai) {
   const q = String(query == null ? '' : query).trim();
   if (!q) return null;
   const spec = (modeId && QUICK_MODES[modeId]) || ENGINES[engineId] || ENGINES.google;
+  const tpl = ai && spec === ENGINES.google && spec.aiSearch ? spec.aiSearch : spec.search;
   let url;
   try {
-    url = new URL(spec.search.replace('{q}', encodeURIComponent(q)), spec.base);
+    url = new URL(tpl.replace('{q}', encodeURIComponent(q)), spec.base);
   } catch (err) {
     return null;
   }
@@ -96,8 +99,7 @@ function buildSearchUrl(engineId, query, modeId) {
 }
 
 function suggestUrlFor(engineId, query) {
-  const eng = ENGINES[engineId] || ENGINES.google;
-  const tpl = eng.suggestion || ENGINES.google.suggestion;
+  const tpl = ENGINES.google.suggestion;
   return tpl.replace('{q}', encodeURIComponent(String(query == null ? '' : query).trim()));
 }
 
