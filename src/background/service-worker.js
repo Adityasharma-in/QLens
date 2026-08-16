@@ -206,6 +206,64 @@ async function handleSuggestions(payload) {
   }
 }
 
+const LENS_FALLBACK = 'https://lens.google.com/';
+
+function decodeBase64ToBytes(base64Str) {
+  try {
+    const raw = globalThis.atob(base64Str);
+    const n = raw.length;
+    const out = new Uint8Array(n);
+    for (let i = 0; i < n; i++) out[i] = raw.charCodeAt(i);
+    return out;
+  } catch (err) {
+    return null;
+  }
+}
+
+async function handleImageSearch(payload) {
+  const p = payload || {};
+  const b64 = typeof p.bytes === 'string' ? p.bytes : '';
+  const text = typeof p.text === 'string' ? p.text : '';
+  const name = typeof p.name === 'string' ? p.name : '';
+  const raw = decodeBase64ToBytes(b64);
+  const cap = QLENS.CONFIG.IMAGE_MAX_BYTES || 5 * 1024 * 1024;
+  if (!raw || raw.length === 0 || raw.length > cap) {
+    try {
+      await chrome.tabs.create({ url: LENS_FALLBACK, active: true });
+    } catch (err) {
+      return false;
+    }
+    return true;
+  }
+  const boundary = '----qlens' + makeNonce();
+  const body = QLENS.lensUploadBody(b64, text, name || QLENS.CONFIG.LENS_FILENAME, boundary);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), QLENS.CONFIG.IMAGE_SEARCH_TIMEOUT_MS);
+  let url = null;
+  try {
+    const resp = await fetch(QLENS.LENS_UPLOAD, {
+      method: 'POST',
+      redirect: 'follow',
+      body,
+      headers: { 'Content-Type': 'multipart/form-data; boundary=' + boundary },
+      signal: controller.signal,
+      cache: 'no-store'
+    });
+    const final = resp && resp.url ? resp.url : '';
+    if (QLENS.isSafeHttpUrl(final)) url = final;
+  } catch (err) {
+    url = null;
+  } finally {
+    clearTimeout(timer);
+  }
+  try {
+    await chrome.tabs.create({ url: url || LENS_FALLBACK, active: true });
+  } catch (err) {
+    return false;
+  }
+  return true;
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!sender || sender.id !== chrome.runtime.id) return false;
   if (!msg || typeof msg.type !== 'string') return false;
@@ -224,6 +282,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     handleSuggestions(msg.payload)
       .then((results) => sendResponse({ ok: true, id: payloadId(msg.payload), results }))
       .catch(() => sendResponse({ ok: false, id: payloadId(msg.payload), results: [] }));
+    return true;
+  }
+  if (msg.type === QLENS.MSG.IMAGE_SEARCH) {
+    handleImageSearch(msg.payload)
+      .then((ok) => sendResponse({ ok }))
+      .catch((err) => sendResponse({ ok: false, error: String(err) }));
     return true;
   }
   return false;
