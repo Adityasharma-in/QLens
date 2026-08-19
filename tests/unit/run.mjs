@@ -102,7 +102,7 @@ test('engines: empty query returns null', () => {
 test('engines: ai flag uses Google AI Mode URL', () => {
   assert.equal(
     Q.buildSearchUrl('google', 'cats', null, true),
-    'https://www.google.com/search?atvm=2&q=cats'
+    'https://www.google.com/search?q=cats&udm=50&ntc=1&cs=0&atvm=2&zs=1'
   );
 });
 test('engines: ai flag ignored off google', () => {
@@ -127,7 +127,7 @@ test('engines: ai empty query still null', () => {
 test('engines: bogus engine with ai falls back to google ai', () => {
   assert.equal(
     Q.buildSearchUrl('bogus', 'x', null, true),
-    'https://www.google.com/search?atvm=2&q=x'
+    'https://www.google.com/search?q=x&udm=50&ntc=1&cs=0&atvm=2&zs=1'
   );
 });
 test('engines: unknown engine falls back to default', () => {
@@ -181,6 +181,24 @@ test('engines: isSafeHttpUrl allowlist', () => {
   assert.equal(Q.isSafeHttpUrl('chrome://extensions'), false);
   assert.equal(Q.isSafeHttpUrl('not a url'), false);
   assert.equal(Q.isSafeHttpUrl(null), false);
+});
+test('engines: bareHost normalizes scheme/www/path', () => {
+  assert.equal(Q.bareHost('www.google.com'), 'google.com');
+  assert.equal(Q.bareHost('https://www.google.com/'), 'google.com');
+  assert.equal(Q.bareHost('www.google.com/search?q=x'), 'google.com');
+  assert.equal(Q.bareHost('google.com '), 'google.com');
+  assert.equal(Q.bareHost('SearchText'), 'searchtext');
+  assert.equal(Q.bareHost(''), '');
+  assert.equal(Q.bareHost(null), '');
+});
+test('engines: isOwnHost matches engine surface only', () => {
+  assert.equal(Q.isOwnHost('https://www.google.com/', 'google'), true);
+  assert.equal(Q.isOwnHost('www.google.com', 'google'), true);
+  assert.equal(Q.isOwnHost('https://www.google.com/search', 'google', 'images'), true);
+  assert.equal(Q.isOwnHost('https://duckduckgo.com/', 'duckduckgo'), true);
+  assert.equal(Q.isOwnHost('https://www.google.com/', 'brave'), false);
+  assert.equal(Q.isOwnHost('https://github.com/', 'google'), false);
+  assert.equal(Q.isOwnHost('not a url', 'google'), false);
 });
 test('lens: endpoint constant', () => {
   assert.equal(Q.LENS_UPLOAD, 'https://www.google.com/searchbyimage/upload');
@@ -245,9 +263,14 @@ test('manifest: every referenced file exists', () => {
     assert.ok(statSync(join(ROOT, rel)).isFile(), 'missing content file ' + rel);
   }
 });
-test('manifest: no static content_scripts (on-demand + gated keydown preflight only)', () => {
+test('manifest: eager content_scripts registered for instant open', () => {
   const m = JSON.parse(readFileSync(join(ROOT, 'manifest.json'), 'utf8'));
-  assert.equal(m.content_scripts, undefined);
+  assert.ok(Array.isArray(m.content_scripts) && m.content_scripts.length === 1, 'exactly one content_scripts entry');
+  const cs = m.content_scripts[0];
+  assert.deepEqual(cs.matches, ['http://*/*', 'https://*/*']);
+  assert.equal(cs.run_at, 'document_idle');
+  assert.equal(cs.all_frames, false);
+  assert.deepEqual(cs.js, Q.CONTENT_FILES, 'content_scripts js matches CONTENT_FILES (overlay before injector)');
 });
 test('manifest: keydown files exist, lean, subset of CONTENT_FILES', () => {
   for (const rel of Q.KEYDOWN_FILES) {

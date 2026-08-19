@@ -6,8 +6,10 @@ const ENGINES = {
     name: 'Google',
     base: 'https://www.google.com/',
     search: 'search?q={q}',
-    // Google AI Mode (atvm=2) — same engine, alternate result page.
-    aiSearch: 'search?atvm=2&q={q}',
+    // Google AI Mode — /search with udm=50 (plus ntc=1&cs=0&atvm=2&zs=1) is
+    // the user-verified AI results surface; sxsrf is a per-session token and
+    // must NOT be hardcoded. webhp?atvm=2 and /search?udm=2 both failed live.
+    aiSearch: 'search?q={q}&udm=50&ntc=1&cs=0&atvm=2&zs=1',
     suggestion: 'https://suggestqueries.google.com/complete/search?client=firefox&q={q}',
     prefix: 'g'
   },
@@ -152,6 +154,25 @@ function isSafeHttpUrl(url) {
   }
 }
 
+function bareHost(value) {
+  let s = String(value == null ? '' : value).trim().toLowerCase();
+  s = s.replace(/^https?:\/\//, '');
+  s = s.split('/')[0];
+  s = s.replace(/^www\./, '');
+  return s;
+}
+
+function isOwnHost(url, engineId, modeId) {
+  const spec = (modeId && QUICK_MODES[modeId]) || ENGINES[engineId] || ENGINES.google;
+  let baseHost;
+  try {
+    baseHost = new URL(spec.base).hostname;
+  } catch (err) {
+    return false;
+  }
+  return Boolean(bareHost(url)) && bareHost(url) === bareHost(baseHost);
+}
+
 const LENS_UPLOAD = 'https://www.google.com/searchbyimage/upload';
 const LENS_FILENAME_DEFAULT = 'qlens-search.png';
 
@@ -198,5 +219,7 @@ QLENS.suggestUrlFor = suggestUrlFor;
 QLENS.parsePrefix = parsePrefix;
 QLENS.detectSmartUrl = detectSmartUrl;
 QLENS.isSafeHttpUrl = isSafeHttpUrl;
+QLENS.bareHost = bareHost;
+QLENS.isOwnHost = isOwnHost;
 QLENS.LENS_UPLOAD = LENS_UPLOAD;
 QLENS.lensUploadBody = lensUploadBody;

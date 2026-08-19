@@ -10,11 +10,38 @@ globalThis.QLENS = globalThis.QLENS || {};
     alive = false;
   }
 
+  // Direct client-side opens (custom combo) stamp directAt; an OPEN_OVERLAY
+  // echo routed through the SW (manifest command for a dual-configured combo)
+  // inside the window is dropped instead of toggling the overlay shut.
+  let directAt = 0;
+  const ECHO_WINDOW_MS = 500;
+
+  function openOverlayDirect() {
+    if (!QLENS.Overlay) {
+      try {
+        chrome.runtime.sendMessage({ type: QLENS.MSG.OPEN_OVERLAY }).catch(() => {});
+      } catch (err) {
+        /* ignore */
+      }
+      return;
+    }
+    directAt = Date.now();
+    if (QLENS.Overlay.isVisible()) {
+      QLENS.Overlay.destroy(true);
+    } else {
+      QLENS.Overlay.show({});
+    }
+  }
+
   function handleMessage(msg, sender, sendResponse) {
     if (!sender || sender.id !== chrome.runtime.id) return false;
     if (!msg || typeof msg.type !== 'string') return false;
     try {
       if (msg.type === QLENS.MSG.OPEN_OVERLAY) {
+        if (Date.now() - directAt < ECHO_WINDOW_MS) {
+          sendResponse({ ok: true });
+          return false;
+        }
         if (QLENS.Overlay.isVisible()) {
           QLENS.Overlay.destroy(true);
           sendResponse({ ok: true, toggled: true });
@@ -56,11 +83,8 @@ globalThis.QLENS = globalThis.QLENS || {};
         .getShortcut()
         .then((combo) => {
           if (!combo || !QLENS.matchesCombo(e, combo)) return;
-          try {
-            chrome.runtime.sendMessage({ type: QLENS.MSG.OPEN_OVERLAY }).catch(() => {});
-          } catch (err) {
-            /* ignore */
-          }
+          if (combo === QLENS.CONFIG.SHORTCUT_DEFAULT) return;
+          openOverlayDirect();
         })
         .catch(() => {});
     };

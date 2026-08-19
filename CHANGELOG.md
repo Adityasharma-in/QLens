@@ -3,7 +3,7 @@
 ## [Unreleased]
 
 ### Added
-- Google AI Mode: `Tab` in the overlay toggles Google normal ⇄ Google AI (searches with `atvm=2` so Google returns the AI-answer page); always-visible `AI Mode` switch pill with spark icon; footer, suggestion rows, and smart-URL row label the state ("Google AI" / `· AI`). Toggling AI snaps the engine to Google; choosing another engine or mode, or typing any prefix, clears it.
+- Google AI Mode: `Tab` in the overlay toggles Google normal ⇄ Google AI (searches with `udm=50&ntc=1&cs=0&atvm=2&zs=1` on `/search` — the user-verified AI results surface; `sxsrf` session tokens are never hardcoded); always-visible `AI Mode` switch pill with spark icon; footer, suggestion rows, and smart-URL row label the state ("Google AI" / `· AI`). Toggling AI snaps the engine to Google; choosing another engine or mode, or typing any prefix, clears it. (Earlier attempts — `webhp?atvm=2` and `/search?udm=2` — both failed live.)
 - Image search: camera button in the overlay input row (click to pick a file, `Ctrl+V` paste, or drag & drop an image) attaches a removable thumbnail chip; pressing `Enter` sends the image plus any typed text to **Google Lens** (verified `POST /searchbyimage/upload` with `encoded_image` + `image_content`) and opens the results in a new tab. Image bytes are read and re-encoded locally (canvas, ≤2048 px, ≤5 MB) and never touch `chrome.storage`; web search uses a 20 s timeout with a `lens.google.com` fallback. Zero new permissions.
 
 ## [1.1.0] — 2026-08-14

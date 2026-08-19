@@ -1,8 +1,10 @@
 globalThis.QLENS = globalThis.QLENS || {};
 
+const INTER_FAMILY = 'QLens Inter';
+
 const FONT_FACE = [400, 500, 600, 700]
   .map((w) =>
-    "@font-face{font-family:'Inter';font-style:normal;font-weight:" + w +
+    "@font-face{font-family:'" + INTER_FAMILY + "';font-style:normal;font-weight:" + w +
       ";font-display:swap;src:url('" +
       chrome.runtime.getURL('src/fonts/inter-latin-' + w + '-normal.woff2') +
       "') format('woff2');}"
@@ -18,6 +20,7 @@ ${FONT_FACE}
   --ql-accent: #6366F1;
   --ql-accent-rgb: 99, 102, 241;
   --ql-accent-ink: #ffffff;
+  --ql-caret: var(--ql-accent);
   --ql-text: #e8edf7;
   --ql-text-dim: rgba(214, 224, 243, .64);
   --ql-text-faint: rgba(214, 224, 243, .52);
@@ -42,7 +45,7 @@ ${FONT_FACE}
   --ql-row-h: 44px;
   --ql-font-input: 16px;
   --ql-font-pill: 12px;
-  --ql-font-row: 13px;
+  --ql-font-row: 14px;
   --ql-font-sub: 11px;
   --ql-font-foot: 11px;
   --ql-space-1: 4px;
@@ -61,14 +64,14 @@ ${FONT_FACE}
   --ql-radius-full: 999px;
   --ql-dur-fast: 140ms;
   --ql-dur-med: 240ms;
-  --ql-dur-enter: 380ms;
+  --ql-dur-enter: 200ms;
   --ql-ease-out: cubic-bezier(.22, 1, .36, 1);
   --ql-ease-spring: cubic-bezier(.34, 1.56, .64, 1);
   --ql-ease-gentle: cubic-bezier(.45, .05, .2, 1);
   position: fixed;
   inset: 0;
   z-index: 2147483647;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-family: 'QLens Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
   font-size: 15px;
   line-height: 1.4;
   color: var(--ql-text);
@@ -77,6 +80,7 @@ ${FONT_FACE}
 }
 
 :host([data-theme="light"]) {
+  --ql-caret: #4f46e5;
   --ql-text: #141824;
   --ql-text-dim: rgba(23, 28, 45, .64);
   --ql-text-faint: rgba(23, 28, 45, .5);
@@ -100,6 +104,7 @@ ${FONT_FACE}
 
 @media (prefers-color-scheme: light) {
   :host {
+    --ql-caret: #4f46e5;
     --ql-text: #141824;
     --ql-text-dim: rgba(23, 28, 45, .64);
     --ql-text-faint: rgba(23, 28, 45, .5);
@@ -130,9 +135,9 @@ ${FONT_FACE}
     radial-gradient(1100px 560px at 12% -10%, rgba(var(--ql-accent-rgb), .08), transparent 62%),
     radial-gradient(900px 520px at 112% 112%, rgba(var(--ql-accent-rgb), .05), transparent 60%),
     var(--ql-backdrop-bg);
-    -webkit-backdrop-filter: blur(0) saturate(1);
-  backdrop-filter: blur(0) saturate(1);
-  animation: ql-backdrop-in var(--ql-dur-med) var(--ql-ease-out) both;
+    -webkit-backdrop-filter: blur(var(--ql-backdrop-blur)) saturate(1.15);
+  backdrop-filter: blur(var(--ql-backdrop-blur)) saturate(1.15);
+  animation: ql-backdrop-in 160ms var(--ql-ease-out) both;
 }
 
 .ql-backdrop::after {
@@ -148,13 +153,9 @@ ${FONT_FACE}
 @keyframes ql-backdrop-in {
   from {
     opacity: 0;
-    -webkit-backdrop-filter: blur(0) saturate(1);
-    backdrop-filter: blur(0) saturate(1);
   }
   to {
     opacity: 1;
-    -webkit-backdrop-filter: blur(var(--ql-backdrop-blur)) saturate(1.15);
-    backdrop-filter: blur(var(--ql-backdrop-blur)) saturate(1.15);
   }
 }
 
@@ -172,7 +173,7 @@ ${FONT_FACE}
   box-shadow: var(--ql-card-shadow), inset 0 1px 0 var(--ql-specular);
   overflow: hidden;
   transform-origin: 50% 60%;
-  animation: ql-panel-in var(--ql-dur-enter) var(--ql-ease-spring) 40ms both;
+  animation: ql-panel-in var(--ql-dur-enter) var(--ql-ease-spring) 20ms both;
 }
 
 .ql-panel.ql-out {
@@ -299,7 +300,7 @@ ${FONT_FACE}
   pointer-events: none;
   opacity: 0;
   transform: scale(.8);
-  animation: ql-glow-in .45s var(--ql-ease-out) 320ms backwards;
+  animation: ql-glow-in .3s var(--ql-ease-out) 200ms backwards;
 }
 
 @keyframes ql-glow-in {
@@ -319,12 +320,12 @@ ${FONT_FACE}
   align-items: center;
   gap: var(--ql-space-3);
   height: var(--ql-input-h);
-  padding: 0 var(--ql-space-5);
+  padding: 0 var(--ql-space-2) 0 var(--ql-space-5);
   border-radius: var(--ql-radius-input);
   background: var(--ql-liner);
   border: 1px solid var(--ql-hairline);
   transition: box-shadow var(--ql-dur-fast) var(--ql-ease-out), background var(--ql-dur-fast), border-color var(--ql-dur-fast);
-  animation: ql-rise-in .34s var(--ql-ease-out) 120ms backwards;
+  animation: ql-rise-in .22s var(--ql-ease-out) 60ms backwards;
 }
 
 .ql-input-row:focus-within {
@@ -356,18 +357,15 @@ ${FONT_FACE}
   flex: 1;
   min-width: 0;
   height: 100%;
+  padding: 0;
   border: 0;
   outline: none;
   background: transparent;
   color: var(--ql-text);
-  font: 600 var(--ql-font-input)/1 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  font: 600 var(--ql-font-input)/1 'QLens Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
   letter-spacing: -.012em;
   caret-color: transparent;
-  animation: ql-caret-in 1ms linear var(--ql-dur-enter) both;
-}
-
-@keyframes ql-caret-in {
-  to { caret-color: var(--ql-accent); }
+  cursor: text;
 }
 
 .ql-input::placeholder {
@@ -378,6 +376,21 @@ ${FONT_FACE}
 
 .ql-input::selection {
   background: rgba(var(--ql-accent-rgb), .32);
+}
+
+.ql-caret {
+  position: absolute;
+  top: 50%;
+  left: 50px;
+  width: 4px;
+  height: 22px;
+  border-radius: 2px;
+  background: var(--ql-caret);
+  box-shadow: 0 0 10px rgba(var(--ql-accent-rgb), .5);
+  transform: translate(-50%, -50%);
+  opacity: 1;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .ql-chip-zone {
@@ -397,9 +410,9 @@ ${FONT_FACE}
   border: 1px solid rgba(var(--ql-accent-rgb), .35);
   background: rgba(var(--ql-accent-rgb), .12);
   color: var(--ql-text);
-  font: 500 11px 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  font: 600 11px 'QLens Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
   cursor: pointer;
-  animation: ql-chip-in .32s var(--ql-ease-spring) backwards;
+  animation: ql-chip-in .22s var(--ql-ease-spring) backwards;
   transition: background var(--ql-dur-fast);
 }
 
@@ -559,26 +572,26 @@ ${FONT_FACE}
 .ql-pill-zone {
   position: relative;
   padding: var(--ql-space-3) 0 var(--ql-space-4);
-  animation: ql-rise-in .34s var(--ql-ease-out) 180ms backwards;
+  animation: ql-rise-in .24s var(--ql-ease-out) 100ms backwards;
 }
 
 .ql-pills {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--ql-space-2);
+  gap: 10px;
 }
 
 .ql-pill {
   display: inline-flex;
   align-items: center;
   gap: var(--ql-space-2);
-  height: 34px;
+  height: 36px;
   padding: 0 var(--ql-space-4) 0 var(--ql-space-3);
   border-radius: var(--ql-radius-full);
   border: 1px solid var(--ql-hairline);
   background: var(--ql-liner);
   color: var(--ql-text-dim);
-  font: 500 var(--ql-font-pill)/1 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  font: 600 var(--ql-font-pill)/1 'QLens Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
   letter-spacing: .01em;
   cursor: pointer;
   transition: background var(--ql-dur-fast), color var(--ql-dur-fast), border-color var(--ql-dur-fast), transform var(--ql-dur-fast) var(--ql-ease-spring), box-shadow var(--ql-dur-fast);
@@ -602,9 +615,10 @@ ${FONT_FACE}
 .ql-pill.is-active {
   background: linear-gradient(180deg, color-mix(in srgb, var(--ql-accent) 88%, #fff 12%), var(--ql-accent));
   color: var(--ql-accent-ink);
+  font-weight: 700;
   border-color: transparent;
   box-shadow: 0 6px 18px -8px rgba(var(--ql-accent-rgb), .65), inset 0 1px 0 rgba(255, 255, 255, .25);
-  animation: ql-pill-pop .38s var(--ql-ease-spring);
+  animation: ql-pill-pop .28s var(--ql-ease-spring);
 }
 
 @keyframes ql-pill-pop {
@@ -630,7 +644,7 @@ ${FONT_FACE}
 }
 
 .ql-pill.is-active .ql-pill-badge {
-  animation: ql-badge-pop .4s var(--ql-ease-spring) 40ms;
+  animation: ql-badge-pop .3s var(--ql-ease-spring) 20ms;
 }
 
 @keyframes ql-badge-pop {
@@ -652,16 +666,16 @@ ${FONT_FACE}
 /* ---------- AI Mode switch ---------- */
 .ql-pill-ai {
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: 6px;
   height: 26px;
   padding: 0 11px 0 9px;
-  margin-bottom: var(--ql-space-2);
   border-radius: var(--ql-radius-full);
   border: 1px dashed var(--ql-hairline);
   background: transparent;
   color: var(--ql-text-faint);
-  font: 600 var(--ql-font-sub)/1 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  font: 600 var(--ql-font-sub)/1 'QLens Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
   letter-spacing: .02em;
   cursor: pointer;
   transition: background var(--ql-dur-fast), color var(--ql-dur-fast), border-color var(--ql-dur-fast), transform var(--ql-dur-fast) var(--ql-ease-spring), box-shadow var(--ql-dur-fast);
@@ -691,7 +705,7 @@ ${FONT_FACE}
   border-color: transparent;
   border-style: solid;
   box-shadow: 0 6px 18px -8px rgba(var(--ql-accent-rgb), .65), inset 0 1px 0 rgba(255, 255, 255, .25);
-  animation: ql-pill-pop .38s var(--ql-ease-spring);
+  animation: ql-pill-pop .28s var(--ql-ease-spring);
 }
 
 /* ---------- smart URL row ---------- */
@@ -822,7 +836,7 @@ ${FONT_FACE}
   gap: var(--ql-space-3);
   height: var(--ql-row-h);
   flex: none;
-  padding: 0 var(--ql-space-4) 0 var(--ql-space-3);
+  padding: 0 var(--ql-space-5) 0 var(--ql-space-3);
   border-radius: var(--ql-radius-md);
   cursor: pointer;
   animation: ql-rise-in .26s var(--ql-ease-out) calc(var(--i) * 30ms) backwards;
@@ -844,11 +858,11 @@ ${FONT_FACE}
 }
 
 .ql-sug-k {
-  width: 22px;
+  width: 24px;
   flex: none;
   text-align: right;
-  font-size: var(--ql-font-sub);
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   color: var(--ql-text-faint);
 }
@@ -862,18 +876,11 @@ ${FONT_FACE}
 }
 
 .ql-sug-title {
-  font-size: var(--ql-font-row);
+  font-size: 14px;
   font-weight: 600;
+  letter-spacing: -.014em;
   letter-spacing: -.01em;
   color: var(--ql-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.ql-sug-sub {
-  font-size: var(--ql-font-sub);
-  color: var(--ql-text-faint);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -897,8 +904,8 @@ ${FONT_FACE}
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--ql-space-2);
-  padding: var(--ql-space-6) var(--ql-space-4);
+  gap: var(--ql-space-3);
+  padding: 28px var(--ql-space-5);
   text-align: center;
   color: var(--ql-text-dim);
   animation: ql-rise-in .3s var(--ql-ease-out) backwards;
@@ -910,12 +917,12 @@ ${FONT_FACE}
 
 .ql-empty b {
   color: var(--ql-text);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .ql-empty p {
-  font-size: 11.5px;
+  font-size: 12px;
   max-width: 38ch;
   line-height: 1.5;
 }
@@ -931,7 +938,7 @@ ${FONT_FACE}
   border-top: 1px solid var(--ql-hairline);
   font-size: var(--ql-font-foot);
   color: var(--ql-text-faint);
-  animation: ql-rise-in .34s var(--ql-ease-out) 280ms backwards;
+  animation: ql-rise-in .24s var(--ql-ease-out) 140ms backwards;
 }
 
 .ql-foot-hints {
@@ -950,7 +957,7 @@ ${FONT_FACE}
   border: 1px solid var(--ql-hairline);
   border-bottom-width: 2px;
   background: var(--ql-liner);
-  font: 600 9.5px 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  font: 600 9.5px 'QLens Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
   color: var(--ql-text-dim);
 }
 
@@ -1045,7 +1052,6 @@ const Overlay = (() => {
   let aiMode = false;
   let engineOrder = [];
   let suggestionTimer = null;
-  let aiRow = null;
   let aiPillEl = null;
   let suggestionReqId = 0;
   let suggestions = [];
@@ -1057,8 +1063,11 @@ const Overlay = (() => {
   let imgBtn = null;
   let fileInput = null;
   let errEl = null;
+  let caretEl = null;
+  let measureEl = null;
   let toastTimer = null;
   let closing = false;
+  let fontsApplied = false;
 
   function el(tag, cls, text) {
     const node = document.createElement(tag);
@@ -1131,6 +1140,10 @@ const Overlay = (() => {
     inputEl.placeholder = 'Search anything, anywhere';
     inputRow.appendChild(inputEl);
 
+    caretEl = el('span', 'ql-caret');
+    caretEl.setAttribute('aria-hidden', 'true');
+    inputRow.appendChild(caretEl);
+
     chipZoneEl = el('div', 'ql-chip-zone');
     inputRow.appendChild(chipZoneEl);
 
@@ -1138,6 +1151,19 @@ const Overlay = (() => {
     fileInput.type = 'file';
     fileInput.accept = 'image/*';
     inputRow.appendChild(fileInput);
+
+    aiPillEl = el('button', 'ql-pill-ai');
+    aiPillEl.type = 'button';
+    aiPillEl.setAttribute('role', 'switch');
+    aiPillEl.setAttribute('aria-checked', 'false');
+    aiPillEl.setAttribute('aria-label', 'Toggle Google AI Mode');
+    aiPillEl.title = 'Google AI Mode';
+    aiPillEl.appendChild(iconSvg(ICON_SPARK));
+    aiPillEl.appendChild(el('span', null, 'AI Mode'));
+    aiPillEl.addEventListener('click', () => {
+      setAi(!aiMode);
+    });
+    inputRow.appendChild(aiPillEl);
 
     imgBtn = el('button', 'ql-img-btn');
     imgBtn.type = 'button';
@@ -1158,21 +1184,6 @@ const Overlay = (() => {
     pillZone = el('div', 'ql-pill-zone');
     pillZone.setAttribute('role', 'radiogroup');
     pillZone.setAttribute('aria-label', 'Search engine');
-    aiRow = el('div', 'ql-pills ql-pill-ai-row');
-    aiRow.setAttribute('aria-label', 'AI Mode');
-    aiPillEl = el('button', 'ql-pill-ai');
-    aiPillEl.type = 'button';
-    aiPillEl.setAttribute('role', 'switch');
-    aiPillEl.setAttribute('aria-checked', 'false');
-    aiPillEl.setAttribute('aria-label', 'Toggle Google AI Mode');
-    aiPillEl.title = 'Google AI Mode';
-    aiPillEl.appendChild(iconSvg(ICON_SPARK));
-    aiPillEl.appendChild(el('span', null, 'AI Mode'));
-    aiPillEl.addEventListener('click', () => {
-      setAi(!aiMode);
-    });
-    aiRow.appendChild(aiPillEl);
-    pillZone.appendChild(aiRow);
     pillsRow = el('div', 'ql-pills');
     pillZone.appendChild(pillsRow);
     pillZone.appendChild(el('span', 'ql-pill-rail'));
@@ -1207,16 +1218,6 @@ const Overlay = (() => {
 
     renderPills();
     addListeners();
-  }
-
-  function engineHost() {
-    const eng = QLENS.ENGINES[engineId];
-    if (!eng || !eng.base) return '';
-    try {
-      return new URL(eng.base).host;
-    } catch (err) {
-      return '';
-    }
   }
 
   function renderPills() {
@@ -1449,7 +1450,14 @@ const Overlay = (() => {
 
   function addListeners() {
     root.addEventListener('keydown', onKeyDown);
+    root.addEventListener('keyup', onKeyUp);
+    window.addEventListener('keydown', onWindowKey, true);
+    window.addEventListener('keyup', onWindowKey, true);
     inputEl.addEventListener('input', onInput);
+    inputEl.addEventListener('keydown', () => requestAnimationFrame(updateCaret));
+    inputEl.addEventListener('click', () => requestAnimationFrame(updateCaret));
+    inputEl.addEventListener('focus', updateCaret);
+    inputEl.addEventListener('blur', updateCaret);
     imgBtn.addEventListener('click', () => {
       try {
         fileInput.click();
@@ -1492,6 +1500,7 @@ const Overlay = (() => {
 
   function onInput() {
     updateInputState();
+    requestAnimationFrame(updateCaret);
   }
 
   function onDrop(e) {
@@ -1509,18 +1518,22 @@ const Overlay = (() => {
   }
 
   function onPaste(e) {
-    if (!host) return;
+    if (!host || !root) return;
     const target = e.target;
-    if (target && host && !host.contains(target)) return;
+    if (target && !root.contains(target)) return;
     let item = null;
     try {
       const items = e.clipboardData && e.clipboardData.items ? e.clipboardData.items : [];
       for (const it of items) {
+        if (it.kind !== 'file') continue;
+        const f = it.getAsFile();
+        if (!f) continue;
         const t = typeof it.type === 'string' ? it.type : '';
         if (t.startsWith('image/')) {
-          item = it.getAsFile();
+          item = f;
           break;
         }
+        if (!item) item = f;
       }
     } catch (err) {
       item = null;
@@ -1546,7 +1559,45 @@ const Overlay = (() => {
     if (active) active.focus();
   }
 
+  function onKeyUp(e) {
+    e.stopPropagation();
+  }
+
+  function onWindowKey(e) {
+    if (!host || !root) return;
+    if (e.key !== ' ' && e.code !== 'Space') return;
+    const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
+    const src = path && path[0];
+    const inside = Boolean(src && root.contains(src));
+    if (!inside) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      return;
+    }
+    // keyup never inserts — the keydown path already inserted the space;
+    // inserting again doubles it. root's keyup stopPropagation still shields
+    // the page (YouTube pause) for events originating inside the overlay.
+    if (e.type === 'keyup') return;
+    if (src !== inputEl || e.isComposing) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    insertSpace();
+  }
+
+  function insertSpace() {
+    try {
+      const s = inputEl.selectionStart == null ? inputEl.value.length : inputEl.selectionStart;
+      const en = inputEl.selectionEnd == null ? s : inputEl.selectionEnd;
+      inputEl.setRangeText(' ', s, en, 'end');
+      inputEl.selectionStart = inputEl.selectionEnd = Math.min(s + 1, inputEl.value.length);
+      inputEl.dispatchEvent(new InputEvent('input', { bubbles: true, data: ' ', inputType: 'insertText' }));
+    } catch (err) {
+      /* insert is best-effort; nothing to recover */
+    }
+  }
+
   function onKeyDown(e) {
+    e.stopPropagation();
     if (e.key === 'Escape') {
       e.preventDefault();
       if (attachment) {
@@ -1651,7 +1702,7 @@ function handleTab(e) {
       return;
     }
     const site = QLENS.detectSmartUrl(value);
-    if (site) {
+    if (site && !QLENS.isOwnHost(site, modeId || engineId)) {
       clearSuggestions();
       renderActionRow(site, value.trim());
     } else if (value.trim()) {
@@ -1691,6 +1742,77 @@ function handleTab(e) {
     } catch (err) {
       /* caret placement is best-effort */
     }
+    updateCaret();
+  }
+
+  const CARET_TEXT_START = 50; /* input-row pad-left 20 + search icon 18 + gap 12 */
+
+  function ensureMeasureEl() {
+    if (measureEl || !root) return;
+    measureEl = document.createElement('span');
+    measureEl.style.position = 'absolute';
+    measureEl.style.visibility = 'hidden';
+    measureEl.style.whiteSpace = 'pre';
+    measureEl.style.font = "600 16px/1 'QLens Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif";
+    measureEl.style.letterSpacing = '-.012em';
+    root.appendChild(measureEl);
+  }
+
+  function updateCaret() {
+    if (!caretEl || !inputEl) return;
+    // Always visible while the overlay is open — no focus gating, no blink.
+    // (An invisible caret previously happened when activeElement tracking
+    // disagreed, and under prefers-reduced-motion the blink animation was
+    // forced to a single 0.01ms iteration ending on the opacity:0 base.)
+    caretEl.classList.remove('is-hidden');
+    ensureMeasureEl();
+    const idx = typeof inputEl.selectionStart === 'number' ? inputEl.selectionStart : inputEl.value.length;
+    measureEl.textContent = inputEl.value.slice(0, idx);
+    const w = measureEl.getBoundingClientRect().width;
+    caretEl.style.left = Math.round(CARET_TEXT_START + w - (inputEl.scrollLeft || 0)) + 'px';
+  }
+
+  function b64ToBytes(b64) {
+    try {
+      const raw = globalThis.atob(b64);
+      const n = raw.length;
+      const out = new Uint8Array(n);
+      for (let i = 0; i < n; i += 0x8000) {
+        out.set(Array.from(raw.slice(i, i + 0x8000), (c) => c.charCodeAt(0)), i);
+      }
+      return out;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  // Page CSP can block the chrome-extension: @font-face URL on strict sites
+  // (github.com et al), and page-shipped "Inter" faces can override ours.
+  // Unique family 'QLens Inter' + binary FontFace from the SW (zero-fetch,
+  // CSP-exempt) guarantees the bundled font renders everywhere.
+  async function applyFonts() {
+    if (fontsApplied) return;
+    let applied = 0;
+    try {
+      const resp = await chrome.runtime.sendMessage({ type: QLENS.MSG.FONT_FACE });
+      if (resp && resp.ok === true && Array.isArray(resp.items) && typeof document.fonts !== 'undefined') {
+        for (const item of resp.items) {
+          if (!item || typeof item.weight !== 'number' || typeof item.base64 !== 'string') continue;
+          const bytes = b64ToBytes(item.base64);
+          if (!bytes) continue;
+          try {
+            const ff = new FontFace(INTER_FAMILY, bytes.buffer, { weight: String(item.weight), display: 'swap' });
+            document.fonts.add(ff);
+            applied++;
+          } catch (err) {
+            /* skip bad face */
+          }
+        }
+      }
+    } catch (err) {
+      /* binary path failed — renamed @font-face is the fallback */
+    }
+    fontsApplied = applied > 0;
   }
 
   function focusInput() {
@@ -1761,11 +1883,6 @@ function handleTab(e) {
     if (!host) return;
     hideAction();
     clearSuggestions();
-    const hostLabel = engineHost();
-    const note = QLENS.ENGINES[engineId] && QLENS.ENGINES[engineId].suggestionLabel
-      ? ' \u00b7 ' + QLENS.ENGINES[engineId].suggestionLabel
-      : '';
-    const aiNote = aiMode ? ' \u00b7 AI' : '';
     const rows = [];
     const addRow = (text, idx, submitText) => {
       const row = el('div', 'ql-sug-row');
@@ -1779,9 +1896,7 @@ function handleTab(e) {
       const txt = el('span', 'ql-sug-txt');
       const t = el('b', 'ql-sug-title');
       t.textContent = text;
-      const s = el('span', 'ql-sug-sub');
-      s.textContent = hostLabel + note + aiNote;
-      txt.append(t, s);
+      txt.append(t);
       row.append(k, txt, iconSvg(ICON_ARROW, 'ql-sug-arrow'));
       row.addEventListener('pointerenter', () => setHighlight(idx));
       row.addEventListener('click', () => submitQuery(submitText));
@@ -1797,7 +1912,7 @@ function handleTab(e) {
     suggestionHighlight = -1;
     suggestEl.classList.add('is-open');
     inputEl.setAttribute('aria-expanded', 'true');
-    const want = rows.length * 48 + 4;
+    const want = rows.length * 48 + 6;
     const max = Math.max(180, Math.round(window.innerHeight * 0.46));
     setSuggestHeight(Math.min(want, max));
   }
@@ -1902,16 +2017,37 @@ function handleTab(e) {
     selectionActive = false;
     attachment = null;
     settings = null;
+    engineOrder = QLENS.CONFIG.DEFAULT_SETTINGS.engineOrder.slice();
 
     const p = payload || {};
+    const pre = p.settings && typeof p.settings === 'object' && Array.isArray(p.settings.engineOrder)
+      ? p.settings
+      : null;
+    if (pre) {
+      settings = pre;
+      const order = pre.engineOrder.filter((id) => QLENS.ENGINES[id]);
+      if (order.length) engineOrder = order;
+      const last = typeof p.lastEngine === 'string' && engineOrder.includes(p.lastEngine)
+        ? p.lastEngine
+        : null;
+      if (last) {
+        engineId = last;
+        initialEngineId = last;
+      }
+    }
+    const maxSel = pre ? pre.maxSelection : QLENS.CONFIG.DEFAULT_SETTINGS.maxSelection;
+
     let text = null;
     if (typeof p.selection === 'string' && p.selection.trim()) {
-      text = QLENS.Selection.truncate(p.selection, QLENS.CONFIG.DEFAULT_SETTINGS.maxSelection);
+      text = QLENS.Selection.truncate(p.selection, maxSel);
     } else {
-      text = QLENS.Selection.capture(QLENS.CONFIG.DEFAULT_SETTINGS.maxSelection);
+      text = QLENS.Selection.capture(maxSel);
     }
 
     build();
+    applyFonts();
+    if (pre) applyTheme(pre);
+    updateFootEngine();
     if (text) {
       selectionText = text;
       selectionActive = true;
@@ -1924,21 +2060,24 @@ function handleTab(e) {
   }
 
   async function hydrate() {
-    let s = null;
-    try {
-      s = await QLENS.storage.getSettings();
-    } catch (err) {
-      s = { ...QLENS.CONFIG.DEFAULT_SETTINGS };
+    if (!settings) {
+      let s = null;
+      try {
+        s = await QLENS.storage.getSettings();
+      } catch (err) {
+        s = { ...QLENS.CONFIG.DEFAULT_SETTINGS };
+      }
+      if (!host) return;
+      settings = s;
+      engineOrder = s.engineOrder.slice();
+      applyTheme(s);
+      const last = await QLENS.storage.getLastEngine();
+      if (!host) return;
+      if (engineId === initialEngineId) {
+        setEngine(last);
+      }
     }
-    if (!host) return;
-    settings = s;
-    engineOrder = s.engineOrder.slice();
-    applyTheme(s);
-    const last = await QLENS.storage.getLastEngine();
-    if (!host) return;
-    if (engineId === initialEngineId) {
-      setEngine(last);
-    }
+    const s = settings;
     if (selectionActive && inputEl.value) {
       const t = QLENS.Selection.truncate(selectionText, s.maxSelection);
       if (t !== inputEl.value) {
@@ -1992,6 +2131,8 @@ function handleTab(e) {
   }
 
   function removeHost() {
+    window.removeEventListener('keydown', onWindowKey, true);
+    window.removeEventListener('keyup', onWindowKey, true);
     if (host && host.parentNode) {
       try {
         host.parentNode.removeChild(host);
@@ -2008,7 +2149,6 @@ function handleTab(e) {
     closeBtn = null;
     pillZone = null;
     pillsRow = null;
-    aiRow = null;
     aiPillEl = null;
     smartZone = null;
     suggestEl = null;
@@ -2016,6 +2156,8 @@ function handleTab(e) {
     imgBtn = null;
     fileInput = null;
     errEl = null;
+    caretEl = null;
+    measureEl = null;
     closing = false;
     suggestions = [];
     suggestionHighlight = -1;
