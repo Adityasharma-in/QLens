@@ -19,7 +19,13 @@ QLENS.CONFIG = {
     autoCopySelection: false,
     suggestions: true,
     maxSelection: 200,
-    contextMenuAction: 'overlay'
+    contextMenuAction: 'overlay',
+    viewportShadow: {
+      enabled: true,
+      layer1: { x: 0, y: 0, blur: 84, spread: -6, color: '#ad7aff', opacity: 44 },
+      layer2: { enabled: true, blur: 160, spread: 4, color: '#4c1d95', opacity: 46 },
+      frame: { radius: 0, borderOpacity: 0.3 }
+    }
   },
   ACCENTS: {
     indigo: '#6366F1',

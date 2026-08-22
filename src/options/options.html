@@ -57,6 +57,129 @@
       </div>
     </section>
 
+    <section class="card edge-card" id="edge-card">
+      <div class="edge-head">
+        <div>
+          <h2 style="margin-bottom:4px">Edge Glow — Inner Shadow</h2>
+          <p class="edge-sub">Violet inner drop shadow on viewport edges when the search overlay opens. Full Studio controls — live preview, copy-ready CSS.</p>
+        </div>
+        <span class="edge-live" aria-hidden="true"><i class="live-dot"></i> Live</span>
+      </div>
+
+      <label class="tgl-row" for="opt-edgeEnabled">
+        <span class="tgl-text">
+          <span class="tgl-title">Enable edge glow</span>
+          <span class="tgl-desc">Show the inner shadow frame on every page when QLens opens — flush to edge, no gap</span>
+        </span>
+        <span class="tgl-track"><input type="checkbox" id="opt-edgeEnabled" class="tgl-input"><span class="tgl-thumb" aria-hidden="true"></span></span>
+      </label>
+
+      <div id="edge-controls">
+        <div class="edge-presets" role="group" aria-label="Edge presets">
+          <button type="button" class="edge-preset" data-preset="subtle"><span class="ep-swatch" style="background: radial-gradient(120% 120% at 30% 30%, #1a1a1f, #000)"></span><strong>Subtle</strong><span>Soft editorial</span></button>
+          <button type="button" class="edge-preset" data-preset="deep"><span class="ep-swatch" style="background: radial-gradient(120% 120% at 30% 30%, #0f0f12, #000)"></span><strong>Deep</strong><span>Cinematic</span></button>
+          <button type="button" class="edge-preset active" data-preset="neon"><span class="ep-swatch" style="background: radial-gradient(120% 120% at 30% 30%, #ad7aff, #4c1d95)"></span><strong>Neon</strong><span>Violet aura • Default</span></button>
+          <button type="button" class="edge-preset" data-preset="paper"><span class="ep-swatch" style="background: radial-gradient(120% 120% at 30% 30%, #f8fafc, #e2e8f0)"></span><strong>Paper</strong><span>Light inset</span></button>
+        </div>
+
+        <div class="edge-preview-wrap" aria-hidden="true">
+          <div class="edge-preview-label">Live preview — inner edge at 1:1</div>
+          <div class="edge-preview" id="edge-preview">
+            <div class="edge-preview-inner">
+              <div class="edge-preview-search"><span class="ep-icon">⌕</span><span>Search anything…</span><span class="ep-kbd">⌘ K</span></div>
+            </div>
+          </div>
+          <div class="edge-preview-hint">Flush to viewport edge (inset:0, radius:0) — what the user sees on Ctrl+Shift+K</div>
+        </div>
+
+        <div class="edge-section">
+          <div class="edge-section-head"><h3>Primary — Layer 1</h3><small>Core edge</small></div>
+          <div class="edge-control">
+            <div class="edge-control-row"><span class="edge-label">Horizontal offset</span><span class="edge-value" id="edge-v-x">0 px</span></div>
+            <input id="edge-x" type="range" min="-60" max="60" value="0" step="1">
+          </div>
+          <div class="edge-control">
+            <div class="edge-control-row"><span class="edge-label">Vertical offset</span><span class="edge-value" id="edge-v-y">0 px</span></div>
+            <input id="edge-y" type="range" min="-60" max="60" value="0" step="1">
+          </div>
+          <div class="edge-control">
+            <div class="edge-control-row"><span class="edge-label">Blur radius</span><span class="edge-value" id="edge-v-blur">84 px</span></div>
+            <input id="edge-blur" type="range" min="0" max="180" value="84" step="1">
+          </div>
+          <div class="edge-control">
+            <div class="edge-control-row"><span class="edge-label">Spread</span><span class="edge-value" id="edge-v-spread">-6 px</span></div>
+            <input id="edge-spread" type="range" min="-40" max="80" value="-6" step="1">
+          </div>
+          <div class="edge-color-row">
+            <label class="edge-swatch" id="edge-swatch1" style="background:#ad7aff"><input id="edge-color" type="color" value="#ad7aff"></label>
+            <div class="edge-color-meta"><strong>Shadow color</strong><span id="edge-colorHex">#AD7AFF</span></div>
+            <span class="edge-value" id="edge-v-opacity">44%</span>
+          </div>
+          <div class="edge-control" style="margin-top:10px">
+            <div class="edge-control-row"><span class="edge-label">Opacity</span><span class="edge-value" id="edge-v-opacity2">44%</span></div>
+            <input id="edge-opacity" type="range" min="0" max="100" value="44" step="1">
+          </div>
+        </div>
+
+        <div class="edge-section">
+          <div class="edge-section-head"><h3>Vignette — Layer 2</h3><small id="edge-layer2-state">ON</small></div>
+          <label class="tgl-row" for="opt-edgeLayer2" style="padding:10px 0; margin-bottom:12px; border-bottom:none">
+            <span class="tgl-text"><span class="tgl-title" style="font-size:13.5px">Enable second layer</span><span class="tgl-desc">Stacks a larger, softer inset for depth</span></span>
+            <span class="tgl-track"><input type="checkbox" id="opt-edgeLayer2" class="tgl-input" checked><span class="tgl-thumb" aria-hidden="true"></span></span>
+          </label>
+          <div id="edge-layer2-controls">
+            <div class="edge-control">
+              <div class="edge-control-row"><span class="edge-label">Feather (blur)</span><span class="edge-value" id="edge-v-blur2">160 px</span></div>
+              <input id="edge-blur2" type="range" min="0" max="260" value="160" step="1">
+            </div>
+            <div class="edge-control">
+              <div class="edge-control-row"><span class="edge-label">Depth (spread)</span><span class="edge-value" id="edge-v-spread2">4 px</span></div>
+              <input id="edge-spread2" type="range" min="-60" max="100" value="4" step="1">
+            </div>
+            <div class="edge-color-row">
+              <label class="edge-swatch" id="edge-swatch2" style="background:#4c1d95"><input id="edge-color2" type="color" value="#4c1d95"></label>
+              <div class="edge-color-meta"><strong>Vignette color</strong><span id="edge-colorHex2">#4C1D95</span></div>
+              <span class="edge-value" id="edge-v-opacity2b">46%</span>
+            </div>
+            <div class="edge-control" style="margin-top:10px">
+              <div class="edge-control-row"><span class="edge-label">Vignette opacity</span><span class="edge-value" id="edge-v-opacity2c">46%</span></div>
+              <input id="edge-opacity2" type="range" min="0" max="100" value="46" step="1">
+            </div>
+          </div>
+        </div>
+
+        <div class="edge-section">
+          <div class="edge-section-head"><h3>Frame</h3><small>Finishing</small></div>
+          <div class="edge-control">
+            <div class="edge-control-row"><span class="edge-label">Corner radius</span><span class="edge-value" id="edge-v-radius">0 px</span></div>
+            <input id="edge-radius" type="range" min="0" max="24" value="0" step="1">
+          </div>
+          <div class="edge-control">
+            <div class="edge-control-row"><span class="edge-label">Edge border</span><span class="edge-value" id="edge-v-border">0.30</span></div>
+            <input id="edge-border" type="range" min="0" max="30" value="30" step="1">
+          </div>
+        </div>
+
+        <div class="edge-code-block">
+          <div class="edge-code-head">
+            <strong>CSS • .ql-viewport-frame</strong>
+            <div class="edge-code-actions">
+              <button type="button" class="btn btn-secondary" id="edge-copy-config" style="height:32px; padding:0 12px; font-size:12.5px">Copy config</button>
+              <button type="button" class="btn" id="edge-copy-css" style="height:32px; padding:0 12px; font-size:12.5px; background:var(--accent); color:#fff">Copy CSS</button>
+            </div>
+          </div>
+          <pre class="edge-code" id="edge-code"></pre>
+        </div>
+
+        <div class="edge-actions">
+          <button type="button" class="btn btn-secondary" id="edge-randomize">Surprise me</button>
+          <button type="button" class="btn btn-secondary" id="edge-reset">Reset to Neon</button>
+          <button type="button" class="btn" id="edge-copy-all" style="background:var(--accent); color:#fff">Copy &amp; Save</button>
+        </div>
+        <p class="edge-footnote">Changes save instantly to <code>chrome.storage</code> and apply on next <code>Ctrl+Shift+K</code>. Disable “Enable edge glow” to hide the frame entirely.</p>
+      </div>
+    </section>
+
     <section class="card">
       <h2>Behavior</h2>
       <label class="tgl-row" for="opt-suggestions">

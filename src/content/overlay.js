@@ -159,6 +159,46 @@ ${FONT_FACE}
   }
 }
 
+/* ---------- viewport inner shadow — reference: inner-shadow-search.html ---------- */
+/* Appears only when search overlay is called. Fixed inset frame, inset shadows on edges. */
+/* Pointer-events none so search bar, pills, suggestions stay fully interactive. */
+.ql-viewport-frame {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: 0;
+  border: 1px solid rgba(255,255,255, 0.30);
+  box-shadow: inset 0px 0px 84px -6px rgba(173, 122, 255, 0.440), inset 0 0 160px 4px rgba(76, 29, 149, 0.460), inset 0 1px 0 rgba(255,255,255,0.06);
+  opacity: 0;
+  will-change: opacity;
+  animation: ql-frame-in 420ms cubic-bezier(0.32,0.72,0,1) 30ms both;
+}
+.ql-viewport-frame.ql-out {
+  animation: ql-frame-out 140ms ease forwards;
+}
+@keyframes ql-frame-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes ql-frame-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+.ql-viewport-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
 /* ---------- the glass prism ---------- */
 .ql-panel {
   position: absolute;
@@ -996,7 +1036,8 @@ ${FONT_FACE}
     animation: none !important;
   }
   .ql-panel,
-  .ql-backdrop {
+  .ql-backdrop,
+  .ql-viewport-frame {
     animation-duration: .15s !important;
   }
 }
@@ -1036,6 +1077,7 @@ const Overlay = (() => {
   let root = null;
   let panel = null;
   let backdropEl = null;
+  let viewportFrameEl = null;
   let inputEl = null;
   let chipZoneEl = null;
   let closeBtn = null;
@@ -1106,6 +1148,10 @@ const Overlay = (() => {
 
     backdropEl = el('div', 'ql-backdrop');
     root.appendChild(backdropEl);
+
+    viewportFrameEl = el('div', 'ql-viewport-frame');
+    viewportFrameEl.setAttribute('aria-hidden', 'true');
+    root.appendChild(viewportFrameEl);
 
     panel = el('div', 'ql-panel');
     root.appendChild(panel);
@@ -1446,6 +1492,38 @@ const Overlay = (() => {
     host.style.setProperty('--ql-accent', hex);
     host.style.setProperty('--ql-accent-rgb', hexToRgb(hex));
     host.style.setProperty('--ql-accent-ink', ACCENT_INKS[s.accent] || '#ffffff');
+  }
+
+  function hexToRgba(hex, a) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+    if (!m) return 'rgba(173,122,255,' + a.toFixed(3) + ')';
+    const n = parseInt(m[1], 16);
+    const r = (n >> 16) & 255;
+    const g = (n >> 8) & 255;
+    const b = n & 255;
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + a.toFixed(3) + ')';
+  }
+
+  function updateViewportFrame() {
+    if (!viewportFrameEl) return;
+    const vs = (settings && settings.viewportShadow) ? settings.viewportShadow : QLENS.CONFIG.DEFAULT_SETTINGS.viewportShadow;
+    if (!vs.enabled) {
+      viewportFrameEl.style.display = 'none';
+      return;
+    }
+    viewportFrameEl.style.display = '';
+    const l1 = vs.layer1;
+    const l2 = vs.layer2;
+    const f = vs.frame;
+    const c1 = hexToRgba(l1.color, l1.opacity / 100);
+    const c2 = hexToRgba(l2.color, l2.opacity / 100);
+    const parts = [];
+    parts.push('inset ' + l1.x + 'px ' + l1.y + 'px ' + l1.blur + 'px ' + l1.spread + 'px ' + c1);
+    if (l2.enabled) parts.push('inset 0 0 ' + l2.blur + 'px ' + l2.spread + 'px ' + c2);
+    parts.push('inset 0 1px 0 rgba(255,255,255,0.06)');
+    viewportFrameEl.style.boxShadow = parts.join(', ');
+    viewportFrameEl.style.borderRadius = f.radius + 'px';
+    viewportFrameEl.style.borderColor = 'rgba(255,255,255,' + Number(f.borderOpacity).toFixed(2) + ')';
   }
 
   function addListeners() {
@@ -2047,6 +2125,7 @@ function handleTab(e) {
     build();
     applyFonts();
     if (pre) applyTheme(pre);
+    updateViewportFrame();
     updateFootEngine();
     if (text) {
       selectionText = text;
@@ -2065,17 +2144,20 @@ function handleTab(e) {
       try {
         s = await QLENS.storage.getSettings();
       } catch (err) {
-        s = { ...QLENS.CONFIG.DEFAULT_SETTINGS };
+        try { s = JSON.parse(JSON.stringify(QLENS.CONFIG.DEFAULT_SETTINGS)); } catch (e2) { s = QLENS.CONFIG.DEFAULT_SETTINGS; }
       }
       if (!host) return;
       settings = s;
       engineOrder = s.engineOrder.slice();
       applyTheme(s);
+      updateViewportFrame();
       const last = await QLENS.storage.getLastEngine();
       if (!host) return;
       if (engineId === initialEngineId) {
         setEngine(last);
       }
+    } else {
+      updateViewportFrame();
     }
     const s = settings;
     if (selectionActive && inputEl.value) {
@@ -2124,6 +2206,7 @@ function handleTab(e) {
     }
     if (animate && !reduced) {
       panel.classList.add('ql-out');
+      if (viewportFrameEl) viewportFrameEl.classList.add('ql-out');
       setTimeout(removeHost, 150);
     } else {
       removeHost();
@@ -2144,6 +2227,7 @@ function handleTab(e) {
     root = null;
     panel = null;
     backdropEl = null;
+    viewportFrameEl = null;
     inputEl = null;
     chipZoneEl = null;
     closeBtn = null;
