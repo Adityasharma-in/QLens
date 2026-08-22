@@ -1024,39 +1024,73 @@ ${FONT_FACE}
 .ql-fav-head {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 4px 8px;
-  font-size: 11px;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 4px 10px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--ql-hairline);
+}
+.ql-fav-head span:first-child {
+  font-family: 'QLens Inter', monospace;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: .06em;
+  letter-spacing: .10em;
   text-transform: uppercase;
   color: var(--ql-text-faint);
 }
-.ql-fav-head i {
-  width: 20px;
-  height: 20px;
+.ql-fav-head span:last-child {
+  font-family: 'QLens Inter', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ql-text-faint);
+  background: var(--ql-liner);
+  border: 1px solid var(--ql-hairline);
+  padding: 3px 7px;
   border-radius: 6px;
+}
+.ql-fav-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: grid;
   place-items: center;
-  background: rgba(var(--ql-accent-rgb), .12);
+  flex: none;
+  background: linear-gradient(135deg, rgba(var(--ql-accent-rgb), .18), rgba(var(--ql-accent-rgb), .06));
   border: 1px solid rgba(var(--ql-accent-rgb), .18);
   color: var(--ql-accent);
-  font-size: 11px;
-  font-weight: 800;
+  font: 800 13px 'QLens Inter', system-ui, sans-serif;
+  letter-spacing: -.02em;
 }
 .ql-fav-shortcut {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 22px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: 6px;
-  background: rgba(var(--ql-accent-rgb), .14);
-  border: 1px solid rgba(var(--ql-accent-rgb), .22);
-  color: var(--ql-accent);
-  font: 700 10px 'QLens Inter', monospace;
-  letter-spacing: .04em;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: var(--ql-liner);
+  border: 1px solid var(--ql-hairline);
+  color: var(--ql-text-dim);
+  font: 600 11px 'QLens Inter', monospace;
+  letter-spacing: .02em;
+  white-space: nowrap;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ql-sug-row.is-active .ql-fav-shortcut {
+  background: var(--ql-accent);
+  border-color: var(--ql-accent);
+  color: var(--ql-accent-ink);
+}
+.ql-fav-url {
+  font-family: 'QLens Inter', monospace;
+  font-size: 11px;
+  color: var(--ql-text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -.01em;
 }
 .ql-fav-empty {
   padding: 18px 14px;
@@ -1906,9 +1940,9 @@ function handleTab(e) {
       return;
     }
     const head = el('div', 'ql-fav-head');
-    const icon = el('i'); icon.textContent = '/';
-    const txt = el('span'); txt.textContent = 'Quick Commands — type "/" + shortcut';
-    head.append(icon, txt);
+    const headTitle = el('span'); headTitle.textContent = list.length + ' command' + (list.length===1?'':'s');
+    const headHint = el('span'); headHint.textContent = 'Type "/" + shortcut  •  ↵ to open';
+    head.append(headTitle, headHint);
     suggestEl.appendChild(head);
     const rows = [];
     list.slice(0, QLENS.CONFIG.MAX_FAVORITES).forEach((site, idx) => {
@@ -1921,19 +1955,18 @@ function handleTab(e) {
       row.dataset.favShortcut = site.shortcut;
       row.dataset.favRest = rest;
       row.style.setProperty('--i', idx);
-      const k = el('span', 'ql-sug-k');
-      k.textContent = '/' + site.shortcut;
-      k.style.color = 'var(--ql-accent)';
-      k.style.fontWeight = '700';
-      k.style.width = 'auto';
-      k.style.minWidth = '42px';
+      const icon = el('span', 'ql-fav-icon');
+      const initial = (site.label.trim()[0] || site.shortcut[0] || '?').toUpperCase();
+      icon.textContent = initial;
+      icon.setAttribute('aria-hidden', 'true');
       const txtWrap = el('span', 'ql-sug-txt');
       const t = el('b', 'ql-sug-title'); t.textContent = site.label;
-      const s = el('span', 'ql-sug-sub'); s.textContent = site.url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+      const domain = (() => { try { return new URL(site.url).hostname.replace(/^www\./,''); } catch(e){ return site.url.replace(/^https?:\/\//,'').split('/')[0]; } })();
+      const s = el('span', 'ql-fav-url'); s.textContent = domain;
       txtWrap.append(t, s);
       const tag = el('span', 'ql-fav-shortcut'); tag.textContent = '/' + site.shortcut;
       const arr = iconSvg(ICON_ARROW, 'ql-sug-arrow');
-      row.append(k, txtWrap, tag, arr);
+      row.append(icon, txtWrap, tag, arr);
       row.addEventListener('pointerenter', () => setHighlight(idx));
       row.addEventListener('click', () => {
         const url = buildFavoriteUrl(site, rest);
