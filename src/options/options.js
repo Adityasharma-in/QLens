@@ -504,6 +504,221 @@ globalThis.QLENS = globalThis.QLENS || {};
       });
       showToast('Reset to Neon');
     });
+
+    // collapse
+    const collapseBtn = $('edge-collapse-btn');
+    const edgeCard = $('card-edge');
+    const edgeControls = $('edge-controls');
+    const updateCollapseUI = () => {
+      const collapsed = Boolean(settings.edgeCollapsed);
+      if (edgeCard) edgeCard.classList.toggle('is-collapsed', collapsed);
+      if (collapseBtn) {
+        collapseBtn.setAttribute('aria-expanded', String(!collapsed));
+        const lab = collapseBtn.querySelector('.collapse-label');
+        if (lab) lab.textContent = collapsed ? 'Expand' : 'Collapse';
+      }
+    };
+    if (collapseBtn && edgeCard) {
+      collapseBtn.addEventListener('click', async () => {
+        const next = !settings.edgeCollapsed;
+        settings = await QLENS.storage.setSettings({ edgeCollapsed: next });
+        updateCollapseUI();
+        showToast(next ? 'Edge lab collapsed' : 'Edge lab expanded');
+      });
+    }
+    // expose for sync
+    window._updateEdgeCollapse = updateCollapseUI;
+    updateCollapseUI();
+  }
+
+  // ---------- Quick Commands ----------
+  let editingFavId = null;
+
+  function renderFavList() {
+    const list = $('fav-list');
+    const empty = $('fav-empty');
+    const countEl = $('fav-count');
+    const statEl = $('stat-commands');
+    const sites = getVS ? null : null; // placeholder to avoid lint
+    const favs = settings && Array.isArray(settings.favoriteSites) ? settings.favoriteSites : QLENS.CONFIG.DEFAULT_SETTINGS.favoriteSites;
+    if (countEl) countEl.textContent = String(favs.length);
+    if (statEl) statEl.textContent = String(favs.length);
+    if (!list) return;
+    list.textContent = '';
+    if (!favs.length) {
+      if (empty) empty.hidden = false;
+      return;
+    }
+    if (empty) empty.hidden = true;
+    favs.forEach((site, idx) => {
+      const li = document.createElement('li');
+      li.className = 'fav-item';
+      li.draggable = true;
+      li.dataset.id = site.id;
+      const shortcut = document.createElement('div');
+      shortcut.className = 'fav-shortcut';
+      shortcut.textContent = '/' + site.shortcut;
+      const main = document.createElement('div');
+      main.className = 'fav-main';
+      const label = document.createElement('div');
+      label.className = 'fav-label';
+      label.textContent = site.label;
+      const url = document.createElement('div');
+      url.className = 'fav-url';
+      url.textContent = site.url;
+      main.append(label, url);
+      const actions = document.createElement('div');
+      actions.className = 'fav-actions-item';
+      const edit = document.createElement('button');
+      edit.className = 'icon-btn';
+      edit.type = 'button';
+      edit.setAttribute('aria-label', 'Edit ' + site.label);
+      edit.textContent = '✎';
+      edit.addEventListener('click', () => openFavForm(site.id));
+      const del = document.createElement('button');
+      del.className = 'icon-btn danger';
+      del.type = 'button';
+      del.setAttribute('aria-label', 'Delete ' + site.label);
+      del.textContent = '✕';
+      del.addEventListener('click', async () => {
+        if (!confirm('Delete "' + site.label + '" (' + '/' + site.shortcut + ')?')) return;
+        const next = favs.filter((s) => s.id !== site.id);
+        settings = await QLENS.storage.setSettings({ favoriteSites: next });
+        renderFavList();
+        showToast('Command deleted');
+      });
+      const up = document.createElement('button');
+      up.className = 'icon-btn';
+      up.type = 'button';
+      up.textContent = '↑';
+      up.disabled = idx === 0;
+      up.addEventListener('click', async () => {
+        const arr = favs.slice();
+        const tmp = arr[idx]; arr[idx]=arr[idx-1]; arr[idx-1]=tmp;
+        settings = await QLENS.storage.setSettings({ favoriteSites: arr });
+        renderFavList();
+      });
+      const down = document.createElement('button');
+      down.className = 'icon-btn';
+      down.type = 'button';
+      down.textContent = '↓';
+      down.disabled = idx === favs.length - 1;
+      down.addEventListener('click', async () => {
+        const arr = favs.slice();
+        const tmp = arr[idx]; arr[idx]=arr[idx+1]; arr[idx+1]=tmp;
+        settings = await QLENS.storage.setSettings({ favoriteSites: arr });
+        renderFavList();
+      });
+      actions.append(up, down, edit, del);
+      // grip
+      const grip = document.createElement('span');
+      grip.textContent = '⋮';
+      grip.style.color = 'var(--text-faint)';
+      grip.style.cursor = 'grab';
+      grip.style.padding = '0 4px';
+      li.append(grip, shortcut, main, actions);
+      // drag
+      li.addEventListener('dragstart', (e) => {
+        li.classList.add('dragging');
+        e.dataTransfer.setData('text/plain', site.id);
+      });
+      li.addEventListener('dragend', () => li.classList.remove('dragging'));
+      list.appendChild(li);
+    });
+    // drag reorder for fav list
+    list.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const dragging = list.querySelector('.dragging');
+      if (!dragging) return;
+      const after = Array.from(list.children).find((child) => {
+        const rect = child.getBoundingClientRect();
+        return e.clientY < rect.top + rect.height/2;
+      });
+      if (after && after !== dragging) list.insertBefore(dragging, after);
+      else if (!after) list.appendChild(dragging);
+    });
+    list.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      const ids = Array.from(list.children).map((li) => li.dataset.id);
+      const favsMap = new Map(favs.map((s) => [s.id, s]));
+      const ordered = ids.map((id) => favsMap.get(id)).filter(Boolean);
+      // append any missing (should not happen)
+      favs.forEach((s) => { if (!ids.includes(s.id)) ordered.push(s); });
+      settings = await QLENS.storage.setSettings({ favoriteSites: ordered });
+      renderFavList();
+    });
+  }
+
+  function openFavForm(id) {
+    const form = $('fav-form');
+    const title = $('fav-form-title');
+    const label = $('fav-label');
+    const shortcut = $('fav-shortcut');
+    const url = $('fav-url');
+    const err = $('fav-error');
+    if (!form || !label || !shortcut || !url) return;
+    editingFavId = id || null;
+    const favs = settings.favoriteSites;
+    const site = id ? favs.find((s) => s.id === id) : null;
+    if (site) {
+      title.textContent = 'Edit command';
+      label.value = site.label;
+      shortcut.value = site.shortcut;
+      url.value = site.url;
+    } else {
+      title.textContent = 'Add command';
+      label.value = '';
+      shortcut.value = '';
+      url.value = '';
+    }
+    if (err) err.textContent = '';
+    form.classList.remove('is-hidden');
+    label.focus();
+  }
+
+  function closeFavForm() {
+    const form = $('fav-form');
+    if (form) form.classList.add('is-hidden');
+    editingFavId = null;
+    const err = $('fav-error');
+    if (err) err.textContent = '';
+  }
+
+  function bindFav() {
+    const addBtn = $('fav-add-btn');
+    const closeBtn = $('fav-form-close');
+    const cancel = $('fav-cancel');
+    const form = $('fav-form');
+    if (addBtn) addBtn.addEventListener('click', () => openFavForm(null));
+    if (closeBtn) closeBtn.addEventListener('click', closeFavForm);
+    if (cancel) cancel.addEventListener('click', (e) => { e.preventDefault(); closeFavForm(); });
+    if (form) form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const label = $('fav-label').value.trim();
+      let shortcut = $('fav-shortcut').value.trim().toLowerCase();
+      let url = $('fav-url').value.trim();
+      const err = $('fav-error');
+      if (!label) { err.textContent = 'Label is required.'; return; }
+      if (!/^[a-z0-9]{1,12}$/i.test(shortcut)) { err.textContent = 'Shortcut must be 1–12 letters/numbers, no spaces.'; return; }
+      try { const u = new URL(url); if (u.protocol !== 'https:' && u.protocol !== 'http:') throw new Error('bad'); url = u.href; } catch (ex) { err.textContent = 'Enter a valid https:// URL.'; return; }
+      const favs = settings.favoriteSites.slice();
+      const exists = favs.find((s) => s.shortcut.toLowerCase() === shortcut && s.id !== editingFavId);
+      if (exists) { err.textContent = 'Shortcut "/' + shortcut + '" already used for "' + exists.label + '".'; return; }
+      if (editingFavId) {
+        const idx = favs.findIndex((s) => s.id === editingFavId);
+        if (idx !== -1) favs[idx] = { id: editingFavId, label, url, shortcut };
+      } else {
+        if (favs.length >= QLENS.CONFIG.MAX_FAVORITES) { err.textContent = 'Max ' + QLENS.CONFIG.MAX_FAVORITES + ' commands.'; return; }
+        const id = shortcut;
+        favs.push({ id, label, url, shortcut });
+      }
+      settings = await QLENS.storage.setSettings({ favoriteSites: favs });
+      renderFavList();
+      closeFavForm();
+      showToast(editingFavId ? 'Command updated' : 'Command added — type "/' + shortcut + '" in the lens');
+    });
+    // live stats
+    renderFavList();
   }
 
   async function init() {
@@ -529,6 +744,53 @@ globalThis.QLENS = globalThis.QLENS || {};
     showVersion();
     bindEdgeStudio();
     syncEdgeUI();
+    if (window._updateEdgeCollapse) window._updateEdgeCollapse();
+    renderFavList();
+    bindFav();
+    bindRail();
+    bindMast();
+    // update mast stats
+    const statEng = document.getElementById('stat-engines');
+    if (statEng) statEng.textContent = String(settings.engineOrder ? settings.engineOrder.length : 4);
+    const railVer = document.getElementById('rail-version');
+    if (railVer) railVer.textContent = 'v' + (QLENS.CONFIG.VERSION || '1.1.0');
+  }
+
+  function bindRail() {
+    const links = Array.from(document.querySelectorAll('.rail-link'));
+    const cards = links.map((a) => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+    if (!links.length || !cards.length) return;
+    const onScroll = () => {
+      const y = window.scrollY + 120;
+      let activeId = cards[0].id;
+      for (const c of cards) {
+        if (c.offsetTop <= y) activeId = c.id;
+      }
+      links.forEach((a) => a.classList.toggle('is-active', a.getAttribute('href') === '#' + activeId));
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    links.forEach((a) => {
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        const id = a.getAttribute('href');
+        const el = document.querySelector(id);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }
+
+  function bindMast() {
+    const btn = document.getElementById('mast-open-options');
+    if (btn) btn.addEventListener('click', () => {
+      const el = document.getElementById('card-commands');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // pulse the quick commands card
+      el.style.transition = 'box-shadow .3s';
+      el.style.boxShadow = '0 0 0 3px var(--accent-soft), 0 18px 50px -20px rgba(0,0,0,.45)';
+      setTimeout(() => { el.style.boxShadow = ''; }, 700);
+      showToast('Try "/" + shortcut in the lens — e.g. "/gh"');
+    });
   }
 
   function bindData() {

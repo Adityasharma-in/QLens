@@ -1021,6 +1021,53 @@ ${FONT_FACE}
   from { opacity: 0; transform: translateY(10px); }
 }
 
+.ql-fav-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ql-text-faint);
+}
+.ql-fav-head i {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  background: rgba(var(--ql-accent-rgb), .12);
+  border: 1px solid rgba(var(--ql-accent-rgb), .18);
+  color: var(--ql-accent);
+  font-size: 11px;
+  font-weight: 800;
+}
+.ql-fav-shortcut {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: rgba(var(--ql-accent-rgb), .14);
+  border: 1px solid rgba(var(--ql-accent-rgb), .22);
+  color: var(--ql-accent);
+  font: 700 10px 'QLens Inter', monospace;
+  letter-spacing: .04em;
+}
+.ql-fav-empty {
+  padding: 18px 14px;
+  text-align: center;
+  color: var(--ql-text-dim);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.ql-fav-empty b { color: var(--ql-text); font-size: 13px; display:block; margin-bottom:4px; }
+.ql-fav-empty a { color: var(--ql-accent); text-decoration: none; border-bottom: 1px dashed rgba(var(--ql-accent-rgb), .4); }
+
 .ql-hidden {
   display: none !important;
 }
@@ -1695,9 +1742,40 @@ const Overlay = (() => {
       e.preventDefault();
       if (attachment) {
         searchImage();
-      } else if (suggestionHighlight >= 0 && suggestions[suggestionHighlight] && suggestions[suggestionHighlight].dataset.query) {
-        submitQuery(suggestions[suggestionHighlight].dataset.query);
-      } else if (actionSite) {
+      } else if (suggestionHighlight >= 0 && suggestions[suggestionHighlight]) {
+        const fav = suggestions[suggestionHighlight].dataset.favUrl;
+        if (fav) {
+          const site = { url: suggestions[suggestionHighlight].dataset.favUrl, shortcut: suggestions[suggestionHighlight].dataset.favShortcut };
+          const rest = suggestions[suggestionHighlight].dataset.favRest || '';
+          const url = buildFavoriteUrl(site, rest);
+          if (QLENS.isSafeHttpUrl(url)) openTab(url, null, null);
+          return;
+        }
+        if (suggestions[suggestionHighlight].dataset.query) {
+          submitQuery(suggestions[suggestionHighlight].dataset.query);
+          return;
+        }
+      }
+      if (isFavoriteInput(inputEl.value)) {
+        const after = inputEl.value.trimStart().slice(1).trim();
+        const parts = after.split(/\s+/);
+        const sc = (parts[0] || '').toLowerCase();
+        const rest = parts.slice(1).join(' ');
+        const all = getFavoriteSites();
+        const match = all.find((s) => s.shortcut.toLowerCase() === sc);
+        if (match) {
+          const url = buildFavoriteUrl(match, rest);
+          if (QLENS.isSafeHttpUrl(url)) { openTab(url, null, null); return; }
+        }
+        if (suggestions.length && suggestions[0] && suggestions[0].dataset.favUrl) {
+          const site = { url: suggestions[0].dataset.favUrl };
+          const rest2 = suggestions[0].dataset.favRest || '';
+          const url2 = buildFavoriteUrl(site, rest2);
+          if (QLENS.isSafeHttpUrl(url2)) { openTab(url2, null, null); return; }
+        }
+        return;
+      }
+      if (actionSite) {
         goToSite(actionSite);
       } else {
         submitQuery(inputEl.value);
@@ -1767,12 +1845,123 @@ function handleTab(e) {
     updateFootEngine();
   }
 
+  function isFavoriteInput(v) {
+    const s = String(v == null ? '' : v).trimStart();
+    return s.startsWith('/');
+  }
+
+  function getFavoriteSites() {
+    const vs = settings && Array.isArray(settings.favoriteSites) ? settings.favoriteSites : QLENS.CONFIG.DEFAULT_SETTINGS.favoriteSites;
+    return Array.isArray(vs) ? vs : [];
+  }
+
+  function buildFavoriteUrl(site, rest) {
+    const base = String(site.url || '').trim();
+    const q = String(rest || '').trim();
+    if (!q) return base;
+    if (base.includes('{q}')) return base.replace('{q}', encodeURIComponent(q));
+    // try to append as search param if site supports it — fallback to site search via Google
+    // for now, just open base and ignore extra query for plain homepage favorites
+    // but if user typed extra, search that site via Google
+    // we do a simple site: search on default engine
+    // To keep it simple: if rest exists and base is homepage, open base + '?q=' not correct, so search via Google site:
+    // We will open a Google search limited to that site
+    try {
+      const u = new URL(base);
+      // if user provided extra query, build a site search on favorite's domain
+      // e.g., https://github.com + ' search qlens' => https://www.google.com/search?q=site:github.com+qlens
+      // For now, just return base — extra query ignored — keep UX predictable
+      return base;
+    } catch (e) { return base; }
+  }
+
+  function renderFavoriteCommands(filterRaw) {
+    const raw = String(filterRaw == null ? '' : filterRaw).trim().toLowerCase();
+    const parts = raw.split(/\s+/);
+    const shortcutPrefix = (parts[0] || '').toLowerCase();
+    const rest = parts.slice(1).join(' ').trim();
+    const all = getFavoriteSites();
+    let list = all;
+    if (shortcutPrefix) {
+      list = all.filter((s) => s.shortcut.toLowerCase().startsWith(shortcutPrefix) || s.label.toLowerCase().includes(shortcutPrefix));
+    }
+    clearSuggestions();
+    hideAction();
+    if (!list.length) {
+      const empty = el('div', 'ql-fav-empty');
+      const b = el('b'); b.textContent = shortcutPrefix ? 'No command for "/' + shortcutPrefix + '"' : 'No quick commands';
+      const p = el('p'); p.textContent = 'Add shortcuts in Extension Options → Quick Commands (e.g., gh → GitHub).';
+      const a = el('a'); a.href = '#'; a.textContent = 'Open Options';
+      a.addEventListener('click', (e) => { e.preventDefault(); try { if (chrome.runtime.openOptionsPage) chrome.runtime.openOptionsPage(); else chrome.runtime.sendMessage({ type: QLENS.MSG.OPEN_OPTIONS }).catch(()=>{}); } catch(err){ try { chrome.runtime.sendMessage({ type: QLENS.MSG.OPEN_OPTIONS }).catch(()=>{}); } catch(e2){} } });
+      p.appendChild(document.createElement('br')); p.appendChild(a);
+      empty.append(b, p);
+      suggestEl.appendChild(empty);
+      suggestEl.classList.add('is-open');
+      suggestions = [];
+      suggestionHighlight = -1;
+      inputEl.setAttribute('aria-expanded', 'true');
+      setSuggestHeight(140);
+      // store filtered for later Enter handling
+      suggestions = [];
+      return;
+    }
+    const head = el('div', 'ql-fav-head');
+    const icon = el('i'); icon.textContent = '/';
+    const txt = el('span'); txt.textContent = 'Quick Commands — type "/" + shortcut';
+    head.append(icon, txt);
+    suggestEl.appendChild(head);
+    const rows = [];
+    list.slice(0, QLENS.CONFIG.MAX_FAVORITES).forEach((site, idx) => {
+      const row = el('div', 'ql-sug-row');
+      row.id = 'ql-sug-' + idx;
+      row.setAttribute('role', 'option');
+      row.setAttribute('aria-selected', 'false');
+      row.dataset.favId = site.id;
+      row.dataset.favUrl = site.url;
+      row.dataset.favShortcut = site.shortcut;
+      row.dataset.favRest = rest;
+      row.style.setProperty('--i', idx);
+      const k = el('span', 'ql-sug-k');
+      k.textContent = '/' + site.shortcut;
+      k.style.color = 'var(--ql-accent)';
+      k.style.fontWeight = '700';
+      k.style.width = 'auto';
+      k.style.minWidth = '42px';
+      const txtWrap = el('span', 'ql-sug-txt');
+      const t = el('b', 'ql-sug-title'); t.textContent = site.label;
+      const s = el('span', 'ql-sug-sub'); s.textContent = site.url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+      txtWrap.append(t, s);
+      const tag = el('span', 'ql-fav-shortcut'); tag.textContent = '/' + site.shortcut;
+      const arr = iconSvg(ICON_ARROW, 'ql-sug-arrow');
+      row.append(k, txtWrap, tag, arr);
+      row.addEventListener('pointerenter', () => setHighlight(idx));
+      row.addEventListener('click', () => {
+        const url = buildFavoriteUrl(site, rest);
+        if (QLENS.isSafeHttpUrl(url)) openTab(url, null, null);
+      });
+      suggestEl.appendChild(row);
+      rows.push(row);
+    });
+    suggestions = rows;
+    suggestionHighlight = -1;
+    suggestEl.classList.add('is-open');
+    inputEl.setAttribute('aria-expanded', 'true');
+    const want = (rows.length + 1) * 48 + 12;
+    const max = Math.max(180, Math.round(window.innerHeight * 0.46));
+    setSuggestHeight(Math.min(want, max));
+  }
+
   function updateInputState() {
     if (!host) return;
     const value = inputEl.value;
     if (selectionActive && value.trim() !== selectionText) {
       selectionActive = false;
       renderChip();
+    }
+    if (isFavoriteInput(value)) {
+      const after = value.trimStart().slice(1);
+      renderFavoriteCommands(after);
+      return;
     }
     const parsed = QLENS.parsePrefix(value);
     if (parsed) {

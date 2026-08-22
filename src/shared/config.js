@@ -25,7 +25,14 @@ QLENS.CONFIG = {
       layer1: { x: 0, y: 0, blur: 84, spread: -6, color: '#ad7aff', opacity: 44 },
       layer2: { enabled: true, blur: 160, spread: 4, color: '#4c1d95', opacity: 46 },
       frame: { radius: 0, borderOpacity: 0.3 }
-    }
+    },
+    favoriteSites: [
+      { id: 'gh', label: 'GitHub', url: 'https://github.com', shortcut: 'gh' },
+      { id: 'yt', label: 'YouTube', url: 'https://youtube.com', shortcut: 'yt' },
+      { id: 'tw', label: 'X / Twitter', url: 'https://x.com', shortcut: 'tw' },
+      { id: 'so', label: 'Stack Overflow', url: 'https://stackoverflow.com', shortcut: 'so' }
+    ],
+    edgeCollapsed: false
   },
   ACCENTS: {
     indigo: '#6366F1',
@@ -45,7 +52,9 @@ QLENS.CONFIG = {
   IMAGE_MAX_BYTES: 5 * 1024 * 1024,
   IMAGE_MAX_DIM: 2048,
   IMAGE_JPEG_QUALITY: 0.9,
-  LENS_FILENAME: 'qlens-search.png'
+  LENS_FILENAME: 'qlens-search.png',
+  MAX_FAVORITES: 20,
+  SHORTCUT_RE: /^[a-z0-9]{1,12}$/i
 };
 
 const MODIFIER_NAMES = ['Ctrl', 'Alt', 'Shift', 'Command', 'MacCtrl'];

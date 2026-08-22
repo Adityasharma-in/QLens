@@ -1,48 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>QLens — Options</title>
-  <link rel="stylesheet" href="options.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QLens — Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&family=Fraunces:opsz,wght@9..144,700;9..144,800;9..144,900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="options.css">
 </head>
 <body>
-  <main class="shell">
-    <header class="hero">
-      <div class="hero-logo" aria-hidden="true">
-        <svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stop-color="#4F46E5"/>
-              <stop offset="1" stop-color="#7C3AED"/>
-            </linearGradient>
-          </defs>
-          <rect x="0" y="0" width="128" height="128" rx="28" fill="url(#bg)"/>
-          <circle cx="51" cy="51" r="33" fill="rgba(255,255,255,0.28)" stroke="#ffffff" stroke-width="11"/>
-          <line x1="74" y1="74" x2="107" y2="107" stroke="#ffffff" stroke-width="14" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <div class="hero-text">
-        <h1>QLens <span class="hero-version" id="version">1.0.0</span></h1>
-        <p class="hero-sub">Quick Search Overlay — search any page without leaving your flow.</p>
-      </div>
-      <p class="privacy">100% local — no data leaves your device.</p>
-    </header>
+<div class="grid-bg" aria-hidden="true"></div>
+<div class="noise" aria-hidden="true"></div>
+<div class="orb orb--a" aria-hidden="true"></div>
+<div class="orb orb--b" aria-hidden="true"></div>
 
-    <section class="card">
-      <h2>Search engines</h2>
+<header class="mast">
+  <div class="mast-inner">
+    <div class="mast-mark" aria-hidden="true">
+      <div class="mark-ring"><span class="mark-dot"></span></div>
+      <div class="mark-meta"><span>LENS</span><span>01</span></div>
+    </div>
+    <div class="mast-title">
+      <div class="mast-kicker"><span class="kicker-line"></span> QLens — Quick Search Overlay <span class="kicker-ver" id="version">1.1.0</span></div>
+      <h1>Calibrate<br><span>your lens.</span></h1>
+      <p>Search any page without leaving your flow. Engines, quick commands, and the edge glow — all tuned here, 100% local.</p>
+    </div>
+    <div class="mast-side">
+      <div class="privacy">100% local — no data leaves your device. <span>·</span> Free · No ads</div>
+      <div class="mast-actions">
+        <a class="btn btn-ghost" href="https://github.com/Adityasharma-in/QLens" target="_blank" rel="noopener">GitHub ↗</a>
+        <button class="btn btn-accent" id="mast-open-options" type="button">Test Overlay — Ctrl+Shift+K</button>
+      </div>
+      <div class="mast-stats">
+        <span><b id="stat-engines">4</b> engines</span>
+        <span><b id="stat-commands">4</b> quick commands</span>
+        <span><b>∞</b> edge states</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="rail" aria-label="Sections">
+    <div class="rail-sticky">
+      <div class="rail-label">Index</div>
+      <a href="#card-engines" class="rail-link is-active">01 — Engines</a>
+      <a href="#card-commands" class="rail-link">02 — Quick Commands</a>
+      <a href="#card-appearance" class="rail-link">03 — Appearance</a>
+      <a href="#card-edge" class="rail-link">04 — Edge Glow</a>
+      <a href="#card-behavior" class="rail-link">05 — Behavior</a>
+      <a href="#card-shortcut" class="rail-link">06 — Shortcut</a>
+      <a href="#card-data" class="rail-link">07 — Data</a>
+      <div class="rail-foot">Calibrated for <span id="rail-version">v1.1.0</span></div>
+    </div>
+  </nav>
+
+  <main class="main">
+    <section class="card" id="card-engines">
+      <div class="card-topline"></div>
+      <div class="card-head">
+        <div class="card-num">01 — SEARCH ENGINES</div>
+        <h2>Engines &amp; order</h2>
+        <p class="card-desc">Choose your default and drag to set the order. This is the sequence in the lens.</p>
+      </div>
       <div class="field">
         <label class="field-label" for="default-engine">Default engine</label>
         <div class="pill-radio" id="default-engine" role="radiogroup" aria-label="Default engine"></div>
       </div>
       <div class="field">
-        <label class="field-label" id="order-label">Engine order — drag to reorder, or use the arrows</label>
+        <label class="field-label" id="order-label">Order — drag the grip or use arrows</label>
         <ul class="order-list" id="order-list" aria-labelledby="order-label"></ul>
       </div>
     </section>
 
-    <section class="card">
-      <h2>Appearance</h2>
+    <section class="card" id="card-commands">
+      <div class="card-topline"></div>
+      <div class="card-head">
+        <div class="card-num">02 — QUICK COMMANDS</div>
+        <h2>Favorite sites — “/”</h2>
+        <p class="card-desc">Type <code>/</code> at the start of the lens, then your shortcut. <code>/gh</code> → GitHub, <code>/yt</code> → YouTube. Add your own — shortcut is 1–12 letters/numbers, no spaces.</p>
+      </div>
+
+      <div class="fav-toolbar">
+        <div class="fav-count"><span id="fav-count">4</span> commands · <span id="fav-hint">type “/” to summon</span></div>
+        <button type="button" class="btn btn-accent" id="fav-add-btn"><span>+</span> Add command</button>
+      </div>
+
+      <ul class="fav-list" id="fav-list" aria-label="Favorite sites"></ul>
+
+      <form class="fav-form is-hidden" id="fav-form" autocomplete="off">
+        <div class="fav-form-head">
+          <strong id="fav-form-title">Add command</strong>
+          <button type="button" class="icon-btn" id="fav-form-close" aria-label="Close">✕</button>
+        </div>
+        <div class="fav-grid">
+          <label class="fav-field">
+            <span>Label</span>
+            <input id="fav-label" type="text" placeholder="GitHub" maxlength="40" required>
+          </label>
+          <label class="fav-field">
+            <span>Shortcut <em>after “/”</em></span>
+            <input id="fav-shortcut" type="text" placeholder="gh" maxlength="12" pattern="[a-z0-9]{1,12}" required>
+            <small>1–12 chars, a–z 0–9, must be unique</small>
+          </label>
+          <label class="fav-field fav-field--full">
+            <span>URL</span>
+            <input id="fav-url" type="url" placeholder="https://github.com" required>
+            <small>Use <code>{q}</code> to inject the query after the shortcut, e.g. <code>https://github.com/search?q={q}</code></small>
+          </label>
+        </div>
+        <div class="fav-form-actions">
+          <button type="button" class="btn btn-ghost" id="fav-cancel">Cancel</button>
+          <button type="submit" class="btn btn-accent" id="fav-save">Save command</button>
+        </div>
+        <p class="form-error" id="fav-error" role="alert"></p>
+      </form>
+
+      <div class="fav-empty" id="fav-empty" hidden>
+        <div class="fav-empty-icon">/</div>
+        <b>No commands yet</b>
+        <p>Add your first — try <code>/gh</code> for GitHub or <code>/notion</code> for Notion.</p>
+      </div>
+
+      <div class="howto">
+        <div class="howto-kbd"><span>/</span><span>gh</span><span>↵</span></div>
+        <div class="howto-text"><strong>How it works:</strong> In the lens, type <code>/</code> then your shortcut. The list filters live. Press <code>Enter</code> or click to open. Works with any site.</div>
+      </div>
+    </section>
+
+    <section class="card" id="card-appearance">
+      <div class="card-topline"></div>
+      <div class="card-head">
+        <div class="card-num">03 — APPEARANCE</div>
+        <h2>Theme &amp; tint</h2>
+        <p class="card-desc">System follows your OS. Accent tints the lens, the orbs, and the edge glow.</p>
+      </div>
       <div class="field">
         <label class="field-label" id="theme-label">Theme</label>
         <div class="seg" id="theme" role="radiogroup" aria-labelledby="theme-label">
@@ -52,24 +145,34 @@
         </div>
       </div>
       <div class="field">
-        <label class="field-label" id="accent-label">Accent color</label>
+        <label class="field-label" id="accent-label">Accent</label>
         <div class="swatches" id="swatches" role="radiogroup" aria-labelledby="accent-label"></div>
       </div>
     </section>
 
-    <section class="card edge-card" id="edge-card">
-      <div class="edge-head">
+    <section class="card edge-card" id="card-edge">
+      <div class="card-topline"></div>
+      <div class="card-head edge-head">
         <div>
-          <h2 style="margin-bottom:4px">Edge Glow — Inner Shadow</h2>
-          <p class="edge-sub">Violet inner drop shadow on viewport edges when the search overlay opens. Full Studio controls — live preview, copy-ready CSS.</p>
+          <div class="card-num">04 — EDGE GLOW</div>
+          <h2>Inner Shadow</h2>
+          <p class="card-desc">Violet inner drop shadow on viewport edges when the lens opens. The studio from <code>inner-shadow-search.html</code> — now with presets, live preview, and one-click copy. This card is large; collapse it when you’re done.</p>
         </div>
-        <span class="edge-live" aria-hidden="true"><i class="live-dot"></i> Live</span>
+        <button type="button" class="btn btn-ghost edge-collapse-btn" id="edge-collapse-btn" aria-expanded="true" aria-controls="edge-controls">
+          <span class="collapse-label">Collapse</span>
+          <span class="collapse-icon" aria-hidden="true">⌃</span>
+        </button>
+      </div>
+
+      <div class="edge-meta">
+        <span class="edge-live"><i class="live-dot"></i> Live</span>
+        <span class="edge-note">Flush to edge — <code>inset:0</code>, no gap</span>
       </div>
 
       <label class="tgl-row" for="opt-edgeEnabled">
         <span class="tgl-text">
           <span class="tgl-title">Enable edge glow</span>
-          <span class="tgl-desc">Show the inner shadow frame on every page when QLens opens — flush to edge, no gap</span>
+          <span class="tgl-desc">Show the inner shadow frame on every page when QLens opens</span>
         </span>
         <span class="tgl-track"><input type="checkbox" id="opt-edgeEnabled" class="tgl-input"><span class="tgl-thumb" aria-hidden="true"></span></span>
       </label>
@@ -83,42 +186,27 @@
         </div>
 
         <div class="edge-preview-wrap" aria-hidden="true">
-          <div class="edge-preview-label">Live preview — inner edge at 1:1</div>
+          <div class="edge-preview-label">Live preview — 1:1 viewport edge</div>
           <div class="edge-preview" id="edge-preview">
             <div class="edge-preview-inner">
               <div class="edge-preview-search"><span class="ep-icon">⌕</span><span>Search anything…</span><span class="ep-kbd">⌘ K</span></div>
             </div>
           </div>
-          <div class="edge-preview-hint">Flush to viewport edge (inset:0, radius:0) — what the user sees on Ctrl+Shift+K</div>
+          <div class="edge-preview-hint">What the user sees on <code>Ctrl+Shift+K</code> — inner shadow hugs the window edge, search stays on top.</div>
         </div>
 
         <div class="edge-section">
           <div class="edge-section-head"><h3>Primary — Layer 1</h3><small>Core edge</small></div>
-          <div class="edge-control">
-            <div class="edge-control-row"><span class="edge-label">Horizontal offset</span><span class="edge-value" id="edge-v-x">0 px</span></div>
-            <input id="edge-x" type="range" min="-60" max="60" value="0" step="1">
-          </div>
-          <div class="edge-control">
-            <div class="edge-control-row"><span class="edge-label">Vertical offset</span><span class="edge-value" id="edge-v-y">0 px</span></div>
-            <input id="edge-y" type="range" min="-60" max="60" value="0" step="1">
-          </div>
-          <div class="edge-control">
-            <div class="edge-control-row"><span class="edge-label">Blur radius</span><span class="edge-value" id="edge-v-blur">84 px</span></div>
-            <input id="edge-blur" type="range" min="0" max="180" value="84" step="1">
-          </div>
-          <div class="edge-control">
-            <div class="edge-control-row"><span class="edge-label">Spread</span><span class="edge-value" id="edge-v-spread">-6 px</span></div>
-            <input id="edge-spread" type="range" min="-40" max="80" value="-6" step="1">
-          </div>
+          <div class="edge-control"><div class="edge-control-row"><span class="edge-label">Horizontal offset</span><span class="edge-value" id="edge-v-x">0 px</span></div><input id="edge-x" type="range" min="-60" max="60" value="0" step="1"></div>
+          <div class="edge-control"><div class="edge-control-row"><span class="edge-label">Vertical offset</span><span class="edge-value" id="edge-v-y">0 px</span></div><input id="edge-y" type="range" min="-60" max="60" value="0" step="1"></div>
+          <div class="edge-control"><div class="edge-control-row"><span class="edge-label">Blur radius</span><span class="edge-value" id="edge-v-blur">84 px</span></div><input id="edge-blur" type="range" min="0" max="180" value="84" step="1"></div>
+          <div class="edge-control"><div class="edge-control-row"><span class="edge-label">Spread</span><span class="edge-value" id="edge-v-spread">-6 px</span></div><input id="edge-spread" type="range" min="-40" max="80" value="-6" step="1"></div>
           <div class="edge-color-row">
             <label class="edge-swatch" id="edge-swatch1" style="background:#ad7aff"><input id="edge-color" type="color" value="#ad7aff"></label>
             <div class="edge-color-meta"><strong>Shadow color</strong><span id="edge-colorHex">#AD7AFF</span></div>
             <span class="edge-value" id="edge-v-opacity">44%</span>
           </div>
-          <div class="edge-control" style="margin-top:10px">
-            <div class="edge-control-row"><span class="edge-label">Opacity</span><span class="edge-value" id="edge-v-opacity2">44%</span></div>
-            <input id="edge-opacity" type="range" min="0" max="100" value="44" step="1">
-          </div>
+          <div class="edge-control" style="margin-top:10px"><div class="edge-control-row"><span class="edge-label">Opacity</span><span class="edge-value" id="edge-v-opacity2">44%</span></div><input id="edge-opacity" type="range" min="0" max="100" value="44" step="1"></div>
         </div>
 
         <div class="edge-section">
@@ -128,60 +216,50 @@
             <span class="tgl-track"><input type="checkbox" id="opt-edgeLayer2" class="tgl-input" checked><span class="tgl-thumb" aria-hidden="true"></span></span>
           </label>
           <div id="edge-layer2-controls">
-            <div class="edge-control">
-              <div class="edge-control-row"><span class="edge-label">Feather (blur)</span><span class="edge-value" id="edge-v-blur2">160 px</span></div>
-              <input id="edge-blur2" type="range" min="0" max="260" value="160" step="1">
-            </div>
-            <div class="edge-control">
-              <div class="edge-control-row"><span class="edge-label">Depth (spread)</span><span class="edge-value" id="edge-v-spread2">4 px</span></div>
-              <input id="edge-spread2" type="range" min="-60" max="100" value="4" step="1">
-            </div>
+            <div class="edge-control"><div class="edge-control-row"><span class="edge-label">Feather (blur)</span><span class="edge-value" id="edge-v-blur2">160 px</span></div><input id="edge-blur2" type="range" min="0" max="260" value="160" step="1"></div>
+            <div class="edge-control"><div class="edge-control-row"><span class="edge-label">Depth (spread)</span><span class="edge-value" id="edge-v-spread2">4 px</span></div><input id="edge-spread2" type="range" min="-60" max="100" value="4" step="1"></div>
             <div class="edge-color-row">
               <label class="edge-swatch" id="edge-swatch2" style="background:#4c1d95"><input id="edge-color2" type="color" value="#4c1d95"></label>
               <div class="edge-color-meta"><strong>Vignette color</strong><span id="edge-colorHex2">#4C1D95</span></div>
               <span class="edge-value" id="edge-v-opacity2b">46%</span>
             </div>
-            <div class="edge-control" style="margin-top:10px">
-              <div class="edge-control-row"><span class="edge-label">Vignette opacity</span><span class="edge-value" id="edge-v-opacity2c">46%</span></div>
-              <input id="edge-opacity2" type="range" min="0" max="100" value="46" step="1">
-            </div>
+            <div class="edge-control" style="margin-top:10px"><div class="edge-control-row"><span class="edge-label">Vignette opacity</span><span class="edge-value" id="edge-v-opacity2c">46%</span></div><input id="edge-opacity2" type="range" min="0" max="100" value="46" step="1"></div>
           </div>
         </div>
 
         <div class="edge-section">
           <div class="edge-section-head"><h3>Frame</h3><small>Finishing</small></div>
-          <div class="edge-control">
-            <div class="edge-control-row"><span class="edge-label">Corner radius</span><span class="edge-value" id="edge-v-radius">0 px</span></div>
-            <input id="edge-radius" type="range" min="0" max="24" value="0" step="1">
-          </div>
-          <div class="edge-control">
-            <div class="edge-control-row"><span class="edge-label">Edge border</span><span class="edge-value" id="edge-v-border">0.30</span></div>
-            <input id="edge-border" type="range" min="0" max="30" value="30" step="1">
-          </div>
+          <div class="edge-control"><div class="edge-control-row"><span class="edge-label">Corner radius</span><span class="edge-value" id="edge-v-radius">0 px</span></div><input id="edge-radius" type="range" min="0" max="24" value="0" step="1"></div>
+          <div class="edge-control"><div class="edge-control-row"><span class="edge-label">Edge border</span><span class="edge-value" id="edge-v-border">0.30</span></div><input id="edge-border" type="range" min="0" max="30" value="30" step="1"></div>
         </div>
 
         <div class="edge-code-block">
           <div class="edge-code-head">
             <strong>CSS • .ql-viewport-frame</strong>
             <div class="edge-code-actions">
-              <button type="button" class="btn btn-secondary" id="edge-copy-config" style="height:32px; padding:0 12px; font-size:12.5px">Copy config</button>
-              <button type="button" class="btn" id="edge-copy-css" style="height:32px; padding:0 12px; font-size:12.5px; background:var(--accent); color:#fff">Copy CSS</button>
+              <button type="button" class="btn btn-ghost" id="edge-copy-config" style="height:32px; padding:0 12px; font-size:12.5px">Copy config</button>
+              <button type="button" class="btn btn-accent" id="edge-copy-css" style="height:32px; padding:0 12px; font-size:12.5px">Copy CSS</button>
             </div>
           </div>
           <pre class="edge-code" id="edge-code"></pre>
         </div>
 
         <div class="edge-actions">
-          <button type="button" class="btn btn-secondary" id="edge-randomize">Surprise me</button>
-          <button type="button" class="btn btn-secondary" id="edge-reset">Reset to Neon</button>
-          <button type="button" class="btn" id="edge-copy-all" style="background:var(--accent); color:#fff">Copy &amp; Save</button>
+          <button type="button" class="btn btn-ghost" id="edge-randomize">Surprise me</button>
+          <button type="button" class="btn btn-ghost" id="edge-reset">Reset to Neon</button>
+          <button type="button" class="btn btn-accent" id="edge-copy-all">Copy &amp; Save</button>
         </div>
-        <p class="edge-footnote">Changes save instantly to <code>chrome.storage</code> and apply on next <code>Ctrl+Shift+K</code>. Disable “Enable edge glow” to hide the frame entirely.</p>
+        <p class="edge-footnote">Changes save instantly to <code>chrome.storage</code> and apply on next <code>Ctrl+Shift+K</code>. Collapse this lab when done — it’s tall.</p>
       </div>
     </section>
 
-    <section class="card">
-      <h2>Behavior</h2>
+    <section class="card" id="card-behavior">
+      <div class="card-topline"></div>
+      <div class="card-head">
+        <div class="card-num">05 — BEHAVIOR</div>
+        <h2>How the lens behaves</h2>
+        <p class="card-desc">Suggestions, closing, and copying — small switches that change the feel.</p>
+      </div>
       <label class="tgl-row" for="opt-suggestions">
         <span class="tgl-text">
           <span class="tgl-title">Search suggestions</span>
@@ -212,48 +290,59 @@
       </div>
     </section>
 
-    <section class="card">
-      <h2>Shortcut</h2>
+    <section class="card" id="card-shortcut">
+      <div class="card-topline"></div>
+      <div class="card-head">
+        <div class="card-num">06 — SHORTCUT</div>
+        <h2>Keyboard</h2>
+        <p class="card-desc">Your summon key. Click the field, press the combo, save.</p>
+      </div>
       <div class="shortcut-row">
         <div>
           <label class="field-label" for="shortcut-input">Overlay shortcut</label>
           <input type="text" id="shortcut-input" class="shortcut-input" value="Ctrl+Shift+K" readonly>
           <p class="shortcut-note" id="shortcut-note">Click the field and press the keys you want to use (Ctrl or Alt + a key).</p>
         </div>
-        <button type="button" class="btn btn-secondary" id="shortcut-save">Save shortcut</button>
+        <button type="button" class="btn btn-accent" id="shortcut-save">Save shortcut</button>
       </div>
       <div class="data-row">
         <div>
           <p class="data-title">Chrome shortcut manager</p>
           <p class="data-note">For advanced rebinding or conflicts, Chrome's own manager always wins.</p>
         </div>
-        <a class="btn btn-secondary" href="chrome://extensions/shortcuts" target="_blank" rel="noopener">Open Chrome shortcuts</a>
+        <a class="btn btn-ghost" href="chrome://extensions/shortcuts" target="_blank" rel="noopener">Open Chrome shortcuts</a>
       </div>
     </section>
 
-    <section class="card">
-      <h2>Data</h2>
+    <section class="card" id="card-data">
+      <div class="card-topline"></div>
+      <div class="card-head">
+        <div class="card-num">07 — DATA</div>
+        <h2>Reset</h2>
+        <p class="card-desc">Wipe local settings and start clean. No sync, no server — just this device.</p>
+      </div>
       <div class="data-row">
         <div>
           <p class="data-title">Reset everything</p>
-          <p class="data-note">Restore default settings and clear local data.</p>
+          <p class="data-note">Restore defaults, clear engines, commands, and edge glow.</p>
         </div>
         <button type="button" class="btn btn-danger" id="reset-all">Reset to defaults</button>
       </div>
     </section>
-
-    <footer class="foot">
-      <span id="foot-version"></span>
-      <span class="foot-dot">·</span>
-      <span>Free · No ads · No tracking</span>
-    </footer>
   </main>
+</div>
 
-  <script src="../shared/config.js"></script>
-  <script src="../shared/messaging.js"></script>
-  <script src="../shared/engines.js"></script>
-  <script src="../shared/logos.js"></script>
-  <script src="../shared/storage.js"></script>
-  <script src="options.js"></script>
+<footer class="foot">
+  <span id="foot-version"></span>
+  <span class="foot-dot">·</span>
+  <span>Free · No ads · No tracking · Calibrated in the darkroom</span>
+</footer>
+
+<script src="../shared/config.js"></script>
+<script src="../shared/messaging.js"></script>
+<script src="../shared/engines.js"></script>
+<script src="../shared/logos.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="options.js"></script>
 </body>
 </html>

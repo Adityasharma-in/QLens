@@ -66,6 +66,34 @@ function sanitizeViewportShadow(raw) {
   };
 }
 
+function sanitizeFavoriteSites(raw) {
+  const d = QLENS.CONFIG.DEFAULT_SETTINGS.favoriteSites;
+  if (!Array.isArray(raw)) return d.map((s) => ({ ...s }));
+  const seen = new Set();
+  const out = [];
+  for (const item of raw) {
+    if (!isPlainObject(item)) continue;
+    let shortcut = typeof item.shortcut === 'string' ? item.shortcut.trim().toLowerCase() : '';
+    if (!/^[a-z0-9]{1,12}$/i.test(shortcut)) continue;
+    if (seen.has(shortcut)) continue;
+    seen.add(shortcut);
+    let url = typeof item.url === 'string' ? item.url.trim() : '';
+    try {
+      const u = new URL(url);
+      if (u.protocol !== 'https:' && u.protocol !== 'http:') continue;
+      url = u.href;
+    } catch (e) { continue; }
+    let label = typeof item.label === 'string' ? item.label.trim() : '';
+    if (!label) label = shortcut;
+    if (label.length > 40) label = label.slice(0, 40);
+    let id = typeof item.id === 'string' && item.id.trim() ? item.id.trim().toLowerCase() : shortcut;
+    if (!/^[a-z0-9]{1,12}$/i.test(id)) id = shortcut;
+    out.push({ id, label, url, shortcut });
+    if (out.length >= QLENS.CONFIG.MAX_FAVORITES) break;
+  }
+  return out;
+}
+
 function sanitizeSettings(raw) {
   const d = QLENS.CONFIG.DEFAULT_SETTINGS;
   const ids = engineIds();
@@ -90,7 +118,9 @@ function sanitizeSettings(raw) {
     contextMenuAction: typeof raw.contextMenuAction === 'string' && VALID_ACTIONS.includes(raw.contextMenuAction)
       ? raw.contextMenuAction
       : d.contextMenuAction,
-    viewportShadow: sanitizeViewportShadow(raw.viewportShadow)
+    viewportShadow: sanitizeViewportShadow(raw.viewportShadow),
+    favoriteSites: sanitizeFavoriteSites(raw.favoriteSites),
+    edgeCollapsed: toBool(raw.edgeCollapsed, d.edgeCollapsed)
   };
 }
 
@@ -117,6 +147,9 @@ async function setSettings(patch) {
       layer2: { ...pv.layer2, ...(isPlainObject(pw.layer2) ? pw.layer2 : {}) },
       frame: { ...pv.frame, ...(isPlainObject(pw.frame) ? pw.frame : {}) }
     });
+  }
+  if (Array.isArray(patch.favoriteSites)) {
+    merged.favoriteSites = sanitizeFavoriteSites(patch.favoriteSites);
   }
   const next = sanitizeSettings(merged);
   try {
