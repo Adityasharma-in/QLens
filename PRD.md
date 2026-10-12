@@ -193,7 +193,7 @@ Priority: **P0** = must ship, **P1** = should ship, **P2** = nice-to-have.
 
 ## 5.7 F7 — Smart Query Handling (P1)
 
-- **URL detection:** query matches `^(https?:\/\/|\w+\.\w{2,}\/?)` → QLens offers **"Go to site"** as the primary action (opens URL in new tab); Enter still does the chosen action.
+- **URL detection:** the host portion is validated, not pattern-matched. Either an explicit `https?://` scheme, or a bare host that is (a) `localhost` / any `*.localhost`, (b) a valid IPv4 dotted quad, or (c) two-or-more dot-separated labels where every label is 1–63 chars of `a–z 0–9 _ -` / non-ASCII (not leading or trailing `-`) and the last label (TLD) is ≥2 letters. An optional `:port` is allowed. Whitespace anywhere disqualifies the input. → QLens offers **"Go to site"** as the primary action (opens URL in new tab); Enter still does the chosen action.
 - **Quotes preserved:** query `"exact phrase"` is passed through untouched.
 - **Leading-prefix stripping** (engine prefixes from 5.2) is done before URL construction.
 - **Safe display:** query is always rendered via `textContent` / `createElement`, never `innerHTML` (XSS hardening).

@@ -12,6 +12,11 @@
     <span class="pop-shortcut" id="pop-shortcut">Ctrl+Shift+K</span>
   </header>
 
+  <div class="pop-notice" id="pop-fallback" hidden>
+    <span class="pop-notice-text">Restricted page — searching from QLens tab</span>
+    <button type="button" class="pop-notice-x" id="pop-fallback-x" aria-label="Dismiss notice">✕</button>
+  </div>
+
   <section class="pop-search">
     <input type="text" id="pop-query" class="pop-input" placeholder="Search or paste a URL…" aria-label="Quick search">
     <div class="pop-pills" id="pop-pills" role="radiogroup" aria-label="Search engine"></div>
@@ -23,9 +28,9 @@
     <div class="pop-row">
       <span class="pop-name">Theme</span>
       <div class="pop-seg" id="pop-theme" role="radiogroup" aria-label="Theme">
-        <button type="button" class="seg-btn" data-value="system">Auto</button>
-        <button type="button" class="seg-btn" data-value="light">Light</button>
-        <button type="button" class="seg-btn" data-value="dark">Dark</button>
+        <button type="button" class="seg-btn" data-value="system" aria-pressed="true">Auto</button>
+        <button type="button" class="seg-btn" data-value="light" aria-pressed="false">Light</button>
+        <button type="button" class="seg-btn" data-value="dark" aria-pressed="false">Dark</button>
       </div>
     </div>
     <div class="pop-row">

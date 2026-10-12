@@ -4,9 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>QLens — Options</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&family=Fraunces:opsz,wght@9..144,700;9..144,800;9..144,900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="options.css">
 </head>
 <body>
@@ -47,11 +44,13 @@
       <div class="rail-label">Index</div>
       <a href="#card-engines" class="rail-link is-active">01 — Engines</a>
       <a href="#card-commands" class="rail-link">02 — Quick Commands</a>
-      <a href="#card-appearance" class="rail-link">03 — Appearance</a>
-      <a href="#card-edge" class="rail-link">04 — Edge Glow</a>
-      <a href="#card-behavior" class="rail-link">05 — Behavior</a>
-      <a href="#card-shortcut" class="rail-link">06 — Shortcut</a>
-      <a href="#card-data" class="rail-link">07 — Data</a>
+      <a href="#card-custom" class="rail-link">03 — Custom Engines</a>
+      <a href="#card-appearance" class="rail-link">04 — Appearance</a>
+      <a href="#card-edge" class="rail-link">05 — Edge Glow</a>
+      <a href="#card-launcher" class="rail-link">06 — Launcher</a>
+      <a href="#card-behavior" class="rail-link">07 — Behavior</a>
+      <a href="#card-shortcut" class="rail-link">08 — Shortcut</a>
+      <a href="#card-data" class="rail-link">09 — Data</a>
       <div class="rail-foot">Calibrated for <span id="rail-version">v1.1.0</span></div>
     </div>
   </nav>
@@ -129,10 +128,65 @@
       </div>
     </section>
 
+    <section class="card" id="card-custom">
+      <div class="card-topline"></div>
+      <div class="card-head">
+        <div class="card-num">03 — CUSTOM ENGINES</div>
+        <h2>Custom engines — “!”</h2>
+        <p class="card-desc">Zero lock-in: add Kagi, Ecosia, Startpage, Perplexity, your company docs, even <code>localhost:3000</code>. Type <code>!bang</code> in the lens, e.g. <code>!w cats</code> or <code>!gh react hooks</code>. The URL must contain <code>{q}</code> where the query goes.</p>
+      </div>
+
+      <div class="fav-toolbar">
+        <div class="fav-count"><span id="eng-count">0</span> engines · <span id="eng-hint">type “!” to summon</span></div>
+        <button type="button" class="btn btn-accent" id="eng-add-btn"><span>+</span> Add engine</button>
+      </div>
+
+      <ul class="fav-list" id="eng-list" aria-label="Custom engines"></ul>
+
+      <form class="fav-form is-hidden" id="eng-form" autocomplete="off">
+        <div class="fav-form-head">
+          <strong id="eng-form-title">Add engine</strong>
+          <button type="button" class="icon-btn" id="eng-form-close" aria-label="Close">✕</button>
+        </div>
+        <div class="fav-grid">
+          <label class="fav-field">
+            <span>Name</span>
+            <input id="eng-name" type="text" placeholder="Kagi" maxlength="40" required>
+          </label>
+          <label class="fav-field">
+            <span>Bang <em>after “!”</em></span>
+            <input id="eng-bang" type="text" placeholder="kagi" maxlength="12" pattern="[a-z0-9]{1,12}" required>
+            <small>1–12 chars, a–z 0–9, must be unique</small>
+          </label>
+          <label class="fav-field fav-field--full">
+            <span>Search URL</span>
+            <input id="eng-url" type="text" placeholder="https://kagi.com/search?q={q}" required>
+            <small>Must be http(s) and include <code>{q}</code>, e.g. <code>https://localhost:3000/search?q={q}</code></small>
+          </label>
+        </div>
+        <div class="fav-form-actions">
+          <button type="button" class="btn btn-ghost" id="eng-cancel">Cancel</button>
+          <button type="submit" class="btn btn-accent" id="eng-save">Save engine</button>
+        </div>
+        <p class="form-error" id="eng-error" role="alert"></p>
+      </form>
+
+      <div class="fav-empty" id="eng-empty" hidden>
+        <div class="fav-empty-icon">!</div>
+        <b>No custom engines yet</b>
+        <p>Add your first — try <code>!w</code> → <code>https://en.wikipedia.org/w/index.php?search={q}</code> or <code>!kagi</code> → <code>https://kagi.com/search?q={q}</code>.</p>
+      </div>
+
+      <div class="howto">
+        <div class="howto-kbd"><span>!</span><span>kagi</span><span>↵</span></div>
+        <div class="howto-text"><strong>How it works:</strong> In the lens, type <code>!</code> then your bang and a query. The engine pill highlights. Press <code>Enter</code> to open.</div>
+      </div>
+    </section>
+
     <section class="card" id="card-appearance">
       <div class="card-topline"></div>
       <div class="card-head">
-        <div class="card-num">03 — APPEARANCE</div>
+        <div class="card-num">04 — APPEARANCE</div>
         <h2>Theme &amp; tint</h2>
         <p class="card-desc">System follows your OS. Accent tints the lens, the orbs, and the edge glow.</p>
       </div>
@@ -154,7 +208,7 @@
       <div class="card-topline"></div>
       <div class="card-head edge-head">
         <div>
-          <div class="card-num">04 — EDGE GLOW</div>
+          <div class="card-num">05 — EDGE GLOW</div>
           <h2>Inner Shadow</h2>
           <p class="card-desc">Violet inner drop shadow on viewport edges when the lens opens. The studio from <code>inner-shadow-search.html</code> — now with presets, live preview, and one-click copy. This card is large; collapse it when you’re done.</p>
         </div>
@@ -253,10 +307,54 @@
       </div>
     </section>
 
+    <section class="card" id="card-launcher">
+      <div class="card-topline"></div>
+      <div class="card-head">
+        <div class="card-num">06 — LAUNCHER</div>
+        <h2>Unified launcher</h2>
+        <p class="card-desc">Switch open tabs, jump to bookmarks, or revisit history — right from the lens. Everything stays on your device; no page content or URLs ever leave the browser.</p>
+      </div>
+      <label class="tgl-row" for="opt-launcherEnabled">
+        <span class="tgl-text">
+          <span class="tgl-title">Enable launcher</span>
+          <span class="tgl-desc">Show matching tabs, bookmarks, and history above web suggestions</span>
+        </span>
+        <span class="tgl-track"><input type="checkbox" id="opt-launcherEnabled" class="tgl-input"><span class="tgl-thumb" aria-hidden="true"></span></span>
+      </label>
+      <label class="tgl-row" for="opt-launcherTabs">
+        <span class="tgl-text">
+          <span class="tgl-title">Open tabs</span>
+          <span class="tgl-desc">Quick-switch between tabs (Enter switches, Shift+Enter closes)</span>
+        </span>
+        <span class="tgl-track"><input type="checkbox" id="opt-launcherTabs" class="tgl-input"><span class="tgl-thumb" aria-hidden="true"></span></span>
+      </label>
+      <label class="tgl-row" for="opt-launcherBookmarks">
+        <span class="tgl-text">
+          <span class="tgl-title">Bookmarks</span>
+          <span class="tgl-desc">Match bookmark titles and URLs as you type</span>
+        </span>
+        <span class="tgl-track"><input type="checkbox" id="opt-launcherBookmarks" class="tgl-input"><span class="tgl-thumb" aria-hidden="true"></span></span>
+      </label>
+      <label class="tgl-row" for="opt-launcherHistory">
+        <span class="tgl-text">
+          <span class="tgl-title">History</span>
+          <span class="tgl-desc">Match pages visited in the last 14 days</span>
+        </span>
+        <span class="tgl-track"><input type="checkbox" id="opt-launcherHistory" class="tgl-input"><span class="tgl-thumb" aria-hidden="true"></span></span>
+      </label>
+      <div class="data-row">
+        <div>
+          <p class="data-title">Max results</p>
+          <p class="data-note">How many launcher rows to show (3–10).</p>
+        </div>
+        <input type="number" id="opt-launcherMax" class="shortcut-input" style="min-width:96px; width:96px" min="3" max="10" step="1">
+      </div>
+    </section>
+
     <section class="card" id="card-behavior">
       <div class="card-topline"></div>
       <div class="card-head">
-        <div class="card-num">05 — BEHAVIOR</div>
+        <div class="card-num">07 — BEHAVIOR</div>
         <h2>How the lens behaves</h2>
         <p class="card-desc">Suggestions, closing, and copying — small switches that change the feel.</p>
       </div>
@@ -293,7 +391,7 @@
     <section class="card" id="card-shortcut">
       <div class="card-topline"></div>
       <div class="card-head">
-        <div class="card-num">06 — SHORTCUT</div>
+        <div class="card-num">08 — SHORTCUT</div>
         <h2>Keyboard</h2>
         <p class="card-desc">Your summon key. Click the field, press the combo, save.</p>
       </div>
@@ -308,16 +406,16 @@
       <div class="data-row">
         <div>
           <p class="data-title">Chrome shortcut manager</p>
-          <p class="data-note">For advanced rebinding or conflicts, Chrome's own manager always wins.</p>
+          <p class="data-note">For advanced rebinding or conflicts, Chrome's own manager always wins. Paste this address into your address bar: <code>chrome://extensions/shortcuts</code></p>
         </div>
-        <a class="btn btn-ghost" href="chrome://extensions/shortcuts" target="_blank" rel="noopener">Open Chrome shortcuts</a>
+        <button type="button" class="btn btn-ghost" id="shortcut-open">Copy shortcuts address</button>
       </div>
     </section>
 
     <section class="card" id="card-data">
       <div class="card-topline"></div>
       <div class="card-head">
-        <div class="card-num">07 — DATA</div>
+        <div class="card-num">09 — DATA</div>
         <h2>Reset</h2>
         <p class="card-desc">Wipe local settings and start clean. No sync, no server — just this device.</p>
       </div>
@@ -339,8 +437,8 @@
 </footer>
 
 <script src="../shared/config.js"></script>
-<script src="../shared/messaging.js"></script>
 <script src="../shared/engines.js"></script>
+<script src="../shared/launcher.js"></script>
 <script src="../shared/logos.js"></script>
 <script src="../shared/storage.js"></script>
 <script src="options.js"></script>

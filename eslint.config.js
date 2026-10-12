@@ -1,26 +1,20 @@
+import globals from 'globals';
+
 export default [
   {
     files: ['src/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
+      // Browser + WebExtension surface. Hand-picking globals one by one kept
+      // producing no-undef false positives (btoa/atob/Blob/FormData/
+      // FontFace/FileReader/createImageBitmap/InputEvent/URLSearchParams/
+      // confirm), which trains you to ignore the linter. The extension
+      // globals are read-only so nothing can shadow chrome.*.
       globals: {
-        globalThis: 'readonly',
-        QLENS: 'readonly',
-        chrome: 'readonly',
-        importScripts: 'readonly',
-        window: 'readonly',
-        document: 'readonly',
-        navigator: 'readonly',
-        Node: 'readonly',
-        URL: 'readonly',
-        AbortController: 'readonly',
-        CSSStyleSheet: 'readonly',
-        fetch: 'readonly',
-        setTimeout: 'readonly',
-        clearTimeout: 'readonly',
-        requestAnimationFrame: 'readonly',
-        console: 'readonly',
-        crypto: 'readonly'
+        ...globals.browser,
+        ...globals.webextensions,
+        ...globals.serviceworker,
+        QLENS: 'readonly'
       }
     },
     rules: {

@@ -7,8 +7,14 @@ const KEY_SHORTCUT = QLENS.CONFIG.STORAGE_KEYS.SHORTCUT;
 const VALID_THEMES = ['system', 'light', 'dark'];
 const VALID_ACTIONS = ['overlay', 'direct'];
 
-function engineIds() {
-  return Object.keys(QLENS.ENGINES);
+function engineIds(extraCustoms) {
+  const ids = Object.keys(QLENS.ENGINES);
+  if (Array.isArray(extraCustoms)) {
+    for (const c of extraCustoms) {
+      if (c && typeof c.id === 'string' && !ids.includes(c.id)) ids.push(c.id);
+    }
+  }
+  return ids;
 }
 
 function isPlainObject(v) {
@@ -73,7 +79,7 @@ function sanitizeFavoriteSites(raw) {
   const out = [];
   for (const item of raw) {
     if (!isPlainObject(item)) continue;
-    let shortcut = typeof item.shortcut === 'string' ? item.shortcut.trim().toLowerCase() : '';
+    const shortcut = typeof item.shortcut === 'string' ? item.shortcut.trim().toLowerCase() : '';
     if (!/^[a-z0-9]{1,12}$/i.test(shortcut)) continue;
     if (seen.has(shortcut)) continue;
     seen.add(shortcut);
@@ -96,10 +102,18 @@ function sanitizeFavoriteSites(raw) {
 
 function sanitizeSettings(raw) {
   const d = QLENS.CONFIG.DEFAULT_SETTINGS;
-  const ids = engineIds();
+  const customs = typeof QLENS.sanitizeCustomEngines === 'function'
+    ? QLENS.sanitizeCustomEngines(raw.customEngines)
+    : [];
+  const cids = customs.map((c) => c.id);
+  const ids = engineIds(customs);
+  const builtinIds = Object.keys(QLENS.ENGINES);
   let order = Array.isArray(raw.engineOrder) ? raw.engineOrder.filter((id) => ids.includes(id)) : [];
   order = order.filter((id, i) => order.indexOf(id) === i);
-  for (const id of ids) {
+  for (const id of builtinIds) {
+    if (!order.includes(id)) order.push(id);
+  }
+  for (const id of cids) {
     if (!order.includes(id)) order.push(id);
   }
   const defaultEngine = typeof raw.defaultEngine === 'string' && ids.includes(raw.defaultEngine)
@@ -109,6 +123,7 @@ function sanitizeSettings(raw) {
   return {
     defaultEngine,
     engineOrder: order,
+    customEngines: customs,
     theme: typeof raw.theme === 'string' && VALID_THEMES.includes(raw.theme) ? raw.theme : d.theme,
     accent: typeof raw.accent === 'string' && QLENS.CONFIG.ACCENTS[raw.accent] ? raw.accent : d.accent,
     blurClose: toBool(raw.blurClose, d.blurClose),
@@ -120,6 +135,9 @@ function sanitizeSettings(raw) {
       : d.contextMenuAction,
     viewportShadow: sanitizeViewportShadow(raw.viewportShadow),
     favoriteSites: sanitizeFavoriteSites(raw.favoriteSites),
+    launcher: typeof QLENS.sanitizeLauncher === 'function'
+      ? QLENS.sanitizeLauncher(raw.launcher)
+      : { enabled: true, tabs: true, bookmarks: true, history: true, maxResults: 6 },
     edgeCollapsed: toBool(raw.edgeCollapsed, d.edgeCollapsed)
   };
 }
@@ -137,7 +155,7 @@ async function getSettings() {
 
 async function setSettings(patch) {
   const current = await getSettings();
-  let merged = { ...current, ...patch };
+  const merged = { ...current, ...patch };
   if (isPlainObject(patch.viewportShadow) && isPlainObject(current.viewportShadow)) {
     const pv = current.viewportShadow;
     const pw = patch.viewportShadow;
@@ -151,6 +169,13 @@ async function setSettings(patch) {
   if (Array.isArray(patch.favoriteSites)) {
     merged.favoriteSites = sanitizeFavoriteSites(patch.favoriteSites);
   }
+  if (isPlainObject(patch.launcher)) {
+    const cur = isPlainObject(current.launcher) ? current.launcher : {};
+    merged.launcher = QLENS.sanitizeLauncher({ ...cur, ...patch.launcher });
+  }
+  if (Array.isArray(patch.customEngines) && typeof QLENS.sanitizeCustomEngines === 'function') {
+    merged.customEngines = QLENS.sanitizeCustomEngines(patch.customEngines);
+  }
   const next = sanitizeSettings(merged);
   try {
     await chrome.storage.local.set({ [KEY_SETTINGS]: next });
@@ -160,23 +185,46 @@ async function setSettings(patch) {
   return next;
 }
 
+let lastEngineKnown = null;
+
 async function getLastEngine() {
-  const ids = engineIds();
   try {
     const res = await chrome.storage.local.get(KEY_LAST_ENGINE);
     const id = res[KEY_LAST_ENGINE];
-    if (typeof id === 'string' && ids.includes(id)) return id;
+    if (typeof id === 'string' && id) {
+      const settings = await getSettings();
+      const ids = engineIds(settings.customEngines);
+      if (ids.includes(id)) return id;
+      return ids.includes(settings.defaultEngine) ? settings.defaultEngine : ids[0];
+    }
   } catch (err) {
     return QLENS.CONFIG.DEFAULT_SETTINGS.defaultEngine;
   }
   const settings = await getSettings();
+  const ids = engineIds(settings.customEngines);
   return ids.includes(settings.defaultEngine) ? settings.defaultEngine : ids[0];
 }
 
 async function setLastEngine(id) {
-  if (!engineIds().includes(id)) return;
+  if (typeof id !== 'string' || !id) return;
+  if (id === lastEngineKnown) return;
+  // Fire-and-forget validation: the hot paths (overlay Enter, SW OPEN_TAB)
+  // must not stall on a storage read. A stored unknown id is harmless —
+  // getLastEngine re-validates against settings on every read.
+  if (!Object.prototype.hasOwnProperty.call(QLENS.ENGINES, id)) {
+    try {
+      const res = await chrome.storage.local.get(KEY_SETTINGS);
+      const raw = res && res[KEY_SETTINGS];
+      const customs = raw && Array.isArray(raw.customEngines) ? raw.customEngines : [];
+      const ok = customs.some((c) => c && c.id === id);
+      if (!ok) return;
+    } catch (err) {
+      return;
+    }
+  }
   try {
     await chrome.storage.local.set({ [KEY_LAST_ENGINE]: id });
+    lastEngineKnown = id;
   } catch (err) {
     return;
   }

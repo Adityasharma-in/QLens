@@ -14,15 +14,69 @@ function truncateSelection(text, max) {
   return clean.slice(0, limit).trimEnd() + '\u2026';
 }
 
+function readFieldSelection(el) {
+  if (!el) return null;
+  const tag = el.tagName ? el.tagName.toLowerCase() : '';
+  if (tag === 'textarea') {
+    if (typeof el.selectionStart !== 'number' || typeof el.selectionEnd !== 'number') return null;
+    if (el.selectionStart === el.selectionEnd) return null;
+    return String(el.value == null ? '' : el.value).slice(el.selectionStart, el.selectionEnd);
+  }
+  if (tag === 'input') {
+    const type = String(el.type || 'text').toLowerCase();
+    if (type !== 'text' && type !== 'search' && type !== 'url') return null;
+    if (typeof el.selectionStart !== 'number' || typeof el.selectionEnd !== 'number') return null;
+    if (el.selectionStart === el.selectionEnd) return null;
+    return String(el.value == null ? '' : el.value).slice(el.selectionStart, el.selectionEnd);
+  }
+  return null;
+}
+
+function readWindowSelection(win) {
+  const sel = win.getSelection();
+  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return null;
+  const node = sel.anchorNode;
+  if (!node) return null;
+  const el = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+  if (isEditableElement(el)) return null;
+  const text = sel.toString();
+  if (!text) return null;
+  return text;
+}
+
+function readShadowSelections() {
+  const texts = [];
+  try {
+    const hosts = document.querySelectorAll('*');
+    for (const host of hosts) {
+      let sr = null;
+      try {
+        sr = host.shadowRoot || null;
+      } catch (err) {
+        sr = null;
+      }
+      if (!sr || typeof sr.getSelection !== 'function') continue;
+      try {
+        const sel = sr.getSelection();
+        if (!sel || sel.rangeCount === 0 || sel.isCollapsed) continue;
+        const text = sel.toString();
+        if (text) texts.push(text);
+      } catch (err) {}
+    }
+  } catch (err) {}
+  if (!texts.length) return null;
+  return texts.join(' ');
+}
+
 function captureSelection(max) {
   try {
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return null;
-    const node = sel.anchorNode;
-    if (!node) return null;
-    const el = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
-    if (isEditableElement(el)) return null;
-    return truncateSelection(sel.toString(), max);
+    const fieldText = readFieldSelection(document.activeElement);
+    if (fieldText) return truncateSelection(fieldText, max);
+    const main = readWindowSelection(window);
+    if (main) return truncateSelection(main, max);
+    const shadow = readShadowSelections();
+    if (shadow) return truncateSelection(shadow, max);
+    return null;
   } catch (err) {
     return null;
   }

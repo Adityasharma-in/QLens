@@ -14,6 +14,9 @@ function collectJs(dir, out) {
 
 const files = [];
 collectJs(join(ROOT, 'src'), files);
+for (const entry of readdirSync(ROOT)) {
+  if (/^probe-.*\.mjs$/.test(entry)) files.push(join(ROOT, entry));
+}
 files.push(join(ROOT, 'tests', 'unit', 'run.mjs'));
 files.push(join(ROOT, 'tests', 'e2e', 'smoke.mjs'));
 

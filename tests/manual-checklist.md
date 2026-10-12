@@ -40,6 +40,15 @@ extension log. Record every row: PASS / FAIL + note.
 - Quick modes: `images: x`, `videos: x`, `news: x`, `yt: x`, `wiki: x` and their pills.
 - Last engine survives browser restart.
 
+## 4b. Custom engines + !bangs
+- Options → Custom engines → Add: Kagi `https://kagi.com/search?q={q}` with bang `kagi` → pill appears in overlay + options default-engine radio.
+- In the lens type `!kagi fast search` → pill highlights Kagi, prefix stripped, Enter opens Kagi results.
+- `!gh react hooks` (GitHub search engine) and `!dev query` (`http://localhost:3000/search?q={q}`) both build correct URLs.
+- Unknown `!nope x` → treated as plain search text (no crash, no navigation to a bad URL).
+- Reserved bang rejected in options (e.g. `g`, `w`); duplicate bang rejected; non-http(s) URL rejected; URL without `{q}` rejected.
+- Custom engine as default engine works (popup + omnibox + context-menu-direct all use it).
+- Corrupt `customEngines` in storage → sanitized to valid entries only; overlay still opens.
+
 ## 5. Selection
 - Plain text → auto-filled + "From selection" chip.
 - Inside input/textarea → empty overlay (E7).
@@ -77,6 +86,22 @@ extension log. Record every row: PASS / FAIL + note.
 | M5 | Attach image → `Esc` | Removes the attachment (overlay stays); `Esc` again closes | |
 | M6 | Click the thumbnail × | Removes the attachment | |
 | M7 | Pasting non-image text (while input focused) | Inserts text normally; no image state | |
+| M8 | Attach a large photo (>1600 px long edge) → Enter | Upload succeeds (downscaled WebP); results correct | |
+| M9 | Attach an image, hit Enter instantly (spinner still showing) | Search queues and fires automatically when ready (no swallowed Enter) | |
+| M10 | Search the same image twice within 5 minutes | Second search opens results instantly (no re-upload) | |
+| M11 | Attach AVIF / HEIC / SVG file | Attaches and searches (raw fallback for undecodable types) | |
 
-## 11. Logs
+## 11. Launcher (unified)
+- Type a query matching an open tab → "Open tabs" section appears above suggestions; Enter switches to it; overlay closes.
+- Shift+Enter on a tab row closes that tab and removes the row (overlay stays open).
+- Bookmarks and history matches appear under their headers; Enter opens in a new tab.
+- Empty query shows open tabs as quick-switch.
+- Options → Launcher off → no launcher section, no `tabs`/`bookmarks`/`history` reads.
+
+## 12. Omnibox + restricted pages
+- Type `ql` + Space/Tab in the address bar, then `cats` → default-engine results; `ql g cats` → Google; `ql !kagi cats` → custom Kagi engine; `ql images: cats` → Images.
+- Shortcut on `chrome://extensions`, New Tab, Web Store, PDF → opens the QLens popup as a tab with the selection pre-filled + "Restricted page" notice (never silent, never an error log).
+- Restricted-tab popup speaks the full lens language: `!kagi query`, `!w query`, `g query`, `images: query`, `yt: query`, `github.com/foo` (direct open), plain text (default engine). Pill click chooses the engine for plain queries; a `!bang`/prefix in the text wins over the pill.
+
+## 13. Logs
 - `chrome://extensions` → "Errors" must be empty after the full matrix above.

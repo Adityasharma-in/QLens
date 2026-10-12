@@ -10,7 +10,11 @@ globalThis.QLENS = globalThis.QLENS || {};
   function iconSvg(markup) {
     const s = document.createElement('span');
     s.className = 'pill-icon';
-    s.innerHTML = markup;
+    s.setAttribute('aria-hidden', 'true');
+    try {
+      if (QLENS.setIcon && QLENS.setIcon(s, markup)) return s;
+    } catch (err) {}
+    try { s.textContent = ''; } catch (e2) {}
     return s;
   }
 
@@ -39,11 +43,28 @@ globalThis.QLENS = globalThis.QLENS || {};
     document.documentElement.style.setProperty('--accent-strong', hex + '38');
   }
 
+  function engineSpecs() {
+    const map = {};
+    if (QLENS.ENGINES) {
+      for (const id of Object.keys(QLENS.ENGINES)) map[id] = QLENS.ENGINES[id];
+    }
+    try {
+      const customs = typeof QLENS.getCustomEngines === 'function'
+        ? QLENS.getCustomEngines(settings)
+        : [];
+      for (const c of customs) {
+        if (c && c.id && !map[c.id]) map[c.id] = { id: c.id, name: c.name };
+      }
+    } catch (err) {}
+    return map;
+  }
+
   function renderDefaultEngines() {
     const wrap = $('default-engine');
     wrap.textContent = '';
+    const specs = engineSpecs();
     for (const id of settings.engineOrder) {
-      const eng = QLENS.ENGINES[id];
+      const eng = specs[id];
       if (!eng) continue;
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -51,7 +72,7 @@ globalThis.QLENS = globalThis.QLENS || {};
       btn.dataset.engine = id;
       btn.setAttribute('role', 'radio');
       btn.setAttribute('aria-checked', String(id === settings.defaultEngine));
-      btn.appendChild(iconSvg(QLENS.LOGOS[id]));
+      btn.appendChild(iconSvg(QLENS.LOGOS[id] || QLENS.LOGOS.custom || ''));
       btn.appendChild(document.createTextNode(eng.name));
       btn.addEventListener('click', async () => {
         settings = await QLENS.storage.setSettings({ defaultEngine: id });
@@ -64,8 +85,9 @@ globalThis.QLENS = globalThis.QLENS || {};
   function renderOrderList() {
     const list = $('order-list');
     list.textContent = '';
+    const specs = engineSpecs();
     settings.engineOrder.forEach((id, idx) => {
-      const eng = QLENS.ENGINES[id];
+      const eng = specs[id];
       if (!eng) return;
       const li = document.createElement('li');
       li.className = 'order-item';
@@ -210,13 +232,82 @@ globalThis.QLENS = globalThis.QLENS || {};
 
   function setToggleStates() {
     for (const elId of Object.keys(TOGGLE_MAP)) {
-      $(elId).checked = Boolean(settings[TOGGLE_MAP[elId]]);
+      const el = $(elId);
+      if (!el) continue;
+      el.checked = Boolean(settings[TOGGLE_MAP[elId]]);
     }
+    setLauncherStates();
+  }
+
+  function getLauncher() {
+    try {
+      if (settings && settings.launcher && typeof QLENS.sanitizeLauncher === 'function') {
+        return QLENS.sanitizeLauncher(settings.launcher);
+      }
+    } catch (err) {}
+    return QLENS.sanitizeLauncher({});
+  }
+
+  function setLauncherStates() {
+    const l = getLauncher();
+    const map = {
+      'opt-launcherEnabled': l.enabled,
+      'opt-launcherTabs': l.tabs,
+      'opt-launcherBookmarks': l.bookmarks,
+      'opt-launcherHistory': l.history
+    };
+    for (const elId of Object.keys(map)) {
+      const input = $(elId);
+      if (input) input.checked = Boolean(map[elId]);
+    }
+    const maxEl = $('opt-launcherMax');
+    if (maxEl) maxEl.value = String(l.maxResults);
+  }
+
+  async function saveLauncher() {
+    const read = (id) => { const e = $(id); return e ? Boolean(e.checked) : undefined; };
+    const maxEl = $('opt-launcherMax');
+    let max;
+    if (maxEl) {
+      max = Math.floor(Number(maxEl.value));
+      if (!Number.isFinite(max)) max = getLauncher().maxResults;
+      maxEl.value = String(Math.min(10, Math.max(3, max)));
+    }
+    settings = await QLENS.storage.setSettings({
+      launcher: { enabled: read('opt-launcherEnabled'), tabs: read('opt-launcherTabs'), bookmarks: read('opt-launcherBookmarks'), history: read('opt-launcherHistory'), maxResults: max }
+    });
+    setLauncherStates();
+  }
+
+  function bindLauncher() {
+    for (const id of ['opt-launcherEnabled', 'opt-launcherTabs', 'opt-launcherBookmarks', 'opt-launcherHistory']) {
+      const input = $(id);
+      if (input) input.addEventListener('change', async () => {
+        if ((id === 'opt-launcherHistory' || id === 'opt-launcherBookmarks') && input.checked) {
+          const perm = id === 'opt-launcherHistory' ? 'history' : 'bookmarks';
+          let granted = true;
+          try {
+            if (chrome.permissions && chrome.permissions.request) {
+              granted = await chrome.permissions.request({ permissions: [perm] });
+            }
+          } catch (err) { granted = true; }
+          if (!granted) {
+            input.checked = false;
+            showToast(perm + ' permission denied — ' + (perm === 'history' ? 'history' : 'bookmark') + ' results stay off');
+            return;
+          }
+        }
+        await saveLauncher();
+      });
+    }
+    const maxEl = $('opt-launcherMax');
+    if (maxEl) maxEl.addEventListener('change', async () => { await saveLauncher(); showToast('Launcher results saved'); });
   }
 
   function bindToggles() {
     for (const elId of Object.keys(TOGGLE_MAP)) {
       const input = $(elId);
+      if (!input) continue;
       input.addEventListener('change', async () => {
         settings = await QLENS.storage.setSettings({ [TOGGLE_MAP[elId]]: input.checked });
       });
@@ -227,7 +318,8 @@ globalThis.QLENS = globalThis.QLENS || {};
     QLENS.storage
       .getShortcut()
       .then((combo) => {
-        $('shortcut-input').value = combo;
+        const el = $('shortcut-input');
+        if (el) el.value = combo;
       })
       .catch(() => {});
   }
@@ -269,6 +361,15 @@ globalThis.QLENS = globalThis.QLENS || {};
       pending = null;
       note.textContent = 'Saved — QLens now opens with ' + combo + ' on any page.';
       showToast('Shortcut updated');
+    });
+    const openBtn = $('shortcut-open');
+    if (openBtn) openBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText('chrome://extensions/shortcuts');
+        showToast('Address copied — paste it into your address bar');
+      } catch (e) {
+        showToast('Copy failed — type chrome://extensions/shortcuts manually');
+      }
     });
   }
 
@@ -365,10 +466,10 @@ globalThis.QLENS = globalThis.QLENS || {};
     updateEdgeCode();
   }
 
-  function updateEdgePreview() {
+  function updateEdgePreview(vs) {
     const preview = $('edge-preview');
     if (!preview) return;
-    const vs = getVS();
+    vs = vs || getVS();
     if (!vs.enabled) {
       preview.style.boxShadow = 'none';
       preview.style.borderColor = 'var(--border)';
@@ -384,10 +485,10 @@ globalThis.QLENS = globalThis.QLENS || {};
     preview.style.boxShadow = buildVSShadow(vs);
   }
 
-  function updateEdgeCode() {
+  function updateEdgeCode(vs) {
     const codeEl = $('edge-code');
     if (!codeEl) return;
-    const vs = getVS();
+    vs = vs || getVS();
     const shadow = buildVSShadow(vs);
     const f = vs.frame;
     const frameCss = '.ql-viewport-frame {\n  border-radius: ' + f.radius + 'px;\n  border: 1px solid rgba(255,255,255, ' + Number(f.borderOpacity).toFixed(2) + ');\n  box-shadow: ' + shadow + ';\n}';
@@ -398,16 +499,70 @@ globalThis.QLENS = globalThis.QLENS || {};
     codeEl.dataset.config = JSON.stringify(vs, null, 2);
   }
 
+  let edgeSaveTimer = 0;
+  let pendingEdgePatch = null;
+
+  function mergeEdgePatch(base, patch) {
+    return {
+      enabled: patch.enabled !== undefined ? patch.enabled : base.enabled,
+      layer1: { ...base.layer1, ...(patch.layer1 || {}) },
+      layer2: { ...base.layer2, ...(patch.layer2 || {}) },
+      frame: { ...base.frame, ...(patch.frame || {}) }
+    };
+  }
+
+  function mergeEdgePatches(a, b) {
+    const out = { ...(a || {}) };
+    if (!b) return out;
+    if (b.enabled !== undefined) out.enabled = b.enabled;
+    ['layer1', 'layer2', 'frame'].forEach((k) => {
+      if (b[k]) out[k] = { ...((a && a[k]) || {}), ...b[k] };
+    });
+    return out;
+  }
+
+  function edgeText(ids, text) {
+    (Array.isArray(ids) ? ids : [ids]).forEach((id) => {
+      if (!id) return;
+      const el = $(id);
+      if (el) el.textContent = text;
+    });
+  }
+
+  function previewEdge(patch) {
+    const vs = mergeEdgePatch(getVS(), mergeEdgePatches(pendingEdgePatch, patch));
+    updateEdgePreview(vs);
+    updateEdgeCode(vs);
+  }
+
+  function queueSaveEdge(patch) {
+    pendingEdgePatch = mergeEdgePatches(pendingEdgePatch, patch);
+    clearTimeout(edgeSaveTimer);
+    edgeSaveTimer = setTimeout(() => {
+      const p = pendingEdgePatch;
+      pendingEdgePatch = null;
+      edgeSaveTimer = 0;
+      saveEdge(p);
+    }, 200);
+  }
+
+  function flushEdgeSave() {
+    const p = pendingEdgePatch;
+    pendingEdgePatch = null;
+    clearTimeout(edgeSaveTimer);
+    edgeSaveTimer = 0;
+    if (!p) return Promise.resolve();
+    return saveEdge(p);
+  }
+
   async function saveEdge(patch) {
+    clearTimeout(edgeSaveTimer);
+    edgeSaveTimer = 0;
+    pendingEdgePatch = null;
     const base = getVS();
     let next = base;
     if (patch && typeof patch === 'object') {
-      next = {
-        enabled: patch.enabled !== undefined ? patch.enabled : base.enabled,
-        layer1: { ...base.layer1, ...(patch.layer1 || {}) },
-        layer2: { ...base.layer2, ...(patch.layer2 || {}) },
-        frame: { ...base.frame, ...(patch.frame || {}) }
-      };
+      next = mergeEdgePatch(base, patch);
     } else if (typeof patch === 'function') {
       next = patch(base);
     }
@@ -427,27 +582,39 @@ globalThis.QLENS = globalThis.QLENS || {};
       await saveEdge({ layer2: { enabled: layer2El.checked } });
     });
 
-    const bindRange = (id, handler) => {
+    const bindRange = (id, patchOf, valueId, format) => {
       const e = $(id);
       if (!e) return;
-      e.addEventListener('input', handler);
+      e.addEventListener('input', () => {
+        const patch = patchOf(e.value);
+        edgeText(valueId, format(e.value));
+        previewEdge(patch);
+        queueSaveEdge(patch);
+      });
+      e.addEventListener('change', () => { flushEdgeSave(); });
     };
 
-    bindRange('edge-x', async (e) => { await saveEdge({ layer1: { x: parseInt(e.target.value,10) } }); });
-    bindRange('edge-y', async (e) => { await saveEdge({ layer1: { y: parseInt(e.target.value,10) } }); });
-    bindRange('edge-blur', async (e) => { await saveEdge({ layer1: { blur: parseInt(e.target.value,10) } }); });
-    bindRange('edge-spread', async (e) => { await saveEdge({ layer1: { spread: parseInt(e.target.value,10) } }); });
-    bindRange('edge-opacity', async (e) => { await saveEdge({ layer1: { opacity: parseInt(e.target.value,10) } }); });
-    bindRange('edge-blur2', async (e) => { await saveEdge({ layer2: { blur: parseInt(e.target.value,10) } }); });
-    bindRange('edge-spread2', async (e) => { await saveEdge({ layer2: { spread: parseInt(e.target.value,10) } }); });
-    bindRange('edge-opacity2', async (e) => { await saveEdge({ layer2: { opacity: parseInt(e.target.value,10) } }); });
-    bindRange('edge-radius', async (e) => { await saveEdge({ frame: { radius: parseInt(e.target.value,10) } }); });
-    bindRange('edge-border', async (e) => { const v = parseInt(e.target.value,10); await saveEdge({ frame: { borderOpacity: v/100 } }); });
+    bindRange('edge-x', (v) => ({ layer1: { x: parseInt(v, 10) } }), 'edge-v-x', (v) => v + ' px');
+    bindRange('edge-y', (v) => ({ layer1: { y: parseInt(v, 10) } }), 'edge-v-y', (v) => v + ' px');
+    bindRange('edge-blur', (v) => ({ layer1: { blur: parseInt(v, 10) } }), 'edge-v-blur', (v) => v + ' px');
+    bindRange('edge-spread', (v) => ({ layer1: { spread: parseInt(v, 10) } }), 'edge-v-spread', (v) => v + ' px');
+    bindRange('edge-opacity', (v) => ({ layer1: { opacity: parseInt(v, 10) } }), ['edge-v-opacity', 'edge-v-opacity2'], (v) => v + '%');
+    bindRange('edge-blur2', (v) => ({ layer2: { blur: parseInt(v, 10) } }), 'edge-v-blur2', (v) => v + ' px');
+    bindRange('edge-spread2', (v) => ({ layer2: { spread: parseInt(v, 10) } }), 'edge-v-spread2', (v) => v + ' px');
+    bindRange('edge-opacity2', (v) => ({ layer2: { opacity: parseInt(v, 10) } }), ['edge-v-opacity2b', 'edge-v-opacity2c'], (v) => v + '%');
+    bindRange('edge-radius', (v) => ({ frame: { radius: parseInt(v, 10) } }), 'edge-v-radius', (v) => v + ' px');
+    bindRange('edge-border', (v) => ({ frame: { borderOpacity: parseInt(v, 10) / 100 } }), 'edge-v-border', (v) => (parseInt(v, 10) / 100).toFixed(2));
 
     const c1 = $('edge-color');
-    if (c1) c1.addEventListener('input', async (e) => { await saveEdge({ layer1: { color: e.target.value } }); });
+    if (c1) {
+      c1.addEventListener('input', (e) => { previewEdge({ layer1: { color: e.target.value } }); queueSaveEdge({ layer1: { color: e.target.value } }); });
+      c1.addEventListener('change', () => { flushEdgeSave(); });
+    }
     const c2 = $('edge-color2');
-    if (c2) c2.addEventListener('input', async (e) => { await saveEdge({ layer2: { color: e.target.value } }); });
+    if (c2) {
+      c2.addEventListener('input', (e) => { previewEdge({ layer2: { color: e.target.value } }); queueSaveEdge({ layer2: { color: e.target.value } }); });
+      c2.addEventListener('change', () => { flushEdgeSave(); });
+    }
 
     document.querySelectorAll('.edge-preset').forEach(btn => {
       btn.addEventListener('click', async () => {
@@ -508,7 +675,6 @@ globalThis.QLENS = globalThis.QLENS || {};
     // collapse
     const collapseBtn = $('edge-collapse-btn');
     const edgeCard = $('card-edge');
-    const edgeControls = $('edge-controls');
     const updateCollapseUI = () => {
       const collapsed = Boolean(settings.edgeCollapsed);
       if (edgeCard) edgeCard.classList.toggle('is-collapsed', collapsed);
@@ -539,7 +705,6 @@ globalThis.QLENS = globalThis.QLENS || {};
     const empty = $('fav-empty');
     const countEl = $('fav-count');
     const statEl = $('stat-commands');
-    const sites = getVS ? null : null; // placeholder to avoid lint
     const favs = settings && Array.isArray(settings.favoriteSites) ? settings.favoriteSites : QLENS.CONFIG.DEFAULT_SETTINGS.favoriteSites;
     if (countEl) countEl.textContent = String(favs.length);
     if (statEl) statEl.textContent = String(favs.length);
@@ -625,28 +790,6 @@ globalThis.QLENS = globalThis.QLENS || {};
       li.addEventListener('dragend', () => li.classList.remove('dragging'));
       list.appendChild(li);
     });
-    // drag reorder for fav list
-    list.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      const dragging = list.querySelector('.dragging');
-      if (!dragging) return;
-      const after = Array.from(list.children).find((child) => {
-        const rect = child.getBoundingClientRect();
-        return e.clientY < rect.top + rect.height/2;
-      });
-      if (after && after !== dragging) list.insertBefore(dragging, after);
-      else if (!after) list.appendChild(dragging);
-    });
-    list.addEventListener('drop', async (e) => {
-      e.preventDefault();
-      const ids = Array.from(list.children).map((li) => li.dataset.id);
-      const favsMap = new Map(favs.map((s) => [s.id, s]));
-      const ordered = ids.map((id) => favsMap.get(id)).filter(Boolean);
-      // append any missing (should not happen)
-      favs.forEach((s) => { if (!ids.includes(s.id)) ordered.push(s); });
-      settings = await QLENS.storage.setSettings({ favoriteSites: ordered });
-      renderFavList();
-    });
   }
 
   function openFavForm(id) {
@@ -694,21 +837,25 @@ globalThis.QLENS = globalThis.QLENS || {};
     if (cancel) cancel.addEventListener('click', (e) => { e.preventDefault(); closeFavForm(); });
     if (form) form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const label = $('fav-label').value.trim();
-      let shortcut = $('fav-shortcut').value.trim().toLowerCase();
-      let url = $('fav-url').value.trim();
+      const labelEl = $('fav-label');
+      const shortcutEl = $('fav-shortcut');
+      const urlEl = $('fav-url');
       const err = $('fav-error');
-      if (!label) { err.textContent = 'Label is required.'; return; }
-      if (!/^[a-z0-9]{1,12}$/i.test(shortcut)) { err.textContent = 'Shortcut must be 1–12 letters/numbers, no spaces.'; return; }
-      try { const u = new URL(url); if (u.protocol !== 'https:' && u.protocol !== 'http:') throw new Error('bad'); url = u.href; } catch (ex) { err.textContent = 'Enter a valid https:// URL.'; return; }
+      if (!labelEl || !shortcutEl || !urlEl) return;
+      const label = labelEl.value.trim();
+      const shortcut = shortcutEl.value.trim().toLowerCase();
+      let url = urlEl.value.trim();
+      if (!label) { if (err) err.textContent = 'Label is required.'; return; }
+      if (!/^[a-z0-9]{1,12}$/i.test(shortcut)) { if (err) err.textContent = 'Shortcut must be 1–12 letters/numbers, no spaces.'; return; }
+      try { const u = new URL(url); if (u.protocol !== 'https:' && u.protocol !== 'http:') throw new Error('bad'); url = u.href; } catch (ex) { if (err) err.textContent = 'Enter a valid https:// URL.'; return; }
       const favs = settings.favoriteSites.slice();
       const exists = favs.find((s) => s.shortcut.toLowerCase() === shortcut && s.id !== editingFavId);
-      if (exists) { err.textContent = 'Shortcut "/' + shortcut + '" already used for "' + exists.label + '".'; return; }
+      if (exists) { if (err) err.textContent = 'Shortcut "/' + shortcut + '" already used for "' + exists.label + '".'; return; }
       if (editingFavId) {
         const idx = favs.findIndex((s) => s.id === editingFavId);
         if (idx !== -1) favs[idx] = { id: editingFavId, label, url, shortcut };
       } else {
-        if (favs.length >= QLENS.CONFIG.MAX_FAVORITES) { err.textContent = 'Max ' + QLENS.CONFIG.MAX_FAVORITES + ' commands.'; return; }
+        if (favs.length >= QLENS.CONFIG.MAX_FAVORITES) { if (err) err.textContent = 'Max ' + QLENS.CONFIG.MAX_FAVORITES + ' commands.'; return; }
         const id = shortcut;
         favs.push({ id, label, url, shortcut });
       }
@@ -717,8 +864,213 @@ globalThis.QLENS = globalThis.QLENS || {};
       closeFavForm();
       showToast(editingFavId ? 'Command updated' : 'Command added — type "/' + shortcut + '" in the lens');
     });
+    const favList = $('fav-list');
+    if (favList && !favList.dataset.dndBound) {
+      favList.dataset.dndBound = '1';
+      favList.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        const dragging = favList.querySelector('.dragging');
+        if (!dragging) return;
+        const after = Array.from(favList.children).find((child) => {
+          const rect = child.getBoundingClientRect();
+          return e.clientY < rect.top + rect.height / 2;
+        });
+        if (after && after !== dragging) favList.insertBefore(dragging, after);
+        else if (!after) favList.appendChild(dragging);
+      });
+      favList.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        const favs = settings && Array.isArray(settings.favoriteSites) ? settings.favoriteSites : [];
+        const ids = Array.from(favList.children).map((li) => li.dataset.id);
+        const favsMap = new Map(favs.map((s) => [s.id, s]));
+        const ordered = ids.map((id) => favsMap.get(id)).filter(Boolean);
+        favs.forEach((s) => { if (!ids.includes(s.id)) ordered.push(s); });
+        settings = await QLENS.storage.setSettings({ favoriteSites: ordered });
+        renderFavList();
+      });
+    }
     // live stats
     renderFavList();
+  }
+
+  // ---------- Custom Engines ----------
+  let editingEngId = null;
+
+  function getCustoms() {
+    try {
+      if (settings && typeof QLENS.getCustomEngines === 'function') {
+        return QLENS.getCustomEngines(settings);
+      }
+    } catch (err) {}
+    return [];
+  }
+
+  function validateEngineFields(name, bang, url, excludeId) {
+    const n = String(name == null ? '' : name).trim();
+    const b = String(bang == null ? '' : bang).trim().toLowerCase();
+    const u = String(url == null ? '' : url).trim();
+    if (!n) return 'Name is required.';
+    if (n.length > 40) return 'Name must be 40 chars or fewer.';
+    if (!/^[a-z0-9]{1,12}$/i.test(b)) return 'Bang must be 1–12 letters/numbers, no spaces.';
+    if (u.length < 12 || u.length > 2000 || !u.includes('{q}')) return 'URL must include {q} where the query goes.';
+    try {
+      const parsed = new URL(u.replace('{q}', 'test'));
+      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return 'Enter a valid http(s):// URL.';
+    } catch (ex) {
+      return 'Enter a valid http(s):// URL.';
+    }
+    const engineBangs = { g: 1, b: 1, k: 1, d: 1, google: 1, brave: 1, bing: 1, duckduckgo: 1, ddg: 1 };
+    const modeBangs = { w: 1, wiki: 1, wikipedia: 1, images: 1, image: 1, videos: 1, video: 1, news: 1, yt: 1, youtube: 1 };
+    if (QLENS.ENGINES && QLENS.ENGINES[b]) return 'Bang "!' + b + '" is reserved for a built-in engine.';
+    if ((QLENS.ENGINE_PREFIXES && QLENS.ENGINE_PREFIXES[b]) || engineBangs[b]) return 'Bang "!' + b + '" is reserved for a built-in shortcut.';
+    if (modeBangs[b]) return 'Bang "!' + b + '" is reserved for a quick mode.';
+    const customs = getCustoms();
+    const clash = customs.find((c) => (c.bang.toLowerCase() === b || c.id === b) && c.id !== excludeId);
+    if (clash) return 'Bang "!' + b + '" already used for "' + clash.name + '".';
+    return null;
+  }
+
+  function renderEngList() {
+    const list = $('eng-list');
+    const empty = $('eng-empty');
+    const countEl = $('eng-count');
+    const customs = getCustoms();
+    if (countEl) countEl.textContent = String(customs.length);
+    if (!list) return;
+    list.textContent = '';
+    if (!customs.length) {
+      if (empty) empty.hidden = false;
+      return;
+    }
+    if (empty) empty.hidden = true;
+    customs.forEach((eng) => {
+      const li = document.createElement('li');
+      li.className = 'fav-item';
+      li.dataset.id = eng.id;
+      const shortcut = document.createElement('div');
+      shortcut.className = 'fav-shortcut';
+      shortcut.textContent = '!' + eng.bang;
+      const main = document.createElement('div');
+      main.className = 'fav-main';
+      const label = document.createElement('div');
+      label.className = 'fav-label';
+      label.textContent = eng.name;
+      const url = document.createElement('div');
+      url.className = 'fav-url';
+      url.textContent = eng.url;
+      main.append(label, url);
+      const actions = document.createElement('div');
+      actions.className = 'fav-actions-item';
+      const edit = document.createElement('button');
+      edit.className = 'icon-btn';
+      edit.type = 'button';
+      edit.setAttribute('aria-label', 'Edit ' + eng.name);
+      edit.textContent = '✎';
+      edit.addEventListener('click', () => openEngForm(eng.id));
+      const del = document.createElement('button');
+      del.className = 'icon-btn danger';
+      del.type = 'button';
+      del.setAttribute('aria-label', 'Delete ' + eng.name);
+      del.textContent = '✕';
+      del.addEventListener('click', async () => {
+        if (!window.confirm('Delete "' + eng.name + '" (!' + eng.bang + ')?')) return;
+        const next = getCustoms().filter((c) => c.id !== eng.id);
+        settings = await QLENS.storage.setSettings({ customEngines: next });
+        refreshEngineViews();
+        showToast('Engine deleted');
+      });
+      actions.append(edit, del);
+      const grip = document.createElement('span');
+      grip.textContent = '!';
+      grip.style.color = 'var(--text-faint)';
+      grip.style.padding = '0 4px';
+      li.append(grip, shortcut, main, actions);
+      list.appendChild(li);
+    });
+  }
+
+  function openEngForm(id) {
+    const form = $('eng-form');
+    const title = $('eng-form-title');
+    const nameEl = $('eng-name');
+    const bangEl = $('eng-bang');
+    const urlEl = $('eng-url');
+    const err = $('eng-error');
+    if (!form || !nameEl || !bangEl || !urlEl) return;
+    editingEngId = id || null;
+    const eng = id ? getCustoms().find((c) => c.id === id) : null;
+    if (eng) {
+      title.textContent = 'Edit engine';
+      nameEl.value = eng.name;
+      bangEl.value = eng.bang;
+      urlEl.value = eng.url;
+    } else {
+      title.textContent = 'Add engine';
+      nameEl.value = '';
+      bangEl.value = '';
+      urlEl.value = '';
+    }
+    if (err) err.textContent = '';
+    form.classList.remove('is-hidden');
+    nameEl.focus();
+  }
+
+  function closeEngForm() {
+    const form = $('eng-form');
+    if (form) form.classList.add('is-hidden');
+    editingEngId = null;
+    const err = $('eng-error');
+    if (err) err.textContent = '';
+  }
+
+  function refreshEngineViews() {
+    renderEngList();
+    renderDefaultEngines();
+    renderOrderList();
+    const statEng = document.getElementById('stat-engines');
+    if (statEng) statEng.textContent = String(settings.engineOrder ? settings.engineOrder.length : 4);
+  }
+
+  function bindEng() {
+    const addBtn = $('eng-add-btn');
+    const closeBtn = $('eng-form-close');
+    const cancel = $('eng-cancel');
+    const form = $('eng-form');
+    if (addBtn) addBtn.addEventListener('click', () => openEngForm(null));
+    if (closeBtn) closeBtn.addEventListener('click', closeEngForm);
+    if (cancel) cancel.addEventListener('click', (e) => { e.preventDefault(); closeEngForm(); });
+    if (form) form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nameEl = $('eng-name');
+      const bangEl = $('eng-bang');
+      const urlEl = $('eng-url');
+      const err = $('eng-error');
+      if (!nameEl || !bangEl || !urlEl) return;
+      const name = nameEl.value.trim();
+      const bang = bangEl.value.trim().toLowerCase();
+      const url = urlEl.value.trim();
+      const problem = validateEngineFields(name, bang, url, editingEngId);
+      if (problem) { if (err) err.textContent = problem; return; }
+      const customs = getCustoms().slice();
+      if (editingEngId) {
+        const idx = customs.findIndex((c) => c.id === editingEngId);
+        if (idx !== -1) {
+          customs[idx] = { id: editingEngId === bang ? editingEngId : customs[idx].id, name, url, bang };
+          if (editingEngId !== bang) customs[idx].id = bang;
+        }
+      } else {
+        if (customs.length >= (QLENS.CUSTOM_ENGINE_MAX || 30)) {
+          if (err) err.textContent = 'Max ' + (QLENS.CUSTOM_ENGINE_MAX || 30) + ' custom engines.';
+          return;
+        }
+        customs.push({ id: bang, name, url, bang });
+      }
+      settings = await QLENS.storage.setSettings({ customEngines: customs });
+      refreshEngineViews();
+      closeEngForm();
+      showToast(editingEngId ? 'Engine updated' : 'Engine added — type "!' + bang + ' query" in the lens');
+    });
+    renderEngList();
   }
 
   async function init() {
@@ -730,11 +1082,13 @@ globalThis.QLENS = globalThis.QLENS || {};
     applyAppearance();
     renderDefaultEngines();
     renderOrderList();
+    bindEng();
     renderSeg('theme');
     renderSeg('ctx');
     renderSwatches();
     setToggleStates();
     bindToggles();
+    bindLauncher();
     bindSeg('theme');
     bindSeg('ctx');
     bindDnD();
@@ -800,10 +1154,12 @@ globalThis.QLENS = globalThis.QLENS || {};
       applyAppearance();
       renderDefaultEngines();
       renderOrderList();
+      renderEngList();
       renderSeg('theme');
       renderSeg('ctx');
       renderSwatches();
       setToggleStates();
+      setLauncherStates();
       syncEdgeUI();
       showToast('Reset to defaults');
     });

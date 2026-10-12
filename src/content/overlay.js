@@ -23,7 +23,7 @@ ${FONT_FACE}
   --ql-caret: var(--ql-accent);
   --ql-text: #e8edf7;
   --ql-text-dim: rgba(214, 224, 243, .64);
-  --ql-text-faint: rgba(214, 224, 243, .52);
+  --ql-text-faint: rgba(214, 224, 243, .62);
   --ql-hairline: rgba(255, 255, 255, .1);
   --ql-glass-tint: rgba(11, 15, 26, .55);
   --ql-glass-blur: 26px;
@@ -48,23 +48,19 @@ ${FONT_FACE}
   --ql-font-row: 14px;
   --ql-font-sub: 11px;
   --ql-font-foot: 11px;
-  --ql-space-1: 4px;
   --ql-space-2: 8px;
   --ql-space-3: 12px;
   --ql-space-4: 16px;
   --ql-space-5: 20px;
-  --ql-space-6: 24px;
   --ql-radius-sm: 6px;
   --ql-radius-md: 10px;
   --ql-radius-lg: 14px;
   --ql-radius-input: 16px;
   --ql-radius-card: 20px;
   --ql-radius-img: 10px;
-  --ql-radius-img: 10px;
   --ql-radius-full: 999px;
   --ql-dur-fast: 140ms;
   --ql-dur-med: 240ms;
-  --ql-dur-enter: 200ms;
   --ql-ease-out: cubic-bezier(.22, 1, .36, 1);
   --ql-ease-spring: cubic-bezier(.34, 1.56, .64, 1);
   --ql-ease-gentle: cubic-bezier(.45, .05, .2, 1);
@@ -83,7 +79,7 @@ ${FONT_FACE}
   --ql-caret: #4f46e5;
   --ql-text: #141824;
   --ql-text-dim: rgba(23, 28, 45, .64);
-  --ql-text-faint: rgba(23, 28, 45, .5);
+  --ql-text-faint: rgba(23, 28, 45, .62);
   --ql-hairline: rgba(13, 17, 28, .09);
   --ql-glass-tint: rgba(255, 255, 255, .62);
   --ql-glass-blur: 22px;
@@ -107,7 +103,7 @@ ${FONT_FACE}
     --ql-caret: #4f46e5;
     --ql-text: #141824;
     --ql-text-dim: rgba(23, 28, 45, .64);
-    --ql-text-faint: rgba(23, 28, 45, .5);
+    --ql-text-faint: rgba(23, 28, 45, .62);
     --ql-hairline: rgba(13, 17, 28, .09);
     --ql-glass-tint: rgba(255, 255, 255, .62);
     --ql-glass-blur: 22px;
@@ -131,23 +127,14 @@ ${FONT_FACE}
   position: absolute;
   inset: 0;
   z-index: 1;
-  background:
-    radial-gradient(1100px 560px at 12% -10%, rgba(var(--ql-accent-rgb), .08), transparent 62%),
-    radial-gradient(900px 520px at 112% 112%, rgba(var(--ql-accent-rgb), .05), transparent 60%),
-    var(--ql-backdrop-bg);
-    -webkit-backdrop-filter: blur(var(--ql-backdrop-blur)) saturate(1.15);
-  backdrop-filter: blur(var(--ql-backdrop-blur)) saturate(1.15);
-  animation: ql-backdrop-in 160ms var(--ql-ease-out) both;
+  background: var(--ql-backdrop-bg);
+  backdrop-filter: blur(12px) saturate(1.1);
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  animation: ql-backdrop-in 80ms var(--ql-ease-out) both;
 }
 
-.ql-backdrop::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  opacity: calc(var(--ql-noise-opacity) * .55);
-  mix-blend-mode: soft-light;
-  pointer-events: none;
-  background-image: ${NOISE_SVG};
+.ql-backdrop.ql-out {
+  animation: ql-backdrop-out 90ms var(--ql-ease-out) forwards;
 }
 
 @keyframes ql-backdrop-in {
@@ -156,6 +143,15 @@ ${FONT_FACE}
   }
   to {
     opacity: 1;
+  }
+}
+
+@keyframes ql-backdrop-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
   }
 }
 
@@ -171,11 +167,10 @@ ${FONT_FACE}
   border: 1px solid rgba(255,255,255, 0.30);
   box-shadow: inset 0px 0px 84px -6px rgba(173, 122, 255, 0.440), inset 0 0 160px 4px rgba(76, 29, 149, 0.460), inset 0 1px 0 rgba(255,255,255,0.06);
   opacity: 0;
-  will-change: opacity;
-  animation: ql-frame-in 420ms cubic-bezier(0.32,0.72,0,1) 30ms both;
+  animation: ql-frame-in 120ms ease-out both;
 }
 .ql-viewport-frame.ql-out {
-  animation: ql-frame-out 140ms ease forwards;
+  animation: ql-frame-out 80ms ease forwards;
 }
 @keyframes ql-frame-in {
   from { opacity: 0; }
@@ -212,16 +207,17 @@ ${FONT_FACE}
   border: 1px solid var(--ql-glass-border);
   box-shadow: var(--ql-card-shadow), inset 0 1px 0 var(--ql-specular);
   overflow: hidden;
+  isolation: isolate;
   transform-origin: 50% 60%;
-  animation: ql-panel-in var(--ql-dur-enter) var(--ql-ease-spring) 20ms both;
+  animation: ql-panel-in 90ms var(--ql-ease-out) both;
 }
 
 .ql-panel.ql-out {
-  animation: ql-panel-out 120ms ease forwards;
+  animation: ql-panel-out 90ms ease forwards;
 }
 
 @keyframes ql-panel-in {
-  from { opacity: 0; transform: translate(-50%, -46%) scale(.94); }
+  from { opacity: 0; transform: translate(-50%, -50%) scale(.985); }
   to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 
@@ -253,16 +249,20 @@ ${FONT_FACE}
   background-image: ${NOISE_SVG};
 }
 
+/* Aurora bloom is static (no infinite drift) so the frosted card keeps its
+   mockup depth without forcing the page to repaint every frame. */
 .ql-aurora {
   position: absolute;
   inset: 0;
+  z-index: 0;
   overflow: hidden;
+  pointer-events: none;
 }
 
 .ql-orb {
   position: absolute;
   border-radius: 50%;
-  will-change: transform;
+  pointer-events: none;
 }
 
 .ql-orb-a {
@@ -272,10 +272,9 @@ ${FONT_FACE}
   height: 280px;
   margin-left: -280px;
   background: rgb(var(--ql-accent-rgb));
-  opacity: var(--ql-aurora-alpha);
+  opacity: calc(var(--ql-aurora-alpha) * .28);
   filter: blur(72px);
   transition: background-color .5s;
-  animation: ql-drift-a 15s ease-in-out infinite alternate;
 }
 
 .ql-orb-b {
@@ -284,10 +283,9 @@ ${FONT_FACE}
   width: 300px;
   height: 300px;
   background: rgba(var(--ql-accent-rgb), .5);
-  opacity: calc(var(--ql-aurora-alpha) * .75);
+  opacity: calc(var(--ql-aurora-alpha) * .22);
   filter: blur(64px);
   transition: background-color .5s;
-  animation: ql-drift-b 19s ease-in-out infinite alternate;
 }
 
 .ql-orb-c {
@@ -296,30 +294,29 @@ ${FONT_FACE}
   width: 400px;
   height: 400px;
   background: var(--ql-aurora-3);
-  opacity: .45;
+  opacity: .28;
   filter: blur(70px);
-  animation: ql-drift-c 23s ease-in-out infinite alternate;
 }
 
-@keyframes ql-drift-a {
-  from { transform: translate3d(-28px, 0, 0) scale(1); }
-  to { transform: translate3d(36px, 18px, 0) scale(1.12); }
+:host([data-vs="on"]) .ql-orb-a {
+  filter: blur(36px);
 }
-@keyframes ql-drift-b {
-  from { transform: translate3d(0, 10px, 0) scale(1); }
-  to { transform: translate3d(-24px, -18px, 0) scale(1.08); }
+
+:host([data-vs="on"]) .ql-orb-b {
+  filter: blur(32px);
 }
-@keyframes ql-drift-c {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  to { transform: translate3d(26px, -14px, 0) scale(1.1); }
+
+:host([data-vs="on"]) .ql-orb-c {
+  filter: blur(35px);
 }
 
 .ql-tint {
   position: absolute;
   inset: 0;
+  z-index: 1;
   background: var(--ql-glass-tint);
-  -webkit-backdrop-filter: blur(var(--ql-glass-blur)) saturate(1.2);
   backdrop-filter: blur(var(--ql-glass-blur)) saturate(1.2);
+  -webkit-backdrop-filter: blur(var(--ql-glass-blur)) saturate(1.2);
 }
 
 .ql-content {
@@ -335,25 +332,20 @@ ${FONT_FACE}
   width: 440px;
   height: 130px;
   margin-left: -220px;
-  background: radial-gradient(closest-side, rgba(var(--ql-accent-rgb), .55), transparent 72%);
+  background: radial-gradient(closest-side, rgba(var(--ql-accent-rgb), .6), transparent 72%);
   filter: blur(28px);
   pointer-events: none;
-  opacity: 0;
-  transform: scale(.8);
-  animation: ql-glow-in .3s var(--ql-ease-out) 200ms backwards;
-}
-
-@keyframes ql-glow-in {
-  from { opacity: 0; transform: scale(.7); }
-}
-
-.ql-content:has(.ql-input-row:focus-within) .ql-glow {
-  opacity: .45;
-  transform: scale(1);
+  opacity: .14;
+  transform: scale(.9);
   transition: opacity .5s var(--ql-ease-out), transform .5s var(--ql-ease-spring);
 }
 
-/* ---------- input row ---------- */
+.ql-content:has(.ql-input-row:focus-within) .ql-glow {
+  opacity: .62;
+  transform: scale(1);
+}
+
+/* ---------- input row — deep obsidian + visible accent ---------- */
 .ql-input-row {
   position: relative;
   display: flex;
@@ -362,16 +354,98 @@ ${FONT_FACE}
   height: var(--ql-input-h);
   padding: 0 var(--ql-space-2) 0 var(--ql-space-5);
   border-radius: var(--ql-radius-input);
-  background: var(--ql-liner);
-  border: 1px solid var(--ql-hairline);
+  background:
+    linear-gradient(180deg, rgba(var(--ql-accent-rgb), .17), rgba(var(--ql-accent-rgb), .05) 30%, transparent 58%),
+    linear-gradient(135deg, #0a0c15 0%, #06070d 52%, #0c101c 100%);
+  border: 1px solid rgba(var(--ql-accent-rgb), .34);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .55), 0 10px 30px -12px rgba(0, 0, 0, .85), 0 0 28px -10px rgba(var(--ql-accent-rgb), .5), inset 0 1px 0 rgba(255, 255, 255, .13), inset 0 -1px 0 rgba(var(--ql-accent-rgb), .16);
+  isolation: isolate;
   transition: box-shadow var(--ql-dur-fast) var(--ql-ease-out), background var(--ql-dur-fast), border-color var(--ql-dur-fast);
-  animation: ql-rise-in .22s var(--ql-ease-out) 60ms backwards;
+  animation: ql-rise-in .18s var(--ql-ease-out) 20ms backwards;
+}
+
+.ql-input-row::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: ${NOISE_SVG};
+  opacity: .09;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ql-input-row > *:not(.ql-caret) {
+  position: relative;
+  z-index: 1;
 }
 
 .ql-input-row:focus-within {
-  border-color: rgba(var(--ql-accent-rgb), .45);
-  background: var(--ql-liner-hover);
-  box-shadow: 0 0 0 3px rgba(var(--ql-accent-rgb), .22), 0 10px 30px -14px rgba(var(--ql-accent-rgb), .5);
+  border-color: rgba(var(--ql-accent-rgb), .72);
+  background:
+    linear-gradient(180deg, rgba(var(--ql-accent-rgb), .22), rgba(var(--ql-accent-rgb), .06) 32%, transparent 60%),
+    linear-gradient(135deg, #101322 0%, #080a12 55%, #111527 100%);
+  box-shadow: 0 0 0 1px rgba(var(--ql-accent-rgb), .35), 0 0 0 4px rgba(var(--ql-accent-rgb), .22), 0 14px 44px -12px rgba(var(--ql-accent-rgb), .65), 0 8px 24px -8px rgba(0, 0, 0, .7), inset 0 1px 0 rgba(255, 255, 255, .16), inset 0 -1px 0 rgba(var(--ql-accent-rgb), .28);
+}
+
+.ql-input-row::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 14px;
+  right: 14px;
+  height: 1px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, rgba(var(--ql-accent-rgb), .75), transparent);
+  opacity: .8;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.ql-input-row:focus-within::after {
+  opacity: 1;
+  background: linear-gradient(90deg, transparent, rgb(var(--ql-accent-rgb)), transparent);
+  box-shadow: 0 0 12px rgba(var(--ql-accent-rgb), .8);
+}
+
+:host([data-theme="light"]) .ql-input-row {
+  background:
+    linear-gradient(180deg, rgba(var(--ql-accent-rgb), .14), rgba(var(--ql-accent-rgb), .04) 34%, transparent 62%),
+    linear-gradient(135deg, #f4f6fc 0%, #e4e9f5 55%, #d3daec 100%);
+  border-color: rgba(var(--ql-accent-rgb), .42);
+  box-shadow: 0 4px 14px rgba(23, 28, 50, .14), 0 0 22px -10px rgba(var(--ql-accent-rgb), .55), inset 0 1px 0 rgba(255, 255, 255, .9), inset 0 -1px 0 rgba(var(--ql-accent-rgb), .14);
+}
+
+:host([data-theme="light"]) .ql-input-row::before {
+  opacity: .06;
+}
+
+:host([data-theme="light"]) .ql-input-row:focus-within {
+  background:
+    linear-gradient(180deg, rgba(var(--ql-accent-rgb), .18), rgba(var(--ql-accent-rgb), .05) 34%, transparent 62%),
+    linear-gradient(135deg, #ffffff 0%, #e6ebf8 55%, #d5dcef 100%);
+  border-color: rgba(var(--ql-accent-rgb), .68);
+  box-shadow: 0 0 0 1px rgba(var(--ql-accent-rgb), .3), 0 0 0 4px rgba(var(--ql-accent-rgb), .18), 0 12px 32px -14px rgba(var(--ql-accent-rgb), .6), inset 0 1px 0 rgba(255, 255, 255, .9), inset 0 -1px 0 rgba(var(--ql-accent-rgb), .22);
+}
+
+@media (prefers-color-scheme: light) {
+  :host:not([data-theme="dark"]) .ql-input-row {
+    background:
+      linear-gradient(180deg, rgba(var(--ql-accent-rgb), .14), rgba(var(--ql-accent-rgb), .04) 34%, transparent 62%),
+      linear-gradient(135deg, #f4f6fc 0%, #e4e9f5 55%, #d3daec 100%);
+    border-color: rgba(var(--ql-accent-rgb), .42);
+    box-shadow: 0 4px 14px rgba(23, 28, 50, .14), 0 0 22px -10px rgba(var(--ql-accent-rgb), .55), inset 0 1px 0 rgba(255, 255, 255, .9), inset 0 -1px 0 rgba(var(--ql-accent-rgb), .14);
+  }
+  :host:not([data-theme="dark"]) .ql-input-row::before {
+    opacity: .06;
+  }
+  :host:not([data-theme="dark"]) .ql-input-row:focus-within {
+    background:
+      linear-gradient(180deg, rgba(var(--ql-accent-rgb), .18), rgba(var(--ql-accent-rgb), .05) 34%, transparent 62%),
+      linear-gradient(135deg, #ffffff 0%, #e6ebf8 55%, #d5dcef 100%);
+    border-color: rgba(var(--ql-accent-rgb), .68);
+    box-shadow: 0 0 0 1px rgba(var(--ql-accent-rgb), .3), 0 0 0 4px rgba(var(--ql-accent-rgb), .18), 0 12px 32px -14px rgba(var(--ql-accent-rgb), .6), inset 0 1px 0 rgba(255, 255, 255, .9), inset 0 -1px 0 rgba(var(--ql-accent-rgb), .22);
+  }
 }
 
 .ql-icon {
@@ -385,12 +459,16 @@ ${FONT_FACE}
 }
 
 .ql-ic-search {
-  color: var(--ql-text-faint);
-  transition: color var(--ql-dur-fast);
+  color: var(--ql-accent);
+  opacity: .85;
+  filter: drop-shadow(0 0 6px rgba(var(--ql-accent-rgb), .55));
+  transition: color var(--ql-dur-fast), opacity var(--ql-dur-fast), filter var(--ql-dur-fast);
 }
 
 .ql-input-row:focus-within .ql-ic-search {
   color: var(--ql-accent);
+  opacity: 1;
+  filter: drop-shadow(0 0 10px rgba(var(--ql-accent-rgb), .9));
 }
 
 .ql-input {
@@ -404,8 +482,12 @@ ${FONT_FACE}
   color: var(--ql-text);
   font: 600 var(--ql-font-input)/1 'QLens Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
   letter-spacing: -.012em;
-  caret-color: transparent;
+  caret-color: var(--ql-caret);
   cursor: text;
+}
+
+:host([data-fonts="ready"]) .ql-input {
+  caret-color: transparent;
 }
 
 .ql-input::placeholder {
@@ -423,14 +505,18 @@ ${FONT_FACE}
   top: 50%;
   left: 50px;
   width: 4px;
-  height: 22px;
-  border-radius: 2px;
-  background: var(--ql-caret);
-  box-shadow: 0 0 10px rgba(var(--ql-accent-rgb), .5);
+  height: 24px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ql-accent) 72%, #fff 28%), var(--ql-accent));
+  box-shadow: 0 0 12px rgba(var(--ql-accent-rgb), .85), 0 0 3px rgba(var(--ql-accent-rgb), .9);
   transform: translate(-50%, -50%);
   opacity: 1;
   pointer-events: none;
   z-index: 1;
+}
+
+.ql-caret.is-hidden {
+  opacity: 0;
 }
 
 .ql-chip-zone {
@@ -557,6 +643,55 @@ ${FONT_FACE}
   place-items: center;
 }
 
+.ql-img-chip.ql-uploading {
+  opacity: .72;
+  pointer-events: none;
+}
+.ql-img-chip.ql-uploading .ql-img-thumb {
+  animation: ql-thumb-pulse 1.2s ease-in-out infinite alternate;
+}
+@keyframes ql-thumb-pulse {
+  from { opacity: .65; transform: scale(.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+.ql-input-row.ql-drag-over {
+  border-color: rgba(var(--ql-accent-rgb), .55);
+  background: rgba(var(--ql-accent-rgb), .10);
+  box-shadow: 0 0 0 3px rgba(var(--ql-accent-rgb), .18), 0 10px 30px -14px rgba(var(--ql-accent-rgb), .4);
+}
+.ql-panel.ql-drag-active {
+  outline: 2px dashed rgba(var(--ql-accent-rgb), .45);
+  outline-offset: -2px;
+}
+.ql-drop-hint {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: grid;
+  place-items: center;
+  background: rgba(var(--ql-accent-rgb), .08);
+  backdrop-filter: blur(2px);
+  border-radius: var(--ql-radius-card);
+  color: var(--ql-accent);
+  font: 700 12px 'QLens Inter', system-ui, sans-serif;
+  letter-spacing: .02em;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--ql-dur-fast) var(--ql-ease-out);
+}
+.ql-drop-hint.is-visible { opacity: 1; }
+.ql-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(var(--ql-accent-rgb), .18);
+  border-top-color: var(--ql-accent);
+  border-radius: 50%;
+  animation: ql-spin .65s linear infinite;
+  flex: none;
+}
+@keyframes ql-spin { to { transform: rotate(360deg); } }
+.ql-img-chip .ql-spinner { margin-left: 1px; }
+
 .ql-err {
   position: absolute;
   top: 12px;
@@ -611,22 +746,22 @@ ${FONT_FACE}
 /* ---------- engine pills + light rail ---------- */
 .ql-pill-zone {
   position: relative;
-  padding: var(--ql-space-3) 0 var(--ql-space-4);
-  animation: ql-rise-in .24s var(--ql-ease-out) 100ms backwards;
+  padding: var(--ql-space-2) 0 var(--ql-space-3);
+  animation: ql-rise-in .2s var(--ql-ease-out) 40ms backwards;
 }
 
 .ql-pills {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
 .ql-pill {
   display: inline-flex;
   align-items: center;
-  gap: var(--ql-space-2);
-  height: 36px;
-  padding: 0 var(--ql-space-4) 0 var(--ql-space-3);
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px 0 9px;
   border-radius: var(--ql-radius-full);
   border: 1px solid var(--ql-hairline);
   background: var(--ql-liner);
@@ -653,11 +788,12 @@ ${FONT_FACE}
 }
 
 .ql-pill.is-active {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--ql-accent) 88%, #fff 12%), var(--ql-accent));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ql-accent) 78%, #fff 22%), var(--ql-accent) 55%, color-mix(in srgb, var(--ql-accent) 82%, #000 18%));
   color: var(--ql-accent-ink);
   font-weight: 700;
-  border-color: transparent;
-  box-shadow: 0 6px 18px -8px rgba(var(--ql-accent-rgb), .65), inset 0 1px 0 rgba(255, 255, 255, .25);
+  border-color: rgba(255, 255, 255, .22);
+  box-shadow: 0 0 0 1px rgba(var(--ql-accent-rgb), .5), 0 8px 22px -8px rgba(var(--ql-accent-rgb), .8), 0 2px 8px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .35), inset 0 -1px 0 rgba(0, 0, 0, .22);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .25);
   animation: ql-pill-pop .28s var(--ql-ease-spring);
 }
 
@@ -668,9 +804,9 @@ ${FONT_FACE}
 }
 
 .ql-pill-badge {
-  width: 18px;
-  height: 18px;
-  border-radius: 5px;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
   display: grid;
   place-items: center;
   background: var(--ql-badge-bg);
@@ -679,8 +815,8 @@ ${FONT_FACE}
 
 .ql-pill-badge .ql-icon,
 .ql-pill-badge svg {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 
 .ql-pill.is-active .ql-pill-badge {
@@ -692,15 +828,6 @@ ${FONT_FACE}
   40% { transform: rotate(-10deg) scale(1.18); }
   70% { transform: rotate(6deg) scale(1); }
   100% { transform: rotate(0) scale(1); }
-}
-
-.ql-pill-rail {
-  position: absolute;
-  left: var(--ql-space-3);
-  right: var(--ql-space-3);
-  bottom: 13px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--ql-hairline) 12%, var(--ql-hairline) 88%, transparent);
 }
 
 /* ---------- AI Mode switch ---------- */
@@ -740,11 +867,12 @@ ${FONT_FACE}
 }
 
 .ql-pill-ai.is-active {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--ql-accent) 88%, #fff 12%), var(--ql-accent));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ql-accent) 78%, #fff 22%), var(--ql-accent) 55%, color-mix(in srgb, var(--ql-accent) 82%, #000 18%));
   color: var(--ql-accent-ink);
-  border-color: transparent;
+  border-color: rgba(255, 255, 255, .22);
   border-style: solid;
-  box-shadow: 0 6px 18px -8px rgba(var(--ql-accent-rgb), .65), inset 0 1px 0 rgba(255, 255, 255, .25);
+  box-shadow: 0 0 0 1px rgba(var(--ql-accent-rgb), .5), 0 8px 22px -8px rgba(var(--ql-accent-rgb), .8), 0 2px 8px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .35), inset 0 -1px 0 rgba(0, 0, 0, .22);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .25);
   animation: ql-pill-pop .28s var(--ql-ease-spring);
 }
 
@@ -857,6 +985,85 @@ ${FONT_FACE}
   opacity: 1;
 }
 
+/* While a keystroke-driven update is in flight the final row count is still
+   settling. Animating max-height here makes the panel visibly shrink on every
+   new letter and grow again when the response lands, so the height is applied
+   instantly while the list is still being replaced. */
+.ql-suggest.is-updating {
+  transition: opacity var(--ql-dur-fast) var(--ql-ease-out);
+}
+
+/* ---------- launcher ---------- */
+.ql-launch {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 0;
+  opacity: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  margin-top: var(--ql-space-3);
+  transition: max-height var(--ql-dur-med) var(--ql-ease-gentle), opacity var(--ql-dur-fast) var(--ql-ease-out);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--ql-accent-rgb), .5) transparent;
+}
+
+.ql-launch.is-open {
+  opacity: 1;
+}
+
+.ql-launch.is-updating {
+  transition: opacity var(--ql-dur-fast) var(--ql-ease-out);
+}
+
+.ql-launch::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ql-launch::-webkit-scrollbar-thumb {
+  background: rgba(var(--ql-accent-rgb), .45);
+  border-radius: 3px;
+}
+
+.ql-launch::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ql-launch-head {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .10em;
+  text-transform: uppercase;
+  color: var(--ql-text-faint);
+  padding: 6px 12px 2px;
+}
+
+.ql-sug-row.is-launcher {
+  cursor: pointer;
+}
+
+.ql-launch-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: linear-gradient(135deg, rgba(var(--ql-accent-rgb), .18), rgba(var(--ql-accent-rgb), .06));
+  border: 1px solid rgba(var(--ql-accent-rgb), .18);
+  color: var(--ql-accent);
+}
+
+.ql-launch-url {
+  font-size: 11px;
+  color: var(--ql-text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -.01em;
+}
+
 .ql-suggest::-webkit-scrollbar {
   width: 6px;
 }
@@ -879,8 +1086,7 @@ ${FONT_FACE}
   padding: 0 var(--ql-space-5) 0 var(--ql-space-3);
   border-radius: var(--ql-radius-md);
   cursor: pointer;
-  animation: ql-rise-in .26s var(--ql-ease-out) calc(var(--i) * 30ms) backwards;
-  transition: background var(--ql-dur-fast), transform var(--ql-dur-fast);
+  transition: background var(--ql-dur-fast);
 }
 
 .ql-sug-row:hover,
@@ -890,11 +1096,22 @@ ${FONT_FACE}
 
 .ql-sug-row.is-active {
   box-shadow: inset 2px 0 0 var(--ql-accent);
-  transform: translateX(2px);
 }
 
 .ql-sug-row:active {
-  transform: scale(.995);
+  background: rgba(var(--ql-accent-rgb), .14);
+}
+
+.ql-sug-row:focus-visible {
+  outline: 2px solid var(--ql-accent);
+  outline-offset: -2px;
+}
+
+.ql-smarturl .ql-smart-sub,
+.ql-launch-url,
+.ql-fav-url,
+.ql-sug-k {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
 }
 
 .ql-sug-k {
@@ -978,7 +1195,7 @@ ${FONT_FACE}
   border-top: 1px solid var(--ql-hairline);
   font-size: var(--ql-font-foot);
   color: var(--ql-text-faint);
-  animation: ql-rise-in .24s var(--ql-ease-out) 140ms backwards;
+  animation: ql-rise-in .2s var(--ql-ease-out) 60ms backwards;
 }
 
 .ql-foot-hints {
@@ -1121,6 +1338,11 @@ ${FONT_FACE}
   .ql-viewport-frame {
     animation-duration: .15s !important;
   }
+  .ql-viewport-frame,
+  .ql-aurora,
+  .ql-glow {
+    display: none !important;
+  }
 }
 `;
 
@@ -1136,7 +1358,9 @@ function iconSvg(markup, cls) {
   const wrap = document.createElement('span');
   wrap.className = 'ql-icon' + (cls ? ' ' + cls : '');
   wrap.setAttribute('aria-hidden', 'true');
-  wrap.innerHTML = markup;
+  try {
+    if (QLENS.setIcon && QLENS.setIcon(wrap, markup)) return wrap;
+  } catch (err) {}
   return wrap;
 }
 
@@ -1166,19 +1390,32 @@ const Overlay = (() => {
   let pillsRow = null;
   let smartZone = null;
   let suggestEl = null;
+  let launchEl = null;
   let footEngine = null;
   let prevFocusEl = null;
   let settings = null;
   let engineId = null;
   let initialEngineId = null;
-  let modeId = null;
   let aiMode = false;
   let engineOrder = [];
   let suggestionTimer = null;
   let aiPillEl = null;
   let suggestionReqId = 0;
+  let launcherReqId = 0;
+  const suggestCache = new Map();
+  let lastSuggestKey = '';
+  let lastSuggestResults = [];
+  /* Live row nodes keyed by their submit text, so a keystroke reuses the rows
+     it can keep instead of tearing the whole list down and rebuilding it. */
+  const sugNodeByKey = new Map();
+  let suggestSettledHeight = 0;
+  let suggestInFlight = false;
+  const launcherCache = new Map();
+  let launcherTimer = null;
   let suggestions = [];
   let suggestionHighlight = -1;
+  let launcherRows = [];
+  let launcherItems = [];
   let actionSite = null;
   let selectionText = null;
   let selectionActive = false;
@@ -1190,7 +1427,14 @@ const Overlay = (() => {
   let measureEl = null;
   let toastTimer = null;
   let closing = false;
+  let removeTimer = null;
   let fontsApplied = false;
+  let fontsReady = false;
+  let attachGen = 0;
+  let dragDepth = 0;
+  let uploading = false;
+  let pendingSearch = false;
+  let dropHintEl = null;
 
   function el(tag, cls, text) {
     const node = document.createElement(tag);
@@ -1199,14 +1443,24 @@ const Overlay = (() => {
     return node;
   }
 
+  let cachedSheet = null;
+  let customsMemo = null;
+  let customsKey = null;
+
+  // The 30KB stylesheet parses once per page load, not once per open:
+  // constructible stylesheets are cheaply shared across shadow roots,
+  // so reuse the same compiled sheet for every show() in this document.
   function applyStyles(shadow) {
     if (typeof CSSStyleSheet !== 'undefined' && 'adoptedStyleSheets' in shadow) {
       try {
-        const sheet = new CSSStyleSheet();
-        sheet.replaceSync(CSS);
-        shadow.adoptedStyleSheets = [sheet];
+        if (!cachedSheet) {
+          cachedSheet = new CSSStyleSheet();
+          cachedSheet.replaceSync(CSS);
+        }
+        shadow.adoptedStyleSheets = [cachedSheet];
         return;
       } catch (err) {
+        cachedSheet = null;
         /* fall through to style element */
       }
     }
@@ -1215,8 +1469,55 @@ const Overlay = (() => {
     shadow.appendChild(style);
   }
 
+  // sanitizeCustomEngines re-parses every custom URL through `new URL()`.
+  // updateInputState hits this 2x per keystroke and the async renderers
+  // hit it once per engine pill, so memoize against the `settings`
+  // identity — show()/hydrate() replace the object, which self-invalidates.
+  function getCustoms() {
+    if (settings && customsKey === settings) return customsMemo;
+    let list = [];
+    try {
+      if (settings && typeof QLENS.getCustomEngines === 'function') {
+        list = QLENS.getCustomEngines(settings);
+      }
+    } catch (err) {
+      list = [];
+    }
+    if (settings) {
+      customsKey = settings;
+      customsMemo = list;
+    }
+    return list;
+  }
+
+  function resolveEngine(id) {
+    if (QLENS.ENGINES[id]) return { spec: QLENS.ENGINES[id], custom: null };
+    const customs = getCustoms();
+    for (const c of customs) {
+      if (c.id === id) return { spec: { id: c.id, name: c.name }, custom: c };
+    }
+    return { spec: QLENS.ENGINES.google, custom: null };
+  }
+
+  function customSearchUrl(id, q) {
+    try {
+      const customs = getCustoms();
+      if (typeof QLENS.buildSearchUrl === 'function') {
+        const url = QLENS.buildSearchUrl(id, q, null, false, customs);
+        if (url) return url;
+      }
+      for (const c of customs) {
+        if (c.id === id && typeof QLENS.buildCustomSearchUrl === 'function') {
+          const url = QLENS.buildCustomSearchUrl(c, q);
+          if (url) return url;
+        }
+      }
+    } catch (err) {}
+    return null;
+  }
+
   function svgLogo(id) {
-    return QLENS.LOGOS[id] || '';
+    return QLENS.LOGOS[id] || QLENS.LOGOS.custom || '';
   }
 
   function build() {
@@ -1224,6 +1525,7 @@ const Overlay = (() => {
     host.setAttribute('role', 'dialog');
     host.setAttribute('aria-modal', 'true');
     host.setAttribute('aria-label', 'QLens quick search');
+    if (fontsReady) host.setAttribute('data-fonts', 'ready');
     root = host.attachShadow({ mode: 'open' });
     applyStyles(root);
 
@@ -1237,18 +1539,21 @@ const Overlay = (() => {
     panel = el('div', 'ql-panel');
     root.appendChild(panel);
 
-    const aurora = el('div', 'ql-aurora');
-    aurora.appendChild(el('span', 'ql-orb ql-orb-a'));
-    aurora.appendChild(el('span', 'ql-orb ql-orb-b'));
-    aurora.appendChild(el('span', 'ql-orb ql-orb-c'));
-    panel.appendChild(aurora);
+    const auroraEl = el('div', 'ql-aurora');
+    auroraEl.setAttribute('aria-hidden', 'true');
+    auroraEl.appendChild(el('span', 'ql-orb ql-orb-a'));
+    auroraEl.appendChild(el('span', 'ql-orb ql-orb-b'));
+    auroraEl.appendChild(el('span', 'ql-orb ql-orb-c'));
+    panel.appendChild(auroraEl);
 
     panel.appendChild(el('div', 'ql-tint'));
 
     const content = el('div', 'ql-content');
     panel.appendChild(content);
 
-    content.appendChild(el('div', 'ql-glow'));
+    const glowEl = el('div', 'ql-glow');
+    glowEl.setAttribute('aria-hidden', 'true');
+    content.appendChild(glowEl);
 
     const inputRow = el('div', 'ql-input-row');
     content.appendChild(inputRow);
@@ -1267,7 +1572,7 @@ const Overlay = (() => {
     inputEl.placeholder = 'Search anything, anywhere';
     inputRow.appendChild(inputEl);
 
-    caretEl = el('span', 'ql-caret');
+    caretEl = el('span', 'ql-caret is-hidden');
     caretEl.setAttribute('aria-hidden', 'true');
     inputRow.appendChild(caretEl);
 
@@ -1300,6 +1605,8 @@ const Overlay = (() => {
     inputRow.appendChild(imgBtn);
 
     errEl = el('div', 'ql-err');
+    errEl.setAttribute('role', 'status');
+    errEl.setAttribute('aria-live', 'polite');
     panel.appendChild(errEl);
 
     closeBtn = el('button', 'ql-close');
@@ -1313,11 +1620,16 @@ const Overlay = (() => {
     pillZone.setAttribute('aria-label', 'Search engine');
     pillsRow = el('div', 'ql-pills');
     pillZone.appendChild(pillsRow);
-    pillZone.appendChild(el('span', 'ql-pill-rail'));
     content.appendChild(pillZone);
 
     smartZone = el('div', 'ql-smart-zone');
     content.appendChild(smartZone);
+
+    launchEl = el('div', 'ql-launch');
+    launchEl.id = 'ql-launch';
+    launchEl.setAttribute('role', 'group');
+    launchEl.setAttribute('aria-label', 'Launcher');
+    content.appendChild(launchEl);
 
     suggestEl = el('div', 'ql-suggest');
     suggestEl.id = 'ql-suggest';
@@ -1351,7 +1663,8 @@ const Overlay = (() => {
     if (!pillsRow) return;
     pillsRow.textContent = '';
     for (const id of engineOrder) {
-      const eng = QLENS.ENGINES[id];
+      const resolved = resolveEngine(id);
+      const eng = resolved.spec;
       if (!eng) continue;
       const pill = el('button', 'ql-pill');
       pill.type = 'button';
@@ -1359,7 +1672,7 @@ const Overlay = (() => {
       pill.setAttribute('role', 'radio');
       pill.setAttribute('aria-label', 'Search with ' + eng.name);
       pill.tabIndex = -1;
-      const on = id === engineId && !modeId;
+      const on = id === engineId;
       if (on) {
         pill.classList.add('is-active');
         pill.setAttribute('aria-checked', 'true');
@@ -1402,162 +1715,463 @@ const Overlay = (() => {
   }
 
   function renderImageChip() {
-    if (!chipZoneEl || !attachment) return;
+    if (!chipZoneEl || !attachment || !attachment.src) return;
     const chip = el('button', 'ql-img-chip');
     chip.type = 'button';
-    chip.setAttribute('aria-label', 'Search this image. Click to remove.');
-    chip.title = 'Search this image';
+    chip.setAttribute('aria-label', uploading ? 'Searching image…' : 'Search this image. Click to remove.');
+    chip.title = uploading ? 'Preparing image…' : 'Search this image';
+    if (uploading) chip.classList.add('ql-uploading');
     const thumb = el('span', 'ql-img-thumb');
-    thumb.style.backgroundImage = 'url(' + attachment.src + ')';
-    const label = el('span', 'ql-img-x');
-    label.textContent = '×';
+    try { thumb.style.backgroundImage = 'url(' + attachment.src + ')'; } catch (e) {}
     chip.appendChild(thumb);
-    chip.appendChild(label);
-    chip.addEventListener('click', () => {
-      removeImage();
-    });
+    if (uploading) {
+      const sp = el('span', 'ql-spinner');
+      sp.setAttribute('aria-hidden', 'true');
+      chip.appendChild(sp);
+    } else {
+      const label = el('span', 'ql-img-x');
+      label.textContent = '×';
+      chip.appendChild(label);
+    }
+    if (!uploading) {
+      chip.addEventListener('click', () => { removeImage(); });
+    }
     chipZoneEl.appendChild(chip);
   }
 
   function showError(text) {
     if (!errEl) return;
-    errEl.textContent = text;
+    errEl.textContent = String(text || 'Something went wrong.');
     errEl.classList.add('is-open');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => {
-      errEl.classList.remove('is-open');
+      try { errEl.classList.remove('is-open'); } catch (e) {}
     }, 3200);
   }
 
-  function base64FromBytes(bytes) {
-    let binary = '';
-    const chunk = 0x8000;
-    for (let i = 0; i < bytes.length; i += chunk) {
-      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
-    }
-    return btoa(binary);
-  }
-
-  function decodeImageToBytes(file) {
+  // ---- flash-fast image pipeline (instant chip + race-safe) ----
+  function readFileBytes(file) {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          resolve(new Uint8Array(reader.result));
-        } catch (err) {
-          reject(err);
-        }
-      };
-      reader.onerror = () => reject(reader.error || new Error('read failed'));
-      reader.readAsArrayBuffer(file);
+      const r = new FileReader();
+      r.onload = () => { try { resolve(new Uint8Array(r.result)); } catch (e) { reject(e); } };
+      r.onerror = () => reject(r.error || new Error('read failed'));
+      try { r.readAsArrayBuffer(file); } catch (e) { reject(e); }
     });
   }
 
-  function sniffImageType(bytes) {
-    if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return 'image/png';
-    if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg';
-    if (bytes.length >= 4 && bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38) return 'image/gif';
-    if (bytes.length >= 12 && bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
-      bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) return 'image/webp';
-    if (bytes.length >= 2 && bytes[0] === 0x42 && bytes[1] === 0x4d) return 'image/bmp';
-    return null;
+  function fnv1a32Hex(bytes) {
+    try {
+      if (QLENS.ImageEngine && typeof QLENS.ImageEngine.fnv1a32 === 'function') {
+        return QLENS.ImageEngine.fnv1a32(bytes);
+      }
+    } catch (e) {}
+    return '';
+  }
+
+  function configNum(key, fallback) {
+    try {
+      const v = QLENS.CONFIG && QLENS.CONFIG[key];
+      if (typeof v === 'number' && isFinite(v) && v > 0) return v;
+    } catch (e) {}
+    return fallback;
+  }
+
+  function targetDims(w, h, maxDim) {
+    try {
+      if (QLENS.ImageEngine && typeof QLENS.ImageEngine.resizeDims === 'function') {
+        const d = QLENS.ImageEngine.resizeDims(w, h, maxDim);
+        if (d && typeof d.width === 'number' && typeof d.height === 'number') {
+          return { width: Math.max(1, Math.round(d.width)), height: Math.max(1, Math.round(d.height)) };
+        }
+      }
+    } catch (e) {}
+    const scale = Math.min(1, maxDim / Math.max(w, h));
+    return { width: Math.max(1, Math.round(w * scale)), height: Math.max(1, Math.round(h * scale)) };
+  }
+
+  function canvasToBlob(canvas, mime, quality) {
+    return new Promise((res) => {
+      try {
+        if (typeof quality === 'number') canvas.toBlob(res, mime, quality);
+        else canvas.toBlob(res, mime);
+      } catch (e) { res(null); }
+    });
+  }
+
+  function pickEncodeMime() {
+    try {
+      if (QLENS.ImageEngine && typeof QLENS.ImageEngine.pickEncodeMime === 'function') {
+        const m = QLENS.ImageEngine.pickEncodeMime();
+        if (typeof m === 'string' && m) return m;
+      }
+    } catch (e) {}
+    return 'image/webp';
+  }
+
+  function setUploading(v) {
+    uploading = Boolean(v);
+    if (imgBtn) { imgBtn.disabled = uploading; imgBtn.style.opacity = uploading ? '.55' : ''; }
+    // NOTE: input stays enabled during image processing so the user can keep
+    // typing and hit Enter-to-queue (pendingSearch) while the spinner shows.
+    // re-render chip to show spinner
+    try { renderChip(); } catch (e) {}
+  }
+
+  // Revoke an object URL only when no live attachment owns it, so abort paths
+  // never break a pending/final chip and never leak an orphan URL.
+  // revokeObjectURL on an already-revoked URL is a harmless no-op.
+  function revokeOrphanURL(url) {
+    if (!url) return;
+    try {
+      if (!attachment || attachment.src !== url) URL.revokeObjectURL(url);
+    } catch (e) {}
+  }
+
+  function showDropHint(show) {
+    if (!panel) return;
+    if (!dropHintEl) {
+      dropHintEl = el('div', 'ql-drop-hint');
+      dropHintEl.textContent = 'Drop image to search';
+      panel.appendChild(dropHintEl);
+    }
+    dropHintEl.classList.toggle('is-visible', Boolean(show));
+    if (panel) panel.classList.toggle('ql-drag-active', Boolean(show));
+    const row = root ? root.querySelector('.ql-input-row') : null;
+    if (row) row.classList.toggle('ql-drag-over', Boolean(show));
   }
 
   async function attachImage(file) {
     if (!file || !host) return;
-    let bytes;
+    const gen = ++attachGen;
+    pendingSearch = false;
+    // cheap pre-check via shared engine
     try {
-      bytes = await decodeImageToBytes(file);
+      if (QLENS.ImageEngine && typeof QLENS.ImageEngine.isImageFileLike === 'function' && !QLENS.ImageEngine.isImageFileLike(file)) {
+        // still allow: sniff will decide, but show nicer toast for obvious non-images
+        if (file.type && !String(file.type).startsWith('image/') && !/\.(png|jpe?g|gif|webp|bmp|avif|heic|heif|svg|ico)$/i.test(String(file.name || ''))) {
+          showError('Drop an image file to search it.');
+          return;
+        }
+      }
+    } catch (e) {}
+
+    // 1. Instant chip: synchronous object-URL thumbnail + uploading spinner, <1 frame.
+    let instantURL = null;
+    try {
+      if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') instantURL = URL.createObjectURL(file);
+    } catch (e) {
+      instantURL = null;
+    }
+    if (gen !== attachGen || !host) {
+      revokeOrphanURL(instantURL);
+      return;
+    }
+    // revoke any previous attachment preview atomically, then publish pending state
+    if (attachment && attachment.src) { try { URL.revokeObjectURL(attachment.src); } catch (e) {} }
+    const originalName = (typeof file.name === 'string' && file.name) ? file.name : (QLENS.CONFIG && QLENS.CONFIG.LENS_FILENAME ? QLENS.CONFIG.LENS_FILENAME : 'qlens-search.jpg');
+    let claimedMime = '';
+    try { claimedMime = typeof file.type === 'string' ? file.type : ''; } catch (e) { claimedMime = ''; }
+    if (!instantURL) {
+      // No preview URL available — continue without instant chip; heavy work still proceeds.
+      attachment = { bytes: null, src: '', name: originalName, mime: claimedMime, hash: '' };
+    } else {
+      attachment = { bytes: null, src: instantURL, name: originalName, mime: claimedMime, hash: '' };
+    }
+    setUploading(true);
+    try { if (inputEl) inputEl.focus(); } catch (e) {}
+
+    // 2. Read bytes via arrayBuffer() with FileReader fallback.
+    let bytes = null;
+    try {
+      if (file && typeof file.arrayBuffer === 'function') {
+        const ab = await file.arrayBuffer();
+        bytes = new Uint8Array(ab);
+      } else {
+        bytes = await readFileBytes(file);
+      }
     } catch (err) {
+      try { bytes = await readFileBytes(file); } catch (e2) { bytes = null; }
+    }
+    if (gen !== attachGen || !host) {
+      revokeOrphanURL(instantURL);
+      return;
+    }
+    if (!bytes) {
+      revokeOrphanURL(instantURL);
+      if (attachment && attachment.src === instantURL) attachment = null;
+      else if (attachment && !attachment.bytes) attachment = null;
+      setUploading(false);
       showError('Could not read that image.');
       return;
     }
-    if (!bytes || bytes.length === 0) {
-      showError('The selected file is empty.');
-      return;
-    }
-    if (bytes.length > QLENS.CONFIG.IMAGE_MAX_BYTES) {
-      showError('Image is too large (max 5 MB).');
-      return;
-    }
-    const mime = sniffImageType(bytes) || (typeof file.type === 'string' && file.type.startsWith('image/') ? file.type : null);
-    if (!mime) {
-      showError('That does not look like an image.');
-      return;
-    }
-    const name = (typeof file.name === 'string' && file.name) ? file.name : QLENS.CONFIG.LENS_FILENAME;
-    let blob = null;
-    let src = null;
-    let outBytes = bytes;
+
+    // 3. Validate via shared pure engine (magic byte + size), fallback inline.
+    let validated = null;
     try {
-      const bitmap = await createImageBitmap(new Blob([bytes], { type: mime }));
-      const max = QLENS.CONFIG.IMAGE_MAX_DIM;
-      const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
-      if (scale < 1) {
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-        canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-          const resized = await new Promise((resolve) => {
-            canvas.toBlob(resolve, 'image/jpeg', QLENS.CONFIG.IMAGE_JPEG_QUALITY);
-          });
-          if (resized) {
-            outBytes = new Uint8Array(await resized.arrayBuffer());
-            blob = resized;
-          }
+      if (QLENS.ImageEngine && typeof QLENS.ImageEngine.validateImageBytes === 'function') {
+        validated = QLENS.ImageEngine.validateImageBytes(bytes, claimedMime);
+      } else {
+        const maxBytes = configNum('IMAGE_MAX_BYTES', 5 * 1024 * 1024);
+        if (!bytes || bytes.length === 0) validated = { ok: false, error: 'The selected file is empty.' };
+        else if (bytes.length > maxBytes) validated = { ok: false, error: 'Image is too large (max 5 MB).' };
+        else validated = { ok: true, mime: (typeof claimedMime === 'string' && claimedMime.indexOf('image/') === 0 ? claimedMime : 'image/jpeg') };
+      }
+    } catch (e) { validated = { ok: false, error: 'That does not look like an image.' }; }
+    if (!validated || !validated.ok) {
+      revokeOrphanURL(instantURL);
+      attachment = null;
+      setUploading(false);
+      showError(validated && validated.error ? validated.error : 'That does not look like an image.');
+      return;
+    }
+    const mime = validated.mime;
+    if (gen !== attachGen || !host) {
+      if (instantURL) { try { URL.revokeObjectURL(instantURL); } catch (e) {} }
+      return;
+    }
+
+    let safeName = originalName;
+    try {
+      if (QLENS.ImageEngine && typeof QLENS.ImageEngine.buildLensFilename === 'function') safeName = QLENS.ImageEngine.buildLensFilename(originalName, mime);
+    } catch (e) {}
+
+    // 4-5. Fast path decode/resize/encode with raw fallback for undecodable types.
+    const maxDim = Math.min(configNum('IMAGE_MAX_DIM', 1600), 1024);
+    const webpQ = (() => { try { const v = QLENS.CONFIG && QLENS.CONFIG.IMAGE_WEBP_QUALITY; if (typeof v === 'number' && v > 0 && v <= 1) return v; } catch (e) {} return 0.85; })();
+    const jpegQ = (() => { try { const v = QLENS.CONFIG && QLENS.CONFIG.IMAGE_JPEG_QUALITY; if (typeof v === 'number' && v > 0 && v <= 1) return v; } catch (e) {} return 0.82; })();
+    const maxBytes = configNum('IMAGE_MAX_BYTES', 5 * 1024 * 1024);
+    let outBytes = bytes;
+    let outMime = mime;
+    const previewURL = instantURL;
+    let encodedBlob = null;
+    let failed = false;
+    let failReason = '';
+    try {
+      if (typeof createImageBitmap === 'function') {
+        const blob = new Blob([bytes], { type: mime });
+        let bitmap = null;
+        try {
+          bitmap = await createImageBitmap(blob);
+        } catch (e) { bitmap = null; }
+        if (gen !== attachGen || !host) {
+          if (bitmap) { try { bitmap.close(); } catch (e2) {} }
+          revokeOrphanURL(instantURL);
+          return;
         }
-        bitmap.close();
+        if (!bitmap) {
+          // Raw fallback: no browser decoder (e.g. HEIC) — upload original as-is if within cap.
+          if (bytes.length <= maxBytes) {
+            outBytes = bytes;
+            outMime = mime;
+          } else {
+            failed = true;
+            failReason = 'Image is too large (max 5 MB).';
+          }
+        } else {
+          try {
+            const bw = bitmap.width;
+            const bh = bitmap.height;
+            if (gen !== attachGen || !host) { try { bitmap.close(); } catch (e) {} revokeOrphanURL(instantURL); return; }
+            if (Math.max(bw, bh) <= maxDim) {
+              // Fast path: upload ORIGINAL bytes (zero re-encode).
+              outBytes = bytes;
+              outMime = mime;
+            } else {
+              // Single-step resize: prefer decoder-side resize, fallback to canvas drawImage.
+              const dims = targetDims(bw, bh, maxDim);
+              let resizedBitmap = null;
+              try {
+                if (typeof createImageBitmap === 'function') {
+                  resizedBitmap = await createImageBitmap(blob, { resizeWidth: dims.width, resizeHeight: dims.height, resizeQuality: 'high' });
+                }
+              } catch (e) { resizedBitmap = null; }
+              if (gen !== attachGen || !host) {
+                try { bitmap.close(); } catch (e) {}
+                if (resizedBitmap) { try { resizedBitmap.close(); } catch (e) {} }
+                revokeOrphanURL(instantURL);
+                return;
+              }
+              const canvas = document.createElement('canvas');
+              canvas.width = dims.width;
+              canvas.height = dims.height;
+              const ctx = canvas.getContext('2d');
+              let encoded = null;
+              if (ctx) {
+                try {
+                  ctx.imageSmoothingQuality = 'high';
+                  if (resizedBitmap) ctx.drawImage(resizedBitmap, 0, 0, canvas.width, canvas.height);
+                  else ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+                } catch (e) { encoded = null; }
+                if (gen !== attachGen || !host) {
+                  try { bitmap.close(); } catch (e) {}
+                  if (resizedBitmap) { try { resizedBitmap.close(); } catch (e) {} }
+                  revokeOrphanURL(instantURL);
+                  return;
+                }
+                // Encode: webp first, jpeg fallback (promisified callback).
+                if (encoded === null) {
+                  const first = pickEncodeMime();
+                  const order = first === 'image/jpeg'
+                    ? [{ mime: 'image/jpeg', q: jpegQ }, { mime: 'image/webp', q: webpQ }]
+                    : [{ mime: 'image/webp', q: webpQ }, { mime: 'image/jpeg', q: jpegQ }];
+                  for (const step of order) {
+                    if (gen !== attachGen || !host) break;
+                    try {
+                      const b = await canvasToBlob(canvas, step.mime, step.q);
+                      if (b && gen === attachGen && host) { encoded = b; break; }
+                    } catch (e) { encoded = null; }
+                  }
+                }
+              }
+              if (resizedBitmap) { try { resizedBitmap.close(); } catch (e) {} }
+              if (encoded) {
+                try {
+                  const ab = await encoded.arrayBuffer();
+                  if (gen !== attachGen || !host) return;
+                  outBytes = new Uint8Array(ab);
+                  encodedBlob = encoded;
+                  outMime = encoded.type || 'image/jpeg';
+                } catch (e) {
+                  outBytes = bytes;
+                  outMime = mime;
+                  encodedBlob = null;
+                }
+              } else {
+                // Encode failed — keep original bytes (never lose a valid image).
+                outBytes = bytes;
+                outMime = mime;
+                encodedBlob = null;
+              }
+            }
+          } catch (e) {
+            outBytes = bytes;
+            outMime = mime;
+            encodedBlob = null;
+          }
+          try { bitmap.close(); } catch (e) {}
+        }
       }
     } catch (err) {
-      /* keep original bytes when canvas resize fails */
+      // decode/encode threw — raw fallback below.
+      outBytes = bytes;
+      outMime = mime;
+      encodedBlob = null;
     }
-    if (blob) {
-      src = URL.createObjectURL(blob);
-    } else {
-      const safeType = mime === 'image/png' || mime === 'image/gif' || mime === 'image/webp'
-        ? mime : 'image/jpeg';
-      src = URL.createObjectURL(new Blob([bytes], { type: safeType }));
+
+    if (gen !== attachGen || !host) {
+      revokeOrphanURL(instantURL);
+      return;
     }
-    attachment = { bytes: outBytes, src, name };
+    if (failed) {
+      revokeOrphanURL(instantURL);
+      attachment = null;
+      setUploading(false);
+      showError(failReason || 'Image is too large (max 5 MB).');
+      return;
+    }
+
+    // Store attachment; preview URL is the encoded blob's object URL when we encoded.
+    let finalURL = previewURL;
+    if (encodedBlob) {
+      try {
+        const u = URL.createObjectURL(encodedBlob);
+        if (gen !== attachGen || !host) { try { URL.revokeObjectURL(u); } catch (e) {} return; }
+        finalURL = u;
+      } catch (e) {
+        finalURL = previewURL;
+      }
+    }
+    if (!finalURL) {
+      try {
+        const safeType = (outMime === 'image/png' || outMime === 'image/gif' || outMime === 'image/webp') ? outMime : (mime === 'image/png' || mime === 'image/gif' || mime === 'image/webp' ? mime : 'image/jpeg');
+        finalURL = URL.createObjectURL(new Blob([outBytes], { type: safeType }));
+      } catch (e) {
+        revokeOrphanURL(instantURL);
+        attachment = null;
+        setUploading(false);
+        showError('Could not preview that image.');
+        return;
+      }
+    }
+    if (gen !== attachGen || !host) { revokeOrphanURL(finalURL); return; }
+    // Revoke the instant URL if the final preview is a different object URL.
+    if (instantURL && finalURL !== instantURL) { try { URL.revokeObjectURL(instantURL); } catch (e) {} }
+
+    const hash = fnv1a32Hex(outBytes);
+    attachment = { bytes: outBytes, src: finalURL, name: safeName, mime: outMime, hash: hash };
+    setUploading(false);
     renderChip();
+    // subtle success micro-feedback: focus input so Enter is instant
+    try { if (inputEl) inputEl.focus(); } catch (e) {}
+    if (pendingSearch) {
+      pendingSearch = false;
+      try { searchImage(); } catch (e) {}
+    }
   }
 
   function removeImage() {
+    attachGen++;
+    pendingSearch = false;
+    showDropHint(false);
+    setUploading(false);
     if (attachment && attachment.src) {
-      try {
-        URL.revokeObjectURL(attachment.src);
-      } catch (err) {
-        /* best-effort */
-      }
+      try { URL.revokeObjectURL(attachment.src); } catch (err) {}
     }
     attachment = null;
-    renderChip();
+    try { renderChip(); } catch (e) {}
   }
 
   function searchImage() {
     if (!attachment) return;
-    const text = inputEl.value.trim();
-    const bytes = attachment.bytes;
-    const name = attachment.name || '';
-    const payload = {
-      bytes: base64FromBytes(bytes),
-      text,
-      name
-    };
-    try {
-      chrome.runtime.sendMessage({ type: QLENS.MSG.IMAGE_SEARCH, payload }).catch(() => {});
-    } catch (err) {
-      /* send is best-effort; overlay still destroyed */
+    // Pending-search queue: Enter while bytes are still processing queues one
+    // auto-fire on attach completion (spinner stays, no keypress swallowed).
+    if (uploading || !attachment.bytes) {
+      pendingSearch = true;
+      try { renderChip(); } catch (e) {}
+      return;
     }
-    destroy(false);
+    pendingSearch = false;
+    const text = inputEl ? inputEl.value.trim().slice(0, 2000) : '';
+    const bytes = attachment.bytes;
+    const name = attachment.name || safeNameFallback();
+    const mime = attachment.mime || 'image/jpeg';
+    const hash = typeof attachment.hash === 'string' ? attachment.hash : '';
+    // NOTE: extension messaging is JSON-only — typed arrays do NOT survive
+    // sendMessage (they arrive as plain index-keyed objects). Base64 is the
+    // only safe transport; the SW accepts `bytes` as the primary payload.
+    let b64 = '';
+    try {
+      if (QLENS.ImageEngine && typeof QLENS.ImageEngine.bytesToBase64 === 'function') b64 = QLENS.ImageEngine.bytesToBase64(bytes);
+      else {
+        let bin = '';
+        for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+        b64 = btoa(bin);
+      }
+    } catch (e) { showError('Could not prepare that image.'); return; }
+    if (!b64) { showError('Could not prepare that image.'); return; }
+    if (b64.length > 2.5e6) { showError('Image is too large to search.'); return; }
+    try {
+      const res = chrome.runtime.sendMessage({ type: QLENS.MSG.IMAGE_SEARCH, payload: { bytes: b64, text, name, hash, mime } });
+      if (res && typeof res.catch === 'function') res.catch(() => {});
+    } catch (err) {}
+    // lightspeed: synchronous destroy before tabs.create (zero residue, zero google.com flash)
+    try { destroy(false); } catch (e) { try { destroy(false); } catch (_) {} }
+  }
+
+  function safeNameFallback() {
+    try {
+      if (QLENS.ImageEngine && typeof QLENS.ImageEngine.buildLensFilename === 'function') return QLENS.ImageEngine.buildLensFilename('', 'image/jpeg');
+    } catch (e) {}
+    try {
+      if (QLENS.CONFIG && QLENS.CONFIG.LENS_FILENAME) return QLENS.CONFIG.LENS_FILENAME;
+    } catch (e) {}
+    return 'qlens-search.jpg';
   }
 
   function updateFootEngine() {
     if (!footEngine) return;
     footEngine.textContent = '';
-    const spec = modeId ? QLENS.QUICK_MODES[modeId] : QLENS.ENGINES[engineId];
+    const spec = resolveEngine(engineId).spec;
     const name = aiMode ? 'Google AI' : (spec ? spec.name : '');
     footEngine.appendChild(el('i', 'ql-foot-dot'));
     footEngine.appendChild(document.createTextNode(name));
@@ -1588,11 +2202,19 @@ const Overlay = (() => {
   function updateViewportFrame() {
     if (!viewportFrameEl) return;
     const vs = (settings && settings.viewportShadow) ? settings.viewportShadow : QLENS.CONFIG.DEFAULT_SETTINGS.viewportShadow;
-    if (!vs.enabled) {
+    let reduced = false;
+    try {
+      reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    } catch (err) {
+      reduced = false;
+    }
+    if (!vs.enabled || reduced) {
       viewportFrameEl.style.display = 'none';
+      try { if (host) host.setAttribute('data-vs', 'off'); } catch (e) {}
       return;
     }
     viewportFrameEl.style.display = '';
+    try { if (host) host.setAttribute('data-vs', 'on'); } catch (e) {}
     const l1 = vs.layer1;
     const l2 = vs.layer2;
     const f = vs.frame;
@@ -1610,13 +2232,16 @@ const Overlay = (() => {
   function addListeners() {
     root.addEventListener('keydown', onKeyDown);
     root.addEventListener('keyup', onKeyUp);
+    // Capture handler first: redirects page-stolen keystrokes and Esc
+    // before the space guard below or any page listener consumes them.
+    window.addEventListener('keydown', onWindowCaptureKey, true);
     window.addEventListener('keydown', onWindowKey, true);
     window.addEventListener('keyup', onWindowKey, true);
     inputEl.addEventListener('input', onInput);
-    inputEl.addEventListener('keydown', () => requestAnimationFrame(updateCaret));
-    inputEl.addEventListener('click', () => requestAnimationFrame(updateCaret));
-    inputEl.addEventListener('focus', updateCaret);
-    inputEl.addEventListener('blur', updateCaret);
+    inputEl.addEventListener('keydown', queueCaret);
+    inputEl.addEventListener('click', queueCaret);
+    inputEl.addEventListener('focus', queueCaret);
+    inputEl.addEventListener('blur', queueCaret);
     imgBtn.addEventListener('click', () => {
       try {
         fileInput.click();
@@ -1631,10 +2256,10 @@ const Overlay = (() => {
       fileInput.value = '';
       focusInput();
     });
+    root.addEventListener('dragenter', onDragEnter);
+    root.addEventListener('dragover', onDragOver);
+    root.addEventListener('dragleave', onDragLeave);
     root.addEventListener('drop', onDrop);
-    root.addEventListener('dragover', (e) => {
-      e.preventDefault();
-    });
     root.addEventListener('paste', onPaste);
     closeBtn.addEventListener('click', () => {
       if (inputEl.value) {
@@ -1659,48 +2284,130 @@ const Overlay = (() => {
 
   function onInput() {
     updateInputState();
-    requestAnimationFrame(updateCaret);
+    // Coalesced: rapid typing/paste/IME fires many inputs per frame but
+    // updateCaret forces a sync layout, so batch them into one measure.
+    queueCaret();
+  }
+
+  function isDragWithImage(e) {
+    try {
+      const dt = e.dataTransfer;
+      if (!dt) return false;
+      const types = dt.types ? Array.from(dt.types) : [];
+      if (types.includes('Files')) return true;
+      if (dt.files && dt.files.length) {
+        for (const f of dt.files) if (String(f.type||'').startsWith('image/')) return true;
+      }
+    } catch (err) {}
+    return false;
+  }
+
+  function onDragEnter(e) {
+    if (!host || !e.dataTransfer) return;
+    // Only show hint for image drags
+    if (!isDragWithImage(e)) return;
+    e.preventDefault();
+    dragDepth++;
+    showDropHint(true);
+  }
+
+  function onDragOver(e) {
+    if (!host) return;
+    if (!isDragWithImage(e)) return;
+    e.preventDefault();
+    try { e.dataTransfer.dropEffect = 'copy'; } catch (err) {}
+    if (dragDepth === 0) { dragDepth = 1; showDropHint(true); }
+  }
+
+  function onDragLeave(e) {
+    if (!host) return;
+    // dragleave fires for children too — depth counter makes it robust
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (dragDepth === 0) showDropHint(false);
   }
 
   function onDrop(e) {
     e.preventDefault();
+    dragDepth = 0;
+    showDropHint(false);
     if (!host) return;
     const files = e.dataTransfer && e.dataTransfer.files ? e.dataTransfer.files : null;
     if (!files || files.length === 0) return;
+    let picked = null;
     for (const f of files) {
-      if (typeof f.type === 'string' && f.type.startsWith('image/')) {
-        attachImage(f);
-        return;
-      }
+      if (QLENS.ImageEngine ? QLENS.ImageEngine.isImageFileLike(f) : String(f.type||'').startsWith('image/')) { picked = f; break; }
+      if (!picked && String(f.type||'').startsWith('image/')) picked = f;
     }
-    showError('Drop an image file to search it.');
+    if (!picked) {
+      // last resort: take first file and let validateImageBytes give proper toast
+      picked = files[0];
+      if (!picked || !QLENS.ImageEngine.isImageFileLike(picked)) { showError('Drop an image file to search it.'); return; }
+    }
+    attachImage(picked);
   }
 
   function onPaste(e) {
     if (!host || !root) return;
     const target = e.target;
-    if (target && !root.contains(target)) return;
-    let item = null;
+    if (target && target !== inputEl && !root.contains(target)) return;
+    // If user pasted plain text into input, let the input handle it — only intercept images.
+    // Snapshot clipboard items to plain data FIRST: DataTransferItems are live
+    // objects whose getAsFile() may throw on copy-protected pages, and item
+    // props (kind/type) may be missing or null — never touch them twice.
+    let items = null;
     try {
-      const items = e.clipboardData && e.clipboardData.items ? e.clipboardData.items : [];
-      for (const it of items) {
-        if (it.kind !== 'file') continue;
-        const f = it.getAsFile();
-        if (!f) continue;
-        const t = typeof it.type === 'string' ? it.type : '';
-        if (t.startsWith('image/')) {
-          item = f;
-          break;
+      let raw = null;
+      try {
+        raw = e.clipboardData && e.clipboardData.items ? e.clipboardData.items : [];
+      } catch (clipErr) {
+        raw = [];
+      }
+      const list = [];
+      try {
+        for (const it of raw) {
+          let file = null;
+          try {
+            file = it && typeof it.getAsFile === 'function' ? it.getAsFile() : null;
+          } catch (snapErr) {
+            file = null;
+          }
+          let kind = '';
+          let type = '';
+          try {
+            kind = it && typeof it.kind === 'string' ? it.kind : '';
+            type = it && typeof it.type === 'string' ? it.type : '';
+          } catch (propErr) {
+            kind = '';
+            type = '';
+          }
+          list.push({ kind, type, file });
         }
-        if (!item) item = f;
+      } catch (iterErr) {
+        /* non-iterable clipboard list — treat as no items */
+      }
+      items = list;
+    } catch (err) {
+      items = null;
+    }
+    let imageFile = null;
+    try {
+      if (QLENS.ImageEngine && typeof QLENS.ImageEngine.pickPasteImage === 'function') {
+        const like = (file) => {
+          try {
+            return QLENS.ImageEngine.isImageFileLike(file) === true;
+          } catch (likeErr) {
+            return false;
+          }
+        };
+        imageFile = QLENS.ImageEngine.pickPasteImage(items, like);
       }
     } catch (err) {
-      item = null;
+      imageFile = null;
     }
-    if (!item) return;
+    if (!imageFile) return;
     e.preventDefault();
     e.stopPropagation();
-    attachImage(item);
+    attachImage(imageFile);
   }
 
   function onPillKeydown(e) {
@@ -1713,13 +2420,53 @@ const Overlay = (() => {
       : e.key === 'ArrowRight' ? (idx + 1) % order.length
       : e.key === 'Home' ? 0
       : order.length - 1;
-    if (order[next]) setEngine(order[next]);
+    if (order[next]) setEngine(order[next], false);
     const active = pillZone.querySelector('.ql-pill.is-active');
     if (active) active.focus();
   }
 
   function onKeyUp(e) {
     e.stopPropagation();
+  }
+
+  // Capture phase on window: runs before bubble-phase page shortcuts and
+  // covers keystrokes whose target is outside the shadow root (focus stolen
+  // by the page, or on a pill/button). Esc closes from anywhere; printable
+  // keys are redirected into the input so typing never gets lost.
+  // Space is owned by onWindowKey below — it returns early here.
+  function onWindowCaptureKey(e) {
+    if (!host || !root) return;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      try { e.stopImmediatePropagation(); } catch (err) {}
+      if (attachment) {
+        removeImage();
+      } else {
+        destroy(true);
+      }
+      return;
+    }
+    if (e.type !== 'keydown') return;
+    if (e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === ' ' || e.code === 'Space') return;
+    if (typeof e.key !== 'string' || e.key.length !== 1) return;
+    let src = null;
+    try {
+      const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
+      src = path && path[0];
+    } catch (err) {
+      src = null;
+    }
+    const inside = Boolean(src && root.contains(src));
+    if (inside && src === inputEl) return;
+    // Inside on a pill/button: printable keys belong to the query, not the
+    // control — redirect them so typing never gets lost after Tab roaming.
+    // Space is excluded (owned by onWindowKey; buttons need it to activate).
+    e.preventDefault();
+    e.stopPropagation();
+    try { e.stopImmediatePropagation(); } catch (err) {}
+    insertText(e.key);
   }
 
   function onWindowKey(e) {
@@ -1729,6 +2476,12 @@ const Overlay = (() => {
     const src = path && path[0];
     const inside = Boolean(src && root.contains(src));
     if (!inside) {
+      if (e.type !== 'keyup' && !e.isComposing && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        insertText(' ');
+        return;
+      }
       e.preventDefault();
       e.stopImmediatePropagation();
       return;
@@ -1740,24 +2493,35 @@ const Overlay = (() => {
     if (src !== inputEl || e.isComposing) return;
     e.preventDefault();
     e.stopImmediatePropagation();
-    insertSpace();
+    insertText(' ');
   }
 
-  function insertSpace() {
+  // Page-level single-key shortcuts (google.com "/", GitHub "s", YouTube
+  // space…) register their capture listeners before content scripts load and
+  // preventDefault the keydown — native insertion dies and focus can be
+  // stolen. Insert manually instead; reclaim focus if the page took it.
+  function insertText(text) {
+    if (!inputEl) return;
     try {
       const s = inputEl.selectionStart == null ? inputEl.value.length : inputEl.selectionStart;
       const en = inputEl.selectionEnd == null ? s : inputEl.selectionEnd;
-      inputEl.setRangeText(' ', s, en, 'end');
-      inputEl.selectionStart = inputEl.selectionEnd = Math.min(s + 1, inputEl.value.length);
-      inputEl.dispatchEvent(new InputEvent('input', { bubbles: true, data: ' ', inputType: 'insertText' }));
+      inputEl.setRangeText(text, s, en, 'end');
+      inputEl.selectionStart = inputEl.selectionEnd = Math.min(s + text.length, inputEl.value.length);
+      inputEl.dispatchEvent(new InputEvent('input', { bubbles: true, data: text, inputType: 'insertText' }));
     } catch (err) {
       /* insert is best-effort; nothing to recover */
+    }
+    try {
+      if (host && document.activeElement !== host) inputEl.focus();
+    } catch (err) {
+      /* focus reclaim is best-effort */
     }
   }
 
   function onKeyDown(e) {
     e.stopPropagation();
     if (e.key === 'Escape') {
+      if (e.defaultPrevented) return;
       e.preventDefault();
       if (attachment) {
         removeImage();
@@ -1771,22 +2535,40 @@ const Overlay = (() => {
       return;
     }
     if (e.target !== inputEl) return;
+    // A page shortcut already preventDefaulted this printable keystroke
+    // (google.com "/", etc.) — the browser will not insert it natively.
+    if (
+      e.defaultPrevented &&
+      !e.isComposing &&
+      e.key.length === 1 &&
+      e.key !== ' ' &&
+      !e.ctrlKey && !e.metaKey && !e.altKey
+    ) {
+      e.preventDefault();
+      insertText(e.key);
+      return;
+    }
     if (e.key === 'Enter') {
       if (e.isComposing) return;
       e.preventDefault();
       if (attachment) {
         searchImage();
       } else if (suggestionHighlight >= 0 && suggestions[suggestionHighlight]) {
-        const fav = suggestions[suggestionHighlight].dataset.favUrl;
+        const row = suggestions[suggestionHighlight];
+        if (row.dataset.launchKind) {
+          activateLauncherRow(row, e.shiftKey);
+          return;
+        }
+        const fav = row.dataset.favUrl;
         if (fav) {
-          const site = { url: suggestions[suggestionHighlight].dataset.favUrl, shortcut: suggestions[suggestionHighlight].dataset.favShortcut };
-          const rest = suggestions[suggestionHighlight].dataset.favRest || '';
+          const site = { url: row.dataset.favUrl, shortcut: row.dataset.favShortcut };
+          const rest = row.dataset.favRest || '';
           const url = buildFavoriteUrl(site, rest);
           if (QLENS.isSafeHttpUrl(url)) openTab(url, null, null);
           return;
         }
-        if (suggestions[suggestionHighlight].dataset.query) {
-          submitQuery(suggestions[suggestionHighlight].dataset.query);
+        if (row.dataset.query) {
+          submitQuery(row.dataset.query);
           return;
         }
       }
@@ -1863,20 +2645,13 @@ function handleTab(e) {
     return Array.from(panel.querySelectorAll('button, input')).filter((n) => !n.disabled && n.getClientRects().length > 0);
   }
 
-  function setEngine(id) {
+  function setEngine(id, persist) {
     engineId = id;
-    modeId = null;
     aiMode = false;
     renderPills();
     updateFootEngine();
+    if (persist === false) return;
     QLENS.storage.setLastEngine(id);
-  }
-
-  function setMode(id) {
-    modeId = id;
-    aiMode = false;
-    renderPills();
-    updateFootEngine();
   }
 
   function isFavoriteInput(v) {
@@ -1894,19 +2669,11 @@ function handleTab(e) {
     const q = String(rest || '').trim();
     if (!q) return base;
     if (base.includes('{q}')) return base.replace('{q}', encodeURIComponent(q));
-    // try to append as search param if site supports it — fallback to site search via Google
-    // for now, just open base and ignore extra query for plain homepage favorites
-    // but if user typed extra, search that site via Google
-    // we do a simple site: search on default engine
-    // To keep it simple: if rest exists and base is homepage, open base + '?q=' not correct, so search via Google site:
-    // We will open a Google search limited to that site
-    try {
-      const u = new URL(base);
-      // if user provided extra query, build a site search on favorite's domain
-      // e.g., https://github.com + ' search qlens' => https://www.google.com/search?q=site:github.com+qlens
-      // For now, just return base — extra query ignored — keep UX predictable
-      return base;
-    } catch (e) { return base; }
+    // Plain homepage favorite with a trailing query: the extra words are
+    // intentionally dropped rather than bolted on as a bogus ?q=. Keeps the
+    // open target predictable; callers still run the result through the
+    // http(s) allowlist before navigating.
+    return base;
   }
 
   function renderFavoriteCommands(filterRaw) {
@@ -1984,33 +2751,54 @@ function handleTab(e) {
     setSuggestHeight(Math.min(want, max));
   }
 
+  function launcherShouldRun(value) {
+    const v = String(value == null ? '' : value).trim();
+    if (!v) return false;
+    if (!launcherCfg().enabled || isFavoriteInput(value)) return false;
+    if (typeof QLENS.parseBang === 'function' && QLENS.parseBang(value, getCustoms())) return false;
+    return !QLENS.parsePrefix(value);
+  }
+
   function updateInputState() {
-    if (!host) return;
+    if (!host || !inputEl) return;
     const value = inputEl.value;
     if (selectionActive && value.trim() !== selectionText) {
       selectionActive = false;
       renderChip();
     }
     if (isFavoriteInput(value)) {
+      clearLauncher();
       const after = value.trimStart().slice(1);
       renderFavoriteCommands(after);
       return;
     }
+    if (typeof QLENS.parseBang === 'function') {
+      const bang = QLENS.parseBang(value, getCustoms());
+      if (bang) {
+        clearLauncher();
+        applyPrefix(bang);
+        return;
+      }
+    }
     const parsed = QLENS.parsePrefix(value);
     if (parsed) {
+      clearLauncher();
       applyPrefix(parsed);
       return;
     }
+    if (launcherShouldRun(value)) scheduleLauncher();
+    else clearLauncher();
     const site = QLENS.detectSmartUrl(value);
-    if (site && !QLENS.isOwnHost(site, modeId || engineId)) {
-      clearSuggestions();
+    if (site && !QLENS.isOwnHost(site, engineId)) {
+      clearSuggestions(true);
       renderActionRow(site, value.trim());
     } else if (value.trim()) {
       hideAction();
+      clearEmptyState();
       if (settings && settings.suggestions) {
         scheduleSuggestions();
       } else {
-        clearSuggestions();
+        clearSuggestions(true);
       }
     } else {
       hideAction();
@@ -2021,12 +2809,11 @@ function handleTab(e) {
   function applyPrefix(parsed) {
     aiMode = false;
     if (parsed.type === 'engine') {
-      if (parsed.id !== engineId || modeId) {
+      const known = QLENS.ENGINES[parsed.id]
+        || (parsed.custom === true)
+        || getCustoms().some((c) => c.id === parsed.id);
+      if (known && parsed.id !== engineId) {
         setEngine(parsed.id);
-      }
-    } else if (parsed.type === 'mode') {
-      if (parsed.id !== modeId) {
-        setMode(parsed.id);
       }
     }
     if (parsed.rest !== inputEl.value) {
@@ -2037,6 +2824,7 @@ function handleTab(e) {
   }
 
   function placeCaretEnd() {
+    if (!inputEl) return;
     try {
       inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length);
     } catch (err) {
@@ -2046,6 +2834,23 @@ function handleTab(e) {
   }
 
   const CARET_TEXT_START = 50; /* input-row pad-left 20 + search icon 18 + gap 12 */
+
+  let caretQueued = false;
+  let measureCache = null;
+
+  // One rAF per burst of keystrokes: updateCaret forces a sync layout
+  // (getBoundingClientRect), so batch rapid input/click/focus events into
+  // a single measure instead of one layout per event.
+  function queueCaret() {
+    if (caretQueued) return;
+    caretQueued = true;
+    const run = () => {
+      caretQueued = false;
+      updateCaret();
+    };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run);
+    else run();
+  }
 
   function ensureMeasureEl() {
     if (measureEl || !root) return;
@@ -2060,26 +2865,36 @@ function handleTab(e) {
 
   function updateCaret() {
     if (!caretEl || !inputEl) return;
-    // Always visible while the overlay is open — no focus gating, no blink.
-    // (An invisible caret previously happened when activeElement tracking
-    // disagreed, and under prefers-reduced-motion the blink animation was
-    // forced to a single 0.01ms iteration ending on the opacity:0 base.)
-    caretEl.classList.remove('is-hidden');
+    if (fontsReady) caretEl.classList.remove('is-hidden');
     ensureMeasureEl();
     const idx = typeof inputEl.selectionStart === 'number' ? inputEl.selectionStart : inputEl.value.length;
-    measureEl.textContent = inputEl.value.slice(0, idx);
+    const text = inputEl.value.slice(0, idx);
+    // Empty query and trailing-space-only edits reuse the cached zero width —
+    // no layout read needed for the common just-opened state.
+    if (!text) {
+      caretEl.style.left = CARET_TEXT_START + 'px';
+      measureCache = { text: '', width: 0 };
+      return;
+    }
+    if (measureCache && measureCache.text === text) {
+      caretEl.style.left = Math.round(CARET_TEXT_START + measureCache.width - (inputEl.scrollLeft || 0)) + 'px';
+      return;
+    }
+    measureEl.textContent = text;
     const w = measureEl.getBoundingClientRect().width;
+    measureCache = { text, width: w };
     caretEl.style.left = Math.round(CARET_TEXT_START + w - (inputEl.scrollLeft || 0)) + 'px';
   }
 
   function b64ToBytes(b64) {
     try {
+      if (QLENS.ImageEngine && typeof QLENS.ImageEngine.base64ToBytes === 'function') {
+        return QLENS.ImageEngine.base64ToBytes(b64);
+      }
       const raw = globalThis.atob(b64);
       const n = raw.length;
       const out = new Uint8Array(n);
-      for (let i = 0; i < n; i += 0x8000) {
-        out.set(Array.from(raw.slice(i, i + 0x8000), (c) => c.charCodeAt(0)), i);
-      }
+      for (let i = 0; i < n; i++) out[i] = raw.charCodeAt(i);
       return out;
     } catch (err) {
       return null;
@@ -2089,50 +2904,234 @@ function handleTab(e) {
   // Page CSP can block the chrome-extension: @font-face URL on strict sites
   // (github.com et al), and page-shipped "Inter" faces can override ours.
   // Unique family 'QLens Inter' + binary FontFace from the SW (zero-fetch,
-  // CSP-exempt) guarantees the bundled font renders everywhere.
+  // CSP-exempt) guarantees the bundled font renders everywhere. Deferred
+  // until after first paint so font decode never blocks the open animation.
   async function applyFonts() {
     if (fontsApplied) return;
-    let applied = 0;
+    fontsApplied = true;
+    const markReady = () => {
+      fontsReady = true;
+      try { if (host) host.setAttribute('data-fonts', 'ready'); } catch (e) {}
+      measureCache = null;
+      queueCaret();
+    };
     try {
-      const resp = await chrome.runtime.sendMessage({ type: QLENS.MSG.FONT_FACE });
-      if (resp && resp.ok === true && Array.isArray(resp.items) && typeof document.fonts !== 'undefined') {
-        for (const item of resp.items) {
-          if (!item || typeof item.weight !== 'number' || typeof item.base64 !== 'string') continue;
-          const bytes = b64ToBytes(item.base64);
-          if (!bytes) continue;
-          try {
-            const ff = new FontFace(INTER_FAMILY, bytes.buffer, { weight: String(item.weight), display: 'swap' });
-            document.fonts.add(ff);
-            applied++;
-          } catch (err) {
-            /* skip bad face */
-          }
+      if (typeof document.fonts !== 'undefined' && typeof document.fonts.check === 'function') {
+        let present = true;
+        try {
+          present = [400, 500, 600, 700].every((w) => document.fonts.check(w + ' 16px "' + INTER_FAMILY + '"'));
+        } catch (checkErr) {
+          present = false;
+        }
+        if (present) {
+          fontsReady = true;
+          try { if (host) host.setAttribute('data-fonts', 'ready'); } catch (e) {}
+          queueCaret();
+          return;
         }
       }
     } catch (err) {
-      /* binary path failed — renamed @font-face is the fallback */
+      /* check unsupported — fall through to binary path */
     }
-    fontsApplied = applied > 0;
+    const load = async () => {
+      let applied = 0;
+      try {
+        const resp = await chrome.runtime.sendMessage({ type: QLENS.MSG.FONT_FACE });
+        if (resp && resp.ok === true && Array.isArray(resp.items) && typeof document.fonts !== 'undefined') {
+          for (const item of resp.items) {
+            if (!item || typeof item.weight !== 'number' || typeof item.base64 !== 'string') continue;
+            const bytes = b64ToBytes(item.base64);
+            if (!bytes) continue;
+            try {
+              const ff = new FontFace(INTER_FAMILY, bytes.buffer, { weight: String(item.weight), display: 'swap' });
+              document.fonts.add(ff);
+              applied++;
+            } catch (err) {
+              /* skip bad face */
+            }
+          }
+        }
+      } catch (err) {
+        /* binary path failed — renamed @font-face is the fallback */
+      }
+      return applied;
+    };
+    try {
+      const ric = (typeof window !== 'undefined' && window
+        && typeof window.requestIdleCallback === 'function')
+        ? window.requestIdleCallback.bind(window)
+        : null;
+      if (ric) ric(() => { load().then(() => { markReady(); }); }, { timeout: 1500 });
+      else setTimeout(() => { load().then(() => { markReady(); }); }, 0);
+    } catch (err) {
+      load();
+    }
   }
 
-  function focusInput() {
+  function focusInput(selectAll) {
+    if (!inputEl) return;
     try {
-      inputEl.focus();
+      try {
+        inputEl.focus({ preventScroll: true });
+      } catch (focusErr) {
+        inputEl.focus();
+      }
     } catch (err) {
       return;
     }
-    placeCaretEnd();
+    try {
+      if (selectAll && inputEl.value) inputEl.select();
+      else placeCaretEnd();
+    } catch (err) {
+      placeCaretEnd();
+    }
+    // Pages with aggressive focus stealers (Google, GitHub) can yank focus
+    // back within a frame — re-assert over the next frames so the first
+    // keystroke never gets lost.
+    let attempts = 0;
+    const ensure = () => {
+      if (!host || !inputEl) return;
+      let focused = false;
+      try {
+        focused = (root && root.activeElement === inputEl) || document.activeElement === host;
+      } catch (err) {
+        focused = false;
+      }
+      if (!focused) {
+        try {
+          try {
+            inputEl.focus({ preventScroll: true });
+          } catch (focusErr) {
+            inputEl.focus();
+          }
+        } catch (err) {}
+      }
+      if (++attempts < 3 && host && inputEl) {
+        if (typeof requestAnimationFrame === 'function') requestAnimationFrame(ensure);
+        else setTimeout(ensure, 16);
+      }
+    };
+    try {
+      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(ensure);
+      else setTimeout(ensure, 16);
+    } catch (err) {}
+  }
+
+  function suggestKey(value) {
+    return String(value == null ? '' : value).trim().toLowerCase();
+  }
+
+  function suggestCacheGet(key) {
+    if (!key) return null;
+    const entry = suggestCache.get(key);
+    if (!entry) return null;
+    const ttl = (QLENS.CONFIG && QLENS.CONFIG.SUGGESTION_CACHE_TTL_MS) || 120000;
+    try {
+      if (Date.now() - entry.ts > ttl) suggestCache.delete(key);
+      else return entry.results;
+    } catch (err) {
+      try { suggestCache.delete(key); } catch (e) {}
+    }
+    return null;
+  }
+
+  function suggestCacheSet(key, results) {
+    if (!key || !Array.isArray(results)) return;
+    const max = (QLENS.CONFIG && QLENS.CONFIG.SUGGESTION_CACHE_MAX) || 48;
+    try {
+      suggestCache.set(key, { results: results.slice(), ts: Date.now() });
+      while (suggestCache.size > max) {
+        const oldest = suggestCache.keys().next();
+        if (oldest.done) break;
+        suggestCache.delete(oldest.value);
+      }
+    } catch (err) {}
+  }
+
+  /* True when the pending query is still an extension or a shortening of the
+     query the visible rows were built for. Both directions matter: typing
+     forward ("goo" -> "googl") and backspacing ("googl" -> "goo") keep the
+     previous completions relevant, and collapsing on either one is what made
+     the panel jump while typing. */
+  function suggestExtends(key) {
+    const prev = lastSuggestKey;
+    if (!prev || !key) return false;
+    return key === prev || key.indexOf(prev) === 0 || prev.indexOf(key) === 0;
+  }
+
+  /* Provisional paint for the frame between a keystroke and its response:
+     the best list available right now, never a smaller one. */
+  function renderPendingSuggestions(value) {
+    if (!host || !inputEl) return;
+    const q = String(value == null ? '' : value);
+    if (!q.trim()) return;
+    const key = suggestKey(q);
+    if (suggestExtends(key) && lastSuggestResults.length) {
+      renderSuggestions(lastSuggestResults.filter((item) =>
+        typeof item === 'string' && item.toLowerCase().indexOf(key) !== -1
+      ), q);
+      return;
+    }
+    if (!lastSuggestResults.length) {
+      renderSuggestions([], q);
+      return;
+    }
+    /* The query jumped somewhere unrelated (select-all and retype), so the
+       old rows are meaningless. Drop them but hold the height until the new
+       response lands so the panel does not visibly shrink. */
+    renderSuggestions([], q);
   }
 
   function scheduleSuggestions() {
     clearTimeout(suggestionTimer);
+    if (!host || !inputEl) return;
+    const current = inputEl.value;
+    if (!String(current == null ? '' : current).trim()) return;
+    const key = suggestKey(current);
+    // Cache hit: skip the debounce entirely and render on this frame.
+    const cached = suggestCacheGet(key);
+    if (cached) {
+      finishSuggestionRequest();
+      lastSuggestKey = key;
+      lastSuggestResults = cached.slice();
+      renderSuggestions(cached, current);
+      return;
+    }
+    // From here on the visible list is provisional, so mark it as settling
+    // before the first paint. Doing this here rather than in the fetch covers
+    // the whole debounce window, not just the round trip.
+    suggestInFlight = true;
+    if (suggestEl) suggestEl.classList.add('is-updating');
+    renderPendingSuggestions(current);
+    const wait = (QLENS.validWait
+      ? QLENS.validWait(QLENS.CONFIG.SUGGESTION_DEBOUNCE_MS, 60)
+      : 60);
     suggestionTimer = setTimeout(() => {
-      fetchSuggestions(inputEl.value, modeId || engineId);
-    }, QLENS.CONFIG.SUGGESTION_DEBOUNCE_MS);
+      if (!host || !inputEl) return;
+      fetchSuggestions(inputEl.value, engineId);
+    }, wait);
+  }
+
+  function finishSuggestionRequest(reqId) {
+    if (reqId != null && reqId !== suggestionReqId) return;
+    if (!suggestInFlight) return;
+    suggestInFlight = false;
+    if (suggestEl) suggestEl.classList.remove('is-updating');
   }
 
   async function fetchSuggestions(query, engine) {
     const reqId = ++suggestionReqId;
+    const key = suggestKey(query);
+    const cached = suggestCacheGet(key);
+    if (cached) {
+      if (reqId !== suggestionReqId) return;
+      finishSuggestionRequest(reqId);
+      if (!host || !inputEl || inputEl.value.trim() !== String(query).trim()) return;
+      renderSuggestions(cached, query);
+      return;
+    }
+    suggestInFlight = true;
+    if (suggestEl) suggestEl.classList.add('is-updating');
     let results = [];
     try {
       const resp = await chrome.runtime.sendMessage({
@@ -2146,7 +3145,11 @@ function handleTab(e) {
       results = [];
     }
     if (reqId !== suggestionReqId) return;
-    if (!host || inputEl.value.trim() !== query.trim()) return;
+    finishSuggestionRequest(reqId);
+    if (!host || !inputEl || inputEl.value.trim() !== String(query).trim()) return;
+    suggestCacheSet(key, results);
+    lastSuggestKey = key;
+    lastSuggestResults = results.slice();
     renderSuggestions(results, query);
   }
 
@@ -2154,67 +3157,423 @@ function handleTab(e) {
     suggestEl.style.maxHeight = px + 'px';
   }
 
-  function clearSuggestions() {
+  function clearSuggestions(keepLauncher) {
     if (!suggestEl) return;
     suggestEl.textContent = '';
+    sugNodeByKey.clear();
     suggestEl.classList.remove('is-open');
-    suggestions = [];
+    suggestions = keepLauncher ? launcherRows.slice() : [];
     suggestionHighlight = -1;
-    inputEl.removeAttribute('aria-activedescendant');
-    inputEl.setAttribute('aria-expanded', 'false');
+    if (inputEl) {
+      try { inputEl.removeAttribute('aria-activedescendant'); } catch (e) {}
+      if (!keepLauncher) {
+        try { inputEl.setAttribute('aria-expanded', 'false'); } catch (e) {}
+      }
+    }
+    /* Nothing is on screen for an in-flight request any more, so invalidate it
+       rather than letting it paint over this state when it resolves. */
+    suggestionReqId++;
+    finishSuggestionRequest();
+    suggestSettledHeight = 0;
   }
 
   function renderEmpty() {
     if (!host) return;
-    clearSuggestions();
+    clearSuggestions(true);
+    if (launcherRows.length) {
+      if (inputEl) {
+        try { inputEl.setAttribute('aria-expanded', 'true'); } catch (e) {}
+      }
+      return;
+    }
     const empty = el('div', 'ql-empty');
     empty.appendChild(iconSvg(ICON_RETICLE));
     const t = el('b');
     t.textContent = 'Type to search';
     const p = el('p');
-    p.textContent = 'or select text on any page and open QLens to search from context.';
+    p.textContent = 'or select text on any page and open QLens to search from context. Type !bang to use a custom engine.';
     empty.append(t, p);
     suggestEl.appendChild(empty);
     suggestEl.classList.add('is-open');
     setSuggestHeight(150);
   }
 
+  const SUG_SEARCH_KEY = '\u0000search';
+
+  function createSugRow() {
+    const row = el('div', 'ql-sug-row');
+    row.setAttribute('role', 'option');
+    row.setAttribute('aria-selected', 'false');
+    const k = el('span', 'ql-sug-k');
+    const txt = el('span', 'ql-sug-txt');
+    const t = el('b', 'ql-sug-title');
+    txt.append(t);
+    row.append(k, txt, iconSvg(ICON_ARROW, 'ql-sug-arrow'));
+    // Resolve the highlight position at event time: rows survive keystrokes,
+    // so a captured index would drift as launcher and suggestion counts move.
+    row.addEventListener('pointerenter', () => {
+      const at = suggestions.indexOf(row);
+      if (at !== -1) setHighlight(at);
+    });
+    row.addEventListener('click', () => submitQuery(row.dataset.query));
+    return { row, k, t };
+  }
+
+  /* Rebuild the list by reusing every row that is still wanted and only
+     touching the ones that changed. Node identity is preserved, so hover,
+     scroll position and the height transition survive a keystroke instead of
+     the whole list blinking out and back in. */
+  function reconcileSugRows(items) {
+    const rows = [];
+    const kept = new Set();
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (kept.has(item.key)) continue;
+      kept.add(item.key);
+      let entry = sugNodeByKey.get(item.key);
+      if (!entry || entry.row.parentNode !== suggestEl) {
+        entry = createSugRow();
+        sugNodeByKey.set(item.key, entry);
+      }
+      const row = entry.row;
+      row.id = 'ql-sug-' + i;
+      row.setAttribute('aria-selected', 'false');
+      row.classList.remove('is-active');
+      row.dataset.query = item.submit;
+      row.style.setProperty('--i', i);
+      entry.k.textContent = String(i + 1).padStart(2, '0');
+      if (entry.t.textContent !== item.title) entry.t.textContent = item.title;
+      // appendChild reorders an existing child in place.
+      suggestEl.appendChild(row);
+      rows.push(row);
+    }
+    for (const [key, entry] of sugNodeByKey) {
+      if (kept.has(key)) continue;
+      sugNodeByKey.delete(key);
+      try {
+        if (entry.row.parentNode === suggestEl) suggestEl.removeChild(entry.row);
+      } catch (err) {}
+    }
+    return rows;
+  }
+
+  /* The empty-state block is appended straight into suggestEl and is not
+     tracked by sugNodeByKey, so reconcileSugRows would leave it sitting above
+     the rows. Drop it as soon as real results are painted. */
+  function clearEmptyState() {
+    if (!suggestEl) return;
+    const empty = suggestEl.querySelector('.ql-empty');
+    if (empty) empty.remove();
+  }
+
   function renderSuggestions(list, query) {
     if (!host) return;
     hideAction();
-    clearSuggestions();
-    const rows = [];
-    const addRow = (text, idx, submitText) => {
-      const row = el('div', 'ql-sug-row');
-      row.id = 'ql-sug-' + idx;
-      row.setAttribute('role', 'option');
-      row.setAttribute('aria-selected', 'false');
-      row.dataset.query = submitText;
-      row.style.setProperty('--i', idx);
-      const k = el('span', 'ql-sug-k');
-      k.textContent = String(idx + 1).padStart(2, '0');
-      const txt = el('span', 'ql-sug-txt');
-      const t = el('b', 'ql-sug-title');
-      t.textContent = text;
-      txt.append(t);
-      row.append(k, txt, iconSvg(ICON_ARROW, 'ql-sug-arrow'));
-      row.addEventListener('pointerenter', () => setHighlight(idx));
-      row.addEventListener('click', () => submitQuery(submitText));
-      suggestEl.appendChild(row);
-      rows.push(row);
-    };
-    addRow('Search for "' + query + '"', 0, query);
-    const count = Math.min(list.length, QLENS.CONFIG.MAX_SUGGESTIONS);
+    clearEmptyState();
+    const items = [{
+      key: SUG_SEARCH_KEY,
+      title: 'Search for "' + query + '"',
+      submit: query
+    }];
+    const seen = new Set([SUG_SEARCH_KEY]);
+    const source = Array.isArray(list) ? list : [];
+    const count = Math.min(source.length, QLENS.CONFIG.MAX_SUGGESTIONS);
     for (let i = 0; i < count; i++) {
-      addRow(list[i], i + 1, list[i]);
+      const text = String(source[i] == null ? '' : source[i]).trim();
+      if (!text || seen.has(text)) continue;
+      seen.add(text);
+      items.push({ key: text, title: text, submit: text });
     }
-    suggestions = rows;
+    const rows = reconcileSugRows(items);
+    suggestions = launcherRows.concat(rows);
     suggestionHighlight = -1;
+    if (inputEl) {
+      try { inputEl.removeAttribute('aria-activedescendant'); } catch (e) {}
+    }
     suggestEl.classList.add('is-open');
     inputEl.setAttribute('aria-expanded', 'true');
     const want = rows.length * 48 + 6;
     const max = Math.max(180, Math.round(window.innerHeight * 0.46));
-    setSuggestHeight(Math.min(want, max));
+    const target = Math.min(want, max);
+    /* Hold the last settled height while a request is in flight so the panel
+       never visibly collapses between keystroke and response. */
+    setSuggestHeight(suggestInFlight ? Math.max(target, suggestSettledHeight) : target);
+    if (!suggestInFlight) suggestSettledHeight = target;
+  }
+
+  let launcherCfgMemo = null;
+  let launcherCfgKey = null;
+
+  // Same story as getCustoms: sanitizeLauncher allocates a fresh object and
+  // runs per keystroke via launcherShouldRun(). Keyed on `settings` identity.
+  function launcherCfg() {
+    if (settings && launcherCfgKey === settings) return launcherCfgMemo;
+    let cfg = null;
+    try {
+      if (settings && settings.launcher && typeof QLENS.sanitizeLauncher === 'function') {
+        cfg = QLENS.sanitizeLauncher(settings.launcher);
+      }
+    } catch (err) {}
+    if (!cfg) {
+      try {
+        const d = QLENS.CONFIG && QLENS.CONFIG.DEFAULT_SETTINGS && QLENS.CONFIG.DEFAULT_SETTINGS.launcher;
+        if (d && typeof QLENS.sanitizeLauncher === 'function') cfg = QLENS.sanitizeLauncher(d);
+      } catch (err) {}
+    }
+    if (!cfg) cfg = { enabled: true, tabs: true, bookmarks: true, history: true, maxResults: 6 };
+    if (settings) {
+      launcherCfgKey = settings;
+      launcherCfgMemo = cfg;
+    }
+    return cfg;
+  }
+
+  function clearLauncher(keepState) {
+    try { clearTimeout(launcherTimer); } catch (err) {}
+    launcherTimer = null;
+    if (launchEl) {
+      launchEl.textContent = '';
+      launchEl.classList.remove('is-open');
+      launchEl.classList.remove('is-updating');
+      launchEl.style.maxHeight = '';
+    }
+    launcherRows = [];
+    if (!keepState) launcherItems = [];
+  }
+
+  function launcherKindLabel(kind) {
+    if (kind === 'tab') return 'Open tabs';
+    if (kind === 'bookmark') return 'Bookmarks';
+    return 'History';
+  }
+
+  function launcherKindIcon(kind) {
+    if (kind === 'tab') {
+      return '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="13" rx="2"/><path d="M8 21h8M12 17.5V21"/></svg>';
+    }
+    if (kind === 'bookmark') {
+      return '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h12v17l-6-4-6 4z"/></svg>';
+    }
+    return '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3.5 2"/></svg>';
+  }
+
+  function activateLauncherRow(row, shiftKey) {
+    if (!row || !row.dataset) return;
+    const kind = row.dataset.launchKind;
+    const url = row.dataset.launchUrl || '';
+    const tabId = row.dataset.launchTabId != null && row.dataset.launchTabId !== '' ? Number(row.dataset.launchTabId) : NaN;
+    if (kind === 'tab' && Number.isFinite(tabId)) {
+      if (shiftKey) {
+        try {
+          const res = chrome.runtime.sendMessage({ type: QLENS.MSG.LAUNCHER_CLOSE, payload: { tabId } });
+          if (res && typeof res.catch === 'function') res.catch(() => {});
+        } catch (err) {}
+        removeLauncherRow(tabId);
+        return;
+      }
+      try {
+        const res = chrome.runtime.sendMessage({ type: QLENS.MSG.LAUNCHER_ACTIVATE, payload: { tabId } });
+        if (res && typeof res.catch === 'function') res.catch(() => {});
+      } catch (err) {}
+      try { destroy(false); } catch (e) { try { destroy(false); } catch (_) {} }
+      return;
+    }
+    if (QLENS.isSafeHttpUrl(url)) openTab(url, null, null);
+  }
+
+  function removeLauncherRow(tabId) {
+    launcherItems = launcherItems.filter((it) => it.tabId !== tabId);
+    renderLauncher(launcherItems);
+  }
+
+  function renderLauncher(list) {
+    if (!host || !launchEl) return;
+    clearTimeout(launcherTimer);
+    launcherTimer = null;
+    launcherItems = Array.isArray(list) ? list.slice() : [];
+    launcherRows = [];
+    launchEl.textContent = '';
+    if (!launcherItems.length) {
+      launchEl.classList.remove('is-open');
+      launchEl.style.maxHeight = '';
+      suggestions = suggestEl ? Array.from(suggestEl.querySelectorAll('.ql-sug-row')) : [];
+      suggestionHighlight = -1;
+      return;
+    }
+    const kindsInOrder = ['tab', 'bookmark', 'history'];
+    const grouped = kindsInOrder
+      .map((k) => ({ kind: k, items: launcherItems.filter((it) => it && it.kind === k) }))
+      .filter((g) => g.items.length);
+    let idx = 0;
+    for (const g of grouped) {
+      const head = el('div', 'ql-launch-head');
+      head.textContent = launcherKindLabel(g.kind);
+      head.setAttribute('aria-hidden', 'true');
+      launchEl.appendChild(head);
+      for (const item of g.items) {
+        if (idx >= launcherItems.length) break;
+        const row = el('div', 'ql-sug-row is-launcher');
+        row.id = 'ql-launch-' + idx;
+        row.setAttribute('role', 'option');
+        row.setAttribute('aria-selected', 'false');
+        row.dataset.launchKind = item.kind;
+        row.dataset.launchUrl = item.url;
+        if (typeof item.tabId === 'number') row.dataset.launchTabId = String(item.tabId);
+        if (item.id != null) row.dataset.launchId = String(item.id);
+        row.style.setProperty('--i', idx);
+        const badge = el('span', 'ql-launch-icon');
+        badge.setAttribute('aria-hidden', 'true');
+        try {
+          if (!(QLENS.setIcon && QLENS.setIcon(badge, launcherKindIcon(item.kind)))) badge.textContent = '';
+        } catch (err) { try { badge.textContent = ''; } catch (e2) {} }
+        const txtWrap = el('span', 'ql-sug-txt');
+        const t = el('b', 'ql-sug-title');
+        t.textContent = item.title || item.url;
+        const u = el('span', 'ql-launch-url');
+        u.textContent = item.url;
+        txtWrap.append(t, u);
+        const arr = iconSvg(ICON_ARROW, 'ql-sug-arrow');
+        row.append(badge, txtWrap, arr);
+        const rowIdx = idx;
+        row.addEventListener('pointerenter', () => setHighlight(rowIdx));
+        row.addEventListener('click', (e) => activateLauncherRow(row, Boolean(e && e.shiftKey)));
+        launchEl.appendChild(row);
+        launcherRows.push(row);
+        idx++;
+      }
+    }
+    launcherRows.forEach((row, i) => { row.id = 'ql-launch-' + i; });
+    launchEl.classList.add('is-open');
+    sizeLauncher(grouped);
+    rebuildHighlightList();
+    if (!inputEl.value.trim()) {
+      renderEmpty();
+    }
+  }
+
+  function sizeLauncher(grouped) {
+    if (!launchEl) return;
+    const rows = launcherRows.length;
+    const heads = grouped ? grouped.length : 0;
+    const want = rows * 52 + heads * 26 + 8;
+    let maxH = 150;
+    try {
+      maxH = Math.max(150, Math.round(window.innerHeight * 0.3));
+      const launchTop = launchEl.getBoundingClientRect().top;
+      const footH = 64;
+      const avail = Math.round(window.innerHeight - launchTop - footH - 24);
+      if (isFinite(avail) && avail > 150) maxH = Math.min(maxH, avail);
+    } catch (err) {
+      /* viewport math is best-effort */
+    }
+    launchEl.style.maxHeight = Math.min(want, maxH) + 'px';
+  }
+
+  function rebuildHighlightList() {
+    const keepId = suggestionHighlight >= 0 && suggestions[suggestionHighlight] ? suggestions[suggestionHighlight].id : null;
+    suggestions = launcherRows.concat(suggestEl ? Array.from(suggestEl.querySelectorAll('.ql-sug-row')) : []);
+    launcherRows.forEach((row, i) => { row.id = 'ql-launch-' + i; });
+    if (keepId) {
+      const next = suggestions.findIndex((r) => r.id === keepId);
+      suggestionHighlight = next;
+      setHighlight(next);
+    } else {
+      suggestionHighlight = -1;
+      if (inputEl) {
+        try { inputEl.removeAttribute('aria-activedescendant'); } catch (e) {}
+      }
+    }
+  }
+
+  function launcherCacheGet(key) {
+    if (!key) return null;
+    const entry = launcherCache.get(key);
+    if (!entry) return null;
+    const ttl = (QLENS.CONFIG && QLENS.CONFIG.SUGGESTION_CACHE_TTL_MS) || 120000;
+    try {
+      if (Date.now() - entry.ts > ttl) launcherCache.delete(key);
+      else return entry.items;
+    } catch (err) {
+      try { launcherCache.delete(key); } catch (e) {}
+    }
+    return null;
+  }
+
+  function launcherCacheSet(key, items) {
+    if (!key || !Array.isArray(items)) return;
+    const max = (QLENS.CONFIG && QLENS.CONFIG.SUGGESTION_CACHE_MAX) || 48;
+    try {
+      launcherCache.set(key, { items: items.slice(), ts: Date.now() });
+      while (launcherCache.size > max) {
+        const oldest = launcherCache.keys().next();
+        if (oldest.done) break;
+        launcherCache.delete(oldest.value);
+      }
+    } catch (err) {}
+  }
+
+  function scheduleLauncher() {
+    clearTimeout(launcherTimer);
+    if (!host || !inputEl) return;
+    const value = String(inputEl.value == null ? '' : inputEl.value).trim();
+    if (!value) return;
+    if (value.length < 2) {
+      clearLauncher();
+      rebuildHighlightList();
+      return;
+    }
+    /* Serve a repeat query on this frame instead of after a debounce plus a
+       round trip, so the tab rows and the suggestion rows resize together
+       rather than one frame apart. */
+    const cached = launcherCacheGet(value.toLowerCase());
+    if (cached) {
+      renderLauncher(cached);
+      return;
+    }
+    let debounce = QLENS.CONFIG.LAUNCHER_DEBOUNCE_MS;
+    if (typeof debounce !== 'number' || !isFinite(debounce) || debounce < 0) debounce = 220;
+    launcherTimer = setTimeout(() => {
+      if (!host || !inputEl) return;
+      fetchLauncher(inputEl.value);
+    }, debounce);
+  }
+
+  async function fetchLauncher(query) {
+    const q = String(query == null ? '' : query);
+    const cfg = launcherCfg();
+    if (!cfg.enabled) {
+      clearLauncher();
+      rebuildHighlightList();
+      return;
+    }
+    const reqId = ++launcherReqId;
+    const cached = launcherCacheGet(q.trim().toLowerCase());
+    if (cached) {
+      if (reqId !== launcherReqId) return;
+      if (!host || !inputEl || inputEl.value !== q) return;
+      renderLauncher(cached);
+      return;
+    }
+    if (launchEl) launchEl.classList.add('is-updating');
+    let results = [];
+    try {
+      const resp = await chrome.runtime.sendMessage({
+        type: QLENS.MSG.LAUNCHER_QUERY,
+        payload: { query: q, id: reqId, launcher: cfg }
+      });
+      if (resp && resp.ok && resp.id === reqId) {
+        results = Array.isArray(resp.results) ? resp.results : [];
+      }
+    } catch (err) {
+      results = [];
+    }
+    if (reqId !== launcherReqId) return;
+    if (launchEl) launchEl.classList.remove('is-updating');
+    if (!host || !inputEl) return;
+    if (inputEl.value !== q) return;
+    const cleaned = results.filter((it) => it && typeof it.url === 'string' && QLENS.isSafeHttpUrl(it.url));
+    launcherCacheSet(q.trim().toLowerCase(), cleaned);
+    renderLauncher(cleaned);
   }
 
   function moveHighlight(dir) {
@@ -2227,6 +3586,7 @@ function handleTab(e) {
   }
 
   function setHighlight(idx) {
+    const idxChanged = idx !== suggestionHighlight;
     for (let i = 0; i < suggestions.length; i++) {
       const on = i === idx;
       suggestions[i].classList.toggle('is-active', on);
@@ -2235,10 +3595,12 @@ function handleTab(e) {
     suggestionHighlight = idx;
     if (idx >= 0 && suggestions[idx]) {
       inputEl.setAttribute('aria-activedescendant', suggestions[idx].id);
-      try {
-        suggestions[idx].scrollIntoView({ block: 'nearest' });
-      } catch (err) {
-        /* scrolling is best-effort */
+      if (idxChanged) {
+        try {
+          suggestions[idx].scrollIntoView({ block: 'nearest' });
+        } catch (err) {
+          /* scrolling is best-effort */
+        }
       }
     } else {
       inputEl.removeAttribute('aria-activedescendant');
@@ -2257,7 +3619,7 @@ function handleTab(e) {
     const t = el('b');
     t.textContent = 'Go to ' + label;
     const s = el('span', 'ql-smart-sub');
-    const spec = modeId ? QLENS.QUICK_MODES[modeId] : QLENS.ENGINES[engineId];
+    const spec = resolveEngine(engineId).spec;
     s.textContent = (spec ? spec.name : '') + (aiMode ? ' AI' : '') + ' \u00b7 opens in new tab';
     btn.append(t, s);
     btn.addEventListener('click', () => goToSite(site));
@@ -2281,7 +3643,18 @@ function handleTab(e) {
       return;
     }
     const engine = engineOverride || engineId;
-    const url = QLENS.buildSearchUrl(engine, q, modeId, aiMode);
+    if (!engineOverride) {
+      try { QLENS.storage.setLastEngine(engine); } catch (err) {}
+    }
+    let url = null;
+    try {
+      if (!QLENS.ENGINES[engine]) {
+        url = customSearchUrl(engine, q);
+      }
+      if (!url) url = QLENS.buildSearchUrl(engine, q, null, aiMode, getCustoms());
+    } catch (err) {
+      url = null;
+    }
     if (!url) return;
     openTab(url, q, engine);
   }
@@ -2296,26 +3669,66 @@ function handleTab(e) {
     if (query) payload.query = query;
     if (engine) payload.engine = engine;
     try {
-      chrome.runtime.sendMessage({ type: QLENS.MSG.OPEN_TAB, payload }).catch(() => {});
+      chrome.runtime.sendMessage({ type: QLENS.MSG.OPEN_TAB, payload }).then((res) => {
+        if (res && res.ok === false) {
+          showError('Could not open a new tab.');
+          return;
+        }
+        destroy(false);
+      }).catch(() => {
+        showError('Could not open a new tab.');
+      });
     } catch (err) {
-      /* send is best-effort; overlay still destroyed */
+      showError('Could not open a new tab.');
     }
-    destroy(false);
   }
 
   function show(payload) {
-    if (host) return;
+    if (closing) {
+      try { clearTimeout(removeTimer); } catch (err) {}
+      removeTimer = null;
+      try {
+        if (panel) panel.classList.remove('ql-out');
+        if (backdropEl) backdropEl.classList.remove('ql-out');
+        if (viewportFrameEl) viewportFrameEl.classList.remove('ql-out');
+      } catch (err) {}
+      closing = false;
+      focusInput();
+      return;
+    }
+    if (host) {
+      try {
+        if (host.isConnected) return;
+      } catch (err) {
+        return;
+      }
+      try { removeHost(); } catch (err) {}
+      host = null;
+    }
     prevFocusEl = document.activeElement;
     engineId = QLENS.CONFIG.DEFAULT_SETTINGS.defaultEngine;
     initialEngineId = engineId;
-    modeId = null;
     aiMode = false;
     actionSite = null;
     suggestions = [];
     suggestionHighlight = -1;
+    launcherRows = [];
+    launcherItems = [];
+    lastSuggestKey = '';
+    lastSuggestResults = [];
+    sugNodeByKey.clear();
+    suggestSettledHeight = 0;
+    suggestInFlight = false;
+    launcherCache.clear();
+    launcherReqId++;
     selectionText = null;
     selectionActive = false;
     attachment = null;
+    uploading = false;
+    pendingSearch = false;
+    dragDepth = 0;
+    dropHintEl = null;
+    attachGen++;
     settings = null;
     engineOrder = QLENS.CONFIG.DEFAULT_SETTINGS.engineOrder.slice();
 
@@ -2325,11 +3738,20 @@ function handleTab(e) {
       : null;
     if (pre) {
       settings = pre;
-      const order = pre.engineOrder.filter((id) => QLENS.ENGINES[id]);
+      const knownCustom = typeof QLENS.getCustomEngines === 'function'
+        ? QLENS.getCustomEngines(pre).map((c) => c.id)
+        : [];
+      const order = pre.engineOrder.filter((id) => QLENS.ENGINES[id] || knownCustom.includes(id));
       if (order.length) engineOrder = order;
-      const last = typeof p.lastEngine === 'string' && engineOrder.includes(p.lastEngine)
-        ? p.lastEngine
-        : null;
+      let last = null;
+      if (typeof p.lastEngine === 'string' && p.lastEngine) {
+        if (engineOrder.includes(p.lastEngine)) {
+          last = p.lastEngine;
+        } else if (QLENS.ENGINES[p.lastEngine] || knownCustom.includes(p.lastEngine)) {
+          engineOrder.push(p.lastEngine);
+          last = p.lastEngine;
+        }
+      }
       if (last) {
         engineId = last;
         initialEngineId = last;
@@ -2344,24 +3766,33 @@ function handleTab(e) {
       text = QLENS.Selection.capture(maxSel);
     }
 
-    build();
-    applyFonts();
-    if (pre) applyTheme(pre);
-    updateViewportFrame();
-    updateFootEngine();
-    if (text) {
-      selectionText = text;
-      selectionActive = true;
-      inputEl.value = text;
+    try {
+      build();
+      applyFonts();
+      if (pre) applyTheme(pre);
+      updateViewportFrame();
+      updateFootEngine();
+      if (text) {
+        selectionText = text;
+        selectionActive = true;
+        inputEl.value = text;
+      }
+      renderChip();
+      focusInput();
+      updateInputState();
+      hydrate();
+    } catch (err) {
+      try { removeHost(); } catch (e2) {}
+      host = null;
+      root = null;
+      panel = null;
+      throw err;
     }
-    renderChip();
-    focusInput();
-    updateInputState();
-    hydrate();
   }
 
-  async function hydrate() {
-    if (!settings) {
+  async function hydrate() {    if (!settings) {
+      // One storage round trip, not two: getLastEngine() falls back to
+      // settings.defaultEngine anyway, so derive it from the settings read.
       let s = null;
       try {
         s = await QLENS.storage.getSettings();
@@ -2371,12 +3802,22 @@ function handleTab(e) {
       if (!host) return;
       settings = s;
       engineOrder = s.engineOrder.slice();
+      renderPills();
+      updateFootEngine();
       applyTheme(s);
       updateViewportFrame();
-      const last = await QLENS.storage.getLastEngine();
-      if (!host) return;
+      if (!launcherCfg().enabled) {
+        clearLauncher();
+        rebuildHighlightList();
+      } else if (inputEl && inputEl.value && launcherShouldRun(inputEl.value)) {
+        scheduleLauncher();
+      }
       if (engineId === initialEngineId) {
-        setEngine(last);
+        try {
+          const last = await QLENS.storage.getLastEngine();
+          if (!host) return;
+          setEngine(last, false);
+        } catch (err) {}
       }
     } else {
       updateViewportFrame();
@@ -2419,7 +3860,10 @@ function handleTab(e) {
     closing = true;
     clearTimeout(suggestionTimer);
     suggestionTimer = null;
+    clearTimeout(launcherTimer);
+    launcherTimer = null;
     suggestionReqId++;
+    launcherReqId++;
     let reduced = false;
     try {
       reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -2428,14 +3872,16 @@ function handleTab(e) {
     }
     if (animate && !reduced) {
       panel.classList.add('ql-out');
+      if (backdropEl) backdropEl.classList.add('ql-out');
       if (viewportFrameEl) viewportFrameEl.classList.add('ql-out');
-      setTimeout(removeHost, 150);
+      removeTimer = setTimeout(removeHost, 90);
     } else {
       removeHost();
     }
   }
 
   function removeHost() {
+    window.removeEventListener('keydown', onWindowCaptureKey, true);
     window.removeEventListener('keydown', onWindowKey, true);
     window.removeEventListener('keyup', onWindowKey, true);
     if (host && host.parentNode) {
@@ -2458,17 +3904,27 @@ function handleTab(e) {
     aiPillEl = null;
     smartZone = null;
     suggestEl = null;
+    launchEl = null;
     footEngine = null;
     imgBtn = null;
     fileInput = null;
     errEl = null;
     caretEl = null;
     measureEl = null;
+    caretQueued = false;
+    measureCache = null;
     closing = false;
     suggestions = [];
     suggestionHighlight = -1;
+    launcherRows = [];
+    launcherItems = [];
+    launcherTimer = null;
     clearTimeout(toastTimer);
     toastTimer = null;
+    dragDepth = 0;
+    uploading = false;
+    dropHintEl = null;
+    attachGen++;
     removeImage();
     restoreFocus();
   }
@@ -2488,7 +3944,13 @@ function handleTab(e) {
   return {
     show,
     destroy,
-    isVisible: () => Boolean(host)
+    isVisible: () => {
+      try {
+        return Boolean(host && host.isConnected);
+      } catch (err) {
+        return Boolean(host);
+      }
+    }
   };
 })();
 

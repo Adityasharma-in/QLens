@@ -73,6 +73,8 @@ html[data-theme="dark"] {
 body {
   margin: 0;
   width: 320px;
+  max-height: 600px;
+  overflow-y: auto;
   background:
     radial-gradient(600px 300px at 85% -20%, var(--accent-soft), transparent 60%),
     var(--bg);
@@ -80,6 +82,50 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
   font-size: 13px;
   line-height: 1.45;
+}
+
+/* Restricted-page fallback tab: the 320px popup width must not leak into a
+   full browser tab — center the card instead of stretching a narrow column. */
+html.ql-tab body {
+  width: auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 16px 32px;
+}
+
+html.ql-tab .pop-head,
+html.ql-tab .pop-notice,
+html.ql-tab .pop-search,
+html.ql-tab .pop-sec,
+html.ql-tab .pop-foot {
+  width: min(480px, 100%);
+}
+
+html.ql-tab .pop-head {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+html.ql-tab .pop-notice {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+html.ql-tab .pop-search {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+html.ql-tab .pop-sec {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+html.ql-tab .pop-foot {
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .pop-head {
@@ -117,6 +163,45 @@ body {
   padding: 2px 9px;
 }
 
+.pop-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 14px 0;
+  padding: 7px 8px 7px 12px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.pop-notice[hidden] {
+  display: none;
+}
+
+.pop-notice-text {
+  flex: 1;
+}
+
+.pop-notice-x {
+  font-family: inherit;
+  font-size: 13px;
+  min-width: 28px;
+  min-height: 28px;
+  color: var(--text-dim);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+
+.pop-notice-x:hover {
+  color: var(--text);
+}
+
 .pop-search {
   padding: 12px 14px 6px;
 }
@@ -125,17 +210,21 @@ body {
   width: 100%;
   font-family: inherit;
   font-size: 13.5px;
+  font-weight: 600;
   color: var(--text);
-  background: var(--card);
-  border: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 16%, transparent), transparent 55%),
+    var(--card);
+  border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--border));
   border-radius: 12px;
   padding: 9px 12px;
   outline: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 0 16px -8px color-mix(in srgb, var(--accent) 60%, transparent);
 }
 
 .pop-input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent), 0 0 0 3px var(--accent-soft), 0 0 20px -6px color-mix(in srgb, var(--accent) 70%, transparent);
 }
 
 .pop-pills {
@@ -311,4 +400,18 @@ body {
   border: none;
   padding: 0;
   cursor: pointer;
+}
+
+.pop-pill:focus-visible,
+.seg-btn:focus-visible,
+.swatch:focus-visible,
+.pop-go:focus-visible,
+.pop-link:focus-visible,
+.pop-notice-x:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.swatch:focus-visible {
+  border-color: var(--text);
 }

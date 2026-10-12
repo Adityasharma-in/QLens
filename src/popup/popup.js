@@ -9,21 +9,42 @@ globalThis.QLENS = globalThis.QLENS || {};
   let chosenEngine = null;
 
   function applyAppearance() {
-    const theme = settings.theme === 'system' ? 'system' : settings.theme;
-    document.documentElement.dataset.theme = theme;
+    if (settings.theme === 'system') {
+      document.documentElement.removeAttribute('data-theme');
+    } else {
+      document.documentElement.setAttribute('data-theme', settings.theme);
+    }
     const hex = QLENS.CONFIG.ACCENTS[settings.accent] || QLENS.CONFIG.ACCENTS.indigo;
     document.documentElement.style.setProperty('--accent', hex);
     document.documentElement.style.setProperty('--accent-soft', hex + '1F');
     for (const btn of document.querySelectorAll('#pop-theme .seg-btn')) {
       btn.classList.toggle('active', btn.dataset.value === settings.theme);
+      btn.setAttribute('aria-pressed', String(btn.dataset.value === settings.theme));
     }
+  }
+
+  function allEngineSpecs() {
+    const map = {};
+    try {
+      if (QLENS.ENGINES) {
+        for (const id of Object.keys(QLENS.ENGINES)) map[id] = QLENS.ENGINES[id];
+      }
+      const customs = typeof QLENS.getCustomEngines === 'function'
+        ? QLENS.getCustomEngines(settings)
+        : [];
+      for (const c of customs) {
+        if (c && c.id && !map[c.id]) map[c.id] = { id: c.id, name: c.name };
+      }
+    } catch (err) {}
+    return map;
   }
 
   function renderPills() {
     const wrap = $('pop-pills');
     wrap.textContent = '';
+    const specs = allEngineSpecs();
     for (const id of settings.engineOrder) {
-      const eng = QLENS.ENGINES[id];
+      const eng = specs[id];
       if (!eng) continue;
       const b = document.createElement('button');
       b.type = 'button';
@@ -31,9 +52,12 @@ globalThis.QLENS = globalThis.QLENS || {};
       b.dataset.engine = id;
       b.setAttribute('role', 'radio');
       b.setAttribute('aria-checked', String(id === (chosenEngine || settings.defaultEngine)));
+      b.setAttribute('aria-pressed', String(id === (chosenEngine || settings.defaultEngine)));
       b.setAttribute('aria-label', 'Search with ' + eng.name);
       const icon = document.createElement('span');
-      icon.innerHTML = QLENS.LOGOS[id] || '';
+      try {
+        if (!(QLENS.setIcon && QLENS.setIcon(icon, QLENS.LOGOS[id] || QLENS.LOGOS.custom || ''))) icon.textContent = '';
+      } catch (err) { try { icon.textContent = ''; } catch (e2) {} }
       b.appendChild(icon);
       b.appendChild(document.createTextNode(eng.name));
       b.addEventListener('click', () => {
@@ -76,17 +100,63 @@ globalThis.QLENS = globalThis.QLENS || {};
 
   function bindSuggestions() {
     const input = $('pop-suggestions');
+    if (!input) return;
     input.checked = Boolean(settings.suggestions);
     input.addEventListener('change', async () => {
       settings = await QLENS.storage.setSettings({ suggestions: input.checked });
     });
   }
 
+  function getCustoms() {
+    try {
+      return typeof QLENS.getCustomEngines === 'function'
+        ? QLENS.getCustomEngines(settings)
+        : [];
+    } catch (err) {
+      return [];
+    }
+  }
+
   async function doSearch() {
-    const q = $('pop-query').value.trim();
-    if (!q) return;
-    const engine = chosenEngine || settings.defaultEngine;
-    const url = QLENS.buildSearchUrl(engine, q);
+    const qEl = $('pop-query');
+    if (!qEl) return;
+    const raw = qEl.value.trim();
+    if (!raw) return;
+    const customs = getCustoms();
+    // Same query language as the overlay: !bangs, g/b/k/d prefixes,
+    // quick modes (images:, yt:…), and smart-URL direct open.
+    let parsed = null;
+    try {
+      parsed = typeof QLENS.parseOmniboxInput === 'function'
+        ? QLENS.parseOmniboxInput(raw, customs)
+        : null;
+    } catch (err) {
+      parsed = null;
+    }
+    if (parsed && parsed.url && QLENS.isSafeHttpUrl(parsed.url)) {
+      try {
+        await chrome.runtime.sendMessage({
+          type: QLENS.MSG.OPEN_TAB,
+          payload: { url: parsed.url }
+        });
+      } catch (err) {
+        return;
+      }
+      window.close();
+      return;
+    }
+    const q = parsed && typeof parsed.query === 'string' && parsed.query.trim()
+      ? parsed.query
+      : raw;
+    if (!q.trim()) return;
+    const engine = (parsed && parsed.engineId) || chosenEngine || settings.defaultEngine;
+    const modeId = parsed && parsed.modeId ? parsed.modeId : null;
+    let url = null;
+    try {
+      url = QLENS.buildSearchUrl(engine, q, modeId, false, customs);
+    } catch (err) {
+      url = null;
+    }
     if (!url) return;
     try {
       await chrome.runtime.sendMessage({
@@ -108,6 +178,36 @@ globalThis.QLENS = globalThis.QLENS || {};
       .catch(() => {});
   }
 
+  // Restricted-page fallback: popup opened as a full tab via
+  // ?q=<selection>&fallback=1 — pre-fill the query, focus, show notice.
+  function applyFallbackParams(qEl) {
+    let q = '';
+    let isFallback = false;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      q = params.get('q') || '';
+      isFallback = params.get('fallback') === '1';
+    } catch (err) {
+      return;
+    }
+    if (q && qEl) {
+      qEl.value = q.slice(0, 2000);
+    }
+    if (isFallback) {
+      try { document.documentElement.classList.add('ql-tab'); } catch (err) {}
+      const notice = $('pop-fallback');
+      if (notice) notice.hidden = false;
+      const x = $('pop-fallback-x');
+      if (x) {
+        x.addEventListener('click', () => {
+          const n = $('pop-fallback');
+          if (n) n.hidden = true;
+          if (qEl) { try { qEl.focus(); } catch (e) {} }
+        });
+      }
+    }
+  }
+
   async function init() {
     try {
       settings = await QLENS.storage.getSettings();
@@ -119,20 +219,24 @@ globalThis.QLENS = globalThis.QLENS || {};
     renderSwatches();
     bindTheme();
     bindSuggestions();
-    $('pop-query').addEventListener('keydown', (e) => {
+    const qEl = $('pop-query');
+    const goEl = $('pop-go');
+    const settingsEl = $('pop-settings');
+    if (qEl) qEl.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
         doSearch();
       }
     });
-    $('pop-go').addEventListener('click', doSearch);
-    $('pop-settings').addEventListener('click', () => {
+    if (goEl) goEl.addEventListener('click', doSearch);
+    if (settingsEl) settingsEl.addEventListener('click', () => {
       if (chrome && chrome.runtime && typeof chrome.runtime.openOptionsPage === 'function') {
         chrome.runtime.openOptionsPage();
       }
     });
     showShortcut();
-    $('pop-query').focus();
+    applyFallbackParams(qEl);
+    if (qEl) { try { qEl.focus(); } catch (e) {} }
   }
 
   document.addEventListener('DOMContentLoaded', init);

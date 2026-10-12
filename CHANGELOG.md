@@ -2,9 +2,22 @@
 
 ## [Unreleased]
 
+### Fixed
+- **Shortcut opened nothing on any normal site (both default and custom combos).** The manifest's `host_permissions` listed only the 3 Google hosts, but every first-open-per-page injects the overlay via `chrome.scripting.executeScript`, which needs a host grant for the target tab. The injection threw `Cannot access contents of the page`, was swallowed into a service-worker-only `console.warn`, and the page console stayed clean — exactly the reported symptom (popup kept working because it needs no injection). `host_permissions` now also includes `http://*/*` + `https://*/*`, matching the PRD §9 / manifest-block spec. Also: `chrome.commands.onCommand` now uses the tab Chrome hands it instead of re-querying, so a cold-SW empty `tabs.query` can no longer leave the command path tab-less.
+- Options page: the Theme and "Right-click search" segmented controls now save correctly. Their click handlers were being attached twice, so every click fired two storage writes.
+
+### Performance
+- The extension's per-page footprint is 41% smaller. The content script injected into every http(s) page now loads 4 files (19.8 KB) instead of 6 (33.6 KB) — the engine registry and launcher ranker load when the overlay is actually opened instead of on every page you visit. No behaviour change.
+- The overlay's tab/bookmark/history launcher no longer re-queries Chrome on every keystroke. Open tabs are snapshotted for 1s and bookmark/history results are memoised for 2-5s, so backspacing, retyping and re-opening the overlay reuse the last result instead of hitting Chrome's history database again. Ranking, ordering and result limits are unchanged.
+- Typing in the overlay no longer re-validates the custom-engine list and launcher settings on every keypress — both are computed once per settings load instead of 2-6 times per keystroke.
+- The overlay no longer pins a permanent full-viewport compositor layer for its edge-glow frame, freeing GPU memory while the overlay is open.
+
+### Removed
+- Unused code: a dead multipart image-upload builder and its filename constant, an unused custom-engine lookup, three never-called async helpers (`createRequestTracker`, `createDebouncer`, `withTimeout`), an unused selection-text helper, two message types that were never sent or handled, per-engine suggestion URLs that were never read, one unused plus one duplicated stylesheet token, and script tags the popup and options pages never used.
+
 ### Added
 - Google AI Mode: `Tab` in the overlay toggles Google normal ⇄ Google AI (searches with `udm=50&ntc=1&cs=0&atvm=2&zs=1` on `/search` — the user-verified AI results surface; `sxsrf` session tokens are never hardcoded); always-visible `AI Mode` switch pill with spark icon; footer, suggestion rows, and smart-URL row label the state ("Google AI" / `· AI`). Toggling AI snaps the engine to Google; choosing another engine or mode, or typing any prefix, clears it. (Earlier attempts — `webhp?atvm=2` and `/search?udm=2` — both failed live.)
-- Image search: camera button in the overlay input row (click to pick a file, `Ctrl+V` paste, or drag & drop an image) attaches a removable thumbnail chip; pressing `Enter` sends the image plus any typed text to **Google Lens** (verified `POST /searchbyimage/upload` with `encoded_image` + `image_content`) and opens the results in a new tab. Image bytes are read and re-encoded locally (canvas, ≤2048 px, ≤5 MB) and never touch `chrome.storage`; web search uses a 20 s timeout with a `lens.google.com` fallback. Zero new permissions.
+- Image search: camera button in the overlay input row (click to pick a file, `Ctrl+V` paste, or drag & drop an image) attaches a removable thumbnail chip; pressing `Enter` sends the image plus any typed text to **Google Lens** (verified `POST /searchbyimage/upload` with `encoded_image` + `image_content`) and opens the results in a new tab. Image bytes are read and re-encoded locally (canvas, ≤1600 px, ≤5 MB, WebP-first) and never touch `chrome.storage`; offline-friendly formats sniffed (PNG/JPEG/GIF/WebP/BMP/AVIF/HEIC/SVG); overlay shows the thumbnail instantly and keeps Enter queued while preparing; the results tab opens instantly on a loading page while the upload runs; repeat searches of the same image hit a 5-minute session cache with zero re-upload; TLS warmed via `generate_204`; 15 s upload timeout with a `lens.google.com` fallback. Zero new permissions.
 
 ## [1.1.0] — 2026-08-14
 

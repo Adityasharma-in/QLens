@@ -32,6 +32,14 @@ QLENS.CONFIG = {
       { id: 'tw', label: 'X / Twitter', url: 'https://x.com', shortcut: 'tw' },
       { id: 'so', label: 'Stack Overflow', url: 'https://stackoverflow.com', shortcut: 'so' }
     ],
+    launcher: {
+      enabled: true,
+      tabs: true,
+      bookmarks: true,
+      history: false,
+      maxResults: 6
+    },
+    customEngines: [],
     edgeCollapsed: false
   },
   ACCENTS: {
@@ -43,15 +51,22 @@ QLENS.CONFIG = {
     sky: '#0EA5E9'
   },
   FONT_FAMILY: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif",
-  MAX_SUGGESTIONS: 8,
-  SUGGESTION_DEBOUNCE_MS: 250,
-  SUGGESTION_TIMEOUT_MS: 1500,
+  MAX_SUGGESTIONS: 6,
+  SUGGESTION_DEBOUNCE_MS: 150,
+  LAUNCHER_DEBOUNCE_MS: 220,
+  SUGGESTION_TIMEOUT_MS: 800,
+  SUGGESTION_CACHE_TTL_MS: 120000,
+  SUGGESTION_CACHE_MAX: 48,
   MAX_SELECTION_MIN: 50,
   MAX_SELECTION_MAX: 1000,
-  IMAGE_SEARCH_TIMEOUT_MS: 20000,
+  IMAGE_SEARCH_TIMEOUT_MS: 15000,
   IMAGE_MAX_BYTES: 5 * 1024 * 1024,
-  IMAGE_MAX_DIM: 2048,
-  IMAGE_JPEG_QUALITY: 0.9,
+  IMAGE_MAX_DIM: 1600,
+  IMAGE_JPEG_QUALITY: 0.82,
+  IMAGE_WEBP_QUALITY: 0.85,
+  IMAGE_CACHE_TTL_MS: 5 * 60 * 1000,
+  IMAGE_CACHE_MAX: 20,
+  LENS_WARM_URL: 'https://www.google.com/generate_204',
   LENS_FILENAME: 'qlens-search.png',
   MAX_FAVORITES: 20,
   SHORTCUT_RE: /^[a-z0-9]{1,12}$/i
@@ -62,7 +77,13 @@ const MODIFIER_SET = new Set(MODIFIER_NAMES);
 
 function isMacPlatform() {
   try {
-    return /mac|darwin/i.test(navigator.platform || '');
+    const uaDataPlatform = (globalThis.navigator && globalThis.navigator.userAgentData)
+      ? globalThis.navigator.userAgentData.platform
+      : '';
+    if (typeof uaDataPlatform === 'string' && uaDataPlatform) {
+      return /mac/i.test(uaDataPlatform);
+    }
+    return /mac|darwin/i.test((globalThis.navigator && globalThis.navigator.platform) || '');
   } catch (err) {
     return false;
   }
@@ -130,3 +151,11 @@ function matchesCombo(e, combo) {
 QLENS.buildCombo = buildCombo;
 QLENS.isValidCombo = isValidCombo;
 QLENS.matchesCombo = matchesCombo;
+QLENS.isMacPlatform = isMacPlatform;
+
+try {
+  const manifestVersion = chrome.runtime.getManifest().version;
+  if (typeof manifestVersion === 'string' && manifestVersion) {
+    QLENS.CONFIG.VERSION = manifestVersion;
+  }
+} catch (err) {}

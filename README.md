@@ -26,7 +26,7 @@ current selection), press **Enter** — results open in Google, Brave, Bing, or 
 | Recent searches | Last 10 queries, one click re-searches; delete per-item or clear all |
 | Smart URL | Type `github.com/foo` → "Go to site" (http/https only, always) |
 | Quick modes | `images:` `videos:` `news:` `yt:` `wiki:` prefixes + pills |
-| Image search | Camera button in overlay — file picker, paste, or drop an image; optional text; Enter → Google Lens |
+| Image search | Camera button in overlay — file picker, paste, or drop an image (PNG/JPEG/GIF/WebP/BMP/AVIF/HEIC/SVG); instant thumbnail, queued Enter, instant loading tab, repeat-search cache; optional text; Enter → Google Lens |
 | Options | `chrome://extensions` → Details → Extension options |
 | Context menu | Right-click selected text → "Search with QLens" (overlay or direct, setting) |
 
