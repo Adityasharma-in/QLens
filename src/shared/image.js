@@ -44,7 +44,10 @@ function validateImageBytes(bytes, claimedType) {
     ? QLENS.CONFIG.IMAGE_MAX_BYTES : 5 * 1024 * 1024;
   if (!(bytes instanceof Uint8Array)) return { ok: false, error: 'That does not look like an image.' };
   if (bytes.length === 0) return { ok: false, error: 'The selected file is empty.' };
-  if (bytes.length > max) return { ok: false, error: 'Image is too large (max 5 MB).' };
+  if (bytes.length > max) {
+    const mb = max >= 1048576 && max % 1048576 === 0 ? String(max / 1048576) + ' MB' : String(Math.round(max / 1024)) + ' KB';
+    return { ok: false, error: 'Image is too large (max ' + mb + ').' };
+  }
   const sniffed = sniffMime(bytes);
   const claimed = typeof claimedType === 'string' && claimedType.startsWith('image/') ? claimedType.toLowerCase() : null;
   // Prefer sniffed; if sniff fails but claimed looks like image, allow (some webp/bmp edge sniff miss)
@@ -84,8 +87,10 @@ function bytesToBase64(bytes) {
  */
 function base64ToBytes(b64) {
   if (typeof b64 !== 'string' || !b64) return null;
-  // quick length guard — 5MB *4/3 ~ 7MB char string
-  const maxChars = Math.ceil((5 * 1024 * 1024) * 4 / 3) + 64;
+  // quick length guard — cap chars scale with the configured byte cap
+  const cap = (globalThis.QLENS && globalThis.QLENS.CONFIG && typeof QLENS.CONFIG.IMAGE_MAX_BYTES === 'number')
+    ? QLENS.CONFIG.IMAGE_MAX_BYTES : 5 * 1024 * 1024;
+  const maxChars = Math.ceil(cap * 4 / 3) + 64;
   if (b64.length > maxChars) return null;
   try {
     const raw = atob(b64);
@@ -123,9 +128,14 @@ function buildLensFilename(originalName, mime) {
   else if (m === 'image/heic') ext = '.heic';
   else if (m === 'image/svg+xml') ext = '.png';
   else if (m === 'image/x-icon') ext = '.png';
-  // ensure extension matches mime (avoid double ext attacks)
-  base = base.replace(/\.(png|jpe?g|gif|webp|bmp|ico)$/i, '') + ext;
-  return base;
+  // ensure extension matches mime (avoid double ext attacks): loop so
+  // photo.avif.avif collapses fully instead of leaving photo.avif.avif.
+  let prev = null;
+  while (prev !== base) {
+    prev = base;
+    base = base.replace(/\.(png|jpe?g|gif|webp|bmp|ico|avif|heic|heif|svg)$/i, '');
+  }
+  return base + ext;
 }
 
 /**

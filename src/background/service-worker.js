@@ -10,7 +10,10 @@ importScripts(
 
 let injectNonce = '';
 let openLastStart = 0;
-const OPEN_GUARD_MS = 1500;
+// Dual-fire debounce (manifest command + in-page keydown for one keypress)
+// settles in well under half a second even on a cold SW wake; 1500 ms also
+// swallowed a real Esc-then-fast-reopen, which looks like a dead shortcut.
+const OPEN_GUARD_MS = 400;
 
 // Settings memo: warm at SW start, invalidated+re-primed on storage change.
 // Lets openQuickSearch build the OPEN_OVERLAY payload with zero awaits on the
@@ -297,6 +300,7 @@ async function openQuickSearch(selectionText, tabId) {
     try {
       if (await sendOpenOverlay(tab.id, payload)) {
         clearOpenWarn();
+        warmLens();
         return true;
       }
     } catch (err) {
@@ -305,9 +309,15 @@ async function openQuickSearch(selectionText, tabId) {
 
     if (!(await injectContent(tab.id))) return false;
 
+    // A wedged content script would stall sendMessage indefinitely and burn
+    // SW lifetime — fail each attempt fast so the warn path stays responsive.
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        if (await sendOpenOverlay(tab.id, payload)) {
+        const raced = await Promise.race([
+          sendOpenOverlay(tab.id, payload),
+          sleep(800).then(() => false)
+        ]);
+        if (raced) {
           clearOpenWarn();
           return true;
         }
@@ -401,7 +411,10 @@ async function handleSuggestions(payload, tabId) {
   const cached = suggestCacheGet(cacheKey);
   if (cached) return cached.slice();
   const url = QLENS.suggestUrlFor(engine, query);
-  const flightKey = String(typeof tabId === 'number' ? tabId : '') + '|' + engine;
+  // Suggestions are engine-agnostic (always the Google endpoint) — key the
+  // single-flight abort on the tab alone so switching engines mid-flight
+  // kills the stale request instead of leaving it running beside the new one.
+  const flightKey = String(typeof tabId === 'number' ? tabId : '');
   const prev = suggestFlights.get(flightKey);
   if (prev) {
     try { prev.abort(); } catch (err) {}
@@ -424,7 +437,9 @@ async function handleSuggestions(payload, tabId) {
       const host = QLENS.bareHost(item);
       return Boolean(host) && !blocked.includes(host);
     }).slice(0, QLENS.CONFIG.MAX_SUGGESTIONS);
-    suggestCacheSet(cacheKey, out);
+    // Never cache empties: a 1s network blip must not suppress suggestions
+    // for the full 120s TTL. The per-tab abort above already prevents loops.
+    if (out.length) suggestCacheSet(cacheKey, out);
     return out;
   } catch (err) {
     return [];
@@ -528,10 +543,23 @@ async function fetchLauncherBookmarks(query) {
   const key = String(query == null ? '' : query).trim().toLowerCase();
   const hit = memoGet(bookmarksMemo, key, LAUNCHER_BOOKMARKS_TTL_MS);
   if (hit) return hit;
-  const prefix = memoPrefixHit(bookmarksMemo, key, LAUNCHER_BOOKMARKS_TTL_MS);
-  if (prefix) return prefix;
+  // chrome.bookmarks.search is word-based: a longer query can match items its
+  // prefix never returned, so the substring filter would drop real matches.
+  // Only reuse the prefix cache for single-token queries; bypass on whitespace.
+  if (key.indexOf(' ') === -1) {
+    const prefix = memoPrefixHit(bookmarksMemo, key, LAUNCHER_BOOKMARKS_TTL_MS);
+    if (prefix) return prefix;
+  }
   try {
     if (!chrome.bookmarks || typeof chrome.bookmarks.search !== 'function') return [];
+    // Revoked optional permission: fail fast instead of paying a throwing
+    // DB call on every keystroke.
+    try {
+      if (chrome.permissions && typeof chrome.permissions.contains === 'function') {
+        const granted = await chrome.permissions.contains({ permissions: ['bookmarks'] });
+        if (!granted) return [];
+      }
+    } catch (err) {}
     let nodes = [];
     if (key) {
       nodes = await chrome.bookmarks.search(key);
@@ -562,10 +590,18 @@ async function fetchLauncherHistory(query) {
   if (!key) return [];
   const hit = memoGet(historyMemo, key, LAUNCHER_HISTORY_TTL_MS);
   if (hit) return hit;
-  const prefix = memoPrefixHit(historyMemo, key, LAUNCHER_HISTORY_TTL_MS);
-  if (prefix) return prefix;
+  if (key.indexOf(' ') === -1) {
+    const prefix = memoPrefixHit(historyMemo, key, LAUNCHER_HISTORY_TTL_MS);
+    if (prefix) return prefix;
+  }
   try {
     if (!chrome.history || typeof chrome.history.search !== 'function') return [];
+    try {
+      if (chrome.permissions && typeof chrome.permissions.contains === 'function') {
+        const granted = await chrome.permissions.contains({ permissions: ['history'] });
+        if (!granted) return [];
+      }
+    } catch (err) {}
     const items = await chrome.history.search({
       text: key,
       maxResults: LAUNCHER_HISTORY_MAX,
@@ -586,9 +622,10 @@ async function handleLauncherQuery(payload) {
   const query = typeof p.query === 'string' ? p.query : '';
   let cfg;
   try {
-    cfg = p.launcher && typeof p.launcher === 'object'
-      ? QLENS.sanitizeLauncher(p.launcher)
-      : launcherCfg();
+    // Stored settings are authoritative: a stale renderer must not be able
+    // to re-enable history/bookmark reads the user disabled (privacy), and
+    // re-sanitizing per keystroke is wasted work on a hot path.
+    cfg = launcherCfg();
   } catch (err) {
     cfg = QLENS.sanitizeLauncher({});
   }
@@ -642,7 +679,10 @@ const SW_LENS_UPLOAD_ALT = (globalThis.QLENS && QLENS.LENS_UPLOAD) ? QLENS.LENS_
 const IMAGE_UPLOAD_TIMEOUT_MS = QLENS.CONFIG.IMAGE_SEARCH_TIMEOUT_MS || 20000;
 
 // Fire-and-forget TLS warm-up so the Lens upload connects instantly.
+let lensWarmed = false;
 function warmLens() {
+  if (lensWarmed) return;
+  lensWarmed = true;
   try {
     fetch(QLENS.CONFIG.LENS_WARM_URL || 'https://www.google.com/generate_204', { mode: 'no-cors', credentials: 'omit', cache: 'no-store', keepalive: true }).catch(() => {});
   } catch (err) {}
@@ -684,7 +724,8 @@ let imageFlightKey = '';
 
 function imageHashKey(p, b64, bytes, text, name) {
   const h = p && typeof p.hash === 'string' ? p.hash : '';
-  if (h && h.length <= 64 && /^[0-9a-fA-F]+$/.test(h)) return h;
+  // 1-char hex keys collide across images — require enough entropy to be a key.
+  if (h && h.length >= 4 && h.length <= 64 && /^[0-9a-fA-F]+$/.test(h)) return h;
   try {
     if (QLENS.ImageEngine && typeof QLENS.ImageEngine.fnv1a32 === 'function') {
       const input = bytes && bytes.length ? bytes : (b64 || '');
@@ -705,6 +746,10 @@ function imageHashKey(p, b64, bytes, text, name) {
 async function settleJobTab(jobTab, finalUrl) {
   if (jobTab && typeof jobTab.id === 'number') {
     try {
+      // If the user closed the interstitial mid-upload, respect the cancel:
+      // do NOT reopen a new tab they already dismissed.
+      const live = await chrome.tabs.get(jobTab.id).catch(() => null);
+      if (!live) return false;
       await chrome.tabs.update(jobTab.id, { url: finalUrl });
       return true;
     } catch (err) {}
@@ -732,7 +777,7 @@ function applyLensText(url, text) {
   if (!q) return url;
   let u;
   try { u = new URL(url); } catch (err) { return url; }
-  if (u.hostname !== 'www.google.com' || !u.pathname.startsWith('/search')) return url;
+  if (!isGoogleSearchHost(u.hostname) || !u.pathname.startsWith('/search')) return url;
   const hasQ = u.searchParams.has('q') && u.searchParams.get('q') !== '';
   if (hasQ && u.searchParams.get('udm') === '24') return url;
   u.searchParams.set('udm', '24');
@@ -744,6 +789,9 @@ function applyLensText(url, text) {
 
 // Legacy tab-based path kept as fallback only (if direct fetch is blocked)
 // Serialized into the page by executeScript, so it must stay self-contained.
+// Posts to the absolute Lens endpoint: the old relative /searchbyimage/upload
+// now 302s to a dead-end prompt page, and a relative fetch against a
+// slow-loading tab can resolve against about:blank instead of google.com.
 function lensUploadFunc(b64Data, queryText, fileName) {
   try {
     const raw = Uint8Array.from(atob(b64Data), function(c) { return c.charCodeAt(0); });
@@ -755,8 +803,17 @@ function lensUploadFunc(b64Data, queryText, fileName) {
     const form = new FormData();
     form.append('encoded_image', new Blob([raw], { type: mime }), fname);
     if (queryText) form.append('image_content', queryText);
-    return fetch('/searchbyimage/upload', { method: 'POST', body: form, redirect: 'follow', credentials: 'include' })
-      .then(function(resp) { return resp.url || null; }).catch(function() { return null; });
+    const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    let timer = 0;
+    try {
+      if (ctrl) timer = setTimeout(function() { try { ctrl.abort(); } catch (e2) {} }, 10000);
+    } catch (e2) {}
+    const opts = { method: 'POST', body: form, redirect: 'follow', credentials: 'include' };
+    if (ctrl) opts.signal = ctrl.signal;
+    return fetch('https://lens.google.com/v3/upload', opts)
+      .then(function(resp) { return resp.url || null; })
+      .catch(function() { return null; })
+      .then(function(url) { try { if (timer) clearTimeout(timer); } catch (e3) {} return url; });
   } catch (e) { return Promise.resolve(null); }
 }
 
@@ -783,6 +840,31 @@ function sniffMimeSW(bytes) {
   return 'image/jpeg';
 }
 
+// Google result-URL gate shared by every Lens return path. The hostname must
+// END with google.<tld> — a bare substring test would accept google.evil.com.
+function isGoogleSearchHost(host) {
+  const parts = String(host || '').toLowerCase().split('.');
+  const i = parts.indexOf('google');
+  if (i < 0 || i === parts.length - 1) return false;
+  const tail = parts.slice(i + 1);
+  if (tail.length === 1) return /^[a-z]{2,}$/.test(tail[0]);
+  if (tail.length === 2) return tail[0] === 'co' && /^[a-z]{2}$/.test(tail[1]);
+  return false;
+}
+
+function isLensResultUrl(s) {
+  if (typeof s !== 'string' || !s) return false;
+  let u;
+  try {
+    u = new URL(s);
+  } catch (err) {
+    return false;
+  }
+  if (u.protocol !== 'https:') return false;
+  if (u.hostname === 'lens.google.com') return true;
+  return u.pathname.startsWith('/search') && isGoogleSearchHost(u.hostname);
+}
+
 // --- LIGHTSPEED direct path: no hidden tab, no google.com flash ---
 function searchResultUrl(resp, endpoint) {
   let finalUrl = null;
@@ -795,9 +877,7 @@ function searchResultUrl(resp, endpoint) {
     return null;
   }
   // Broaden: accept any google TLD and lens.google.com (user region may be google.co.in)
-  const isGoogleSearch = typeof finalUrl === 'string' && /^https:\/\/(lens\.google\.com\/|([^/]+\.)?google\.[a-z.]+\/search\?)/.test(finalUrl);
-  const isLens = typeof finalUrl === 'string' && /^https:\/\/lens\.google\.com\//.test(finalUrl);
-  if (!isGoogleSearch && !isLens) return null;
+  if (!isLensResultUrl(finalUrl)) return null;
   return finalUrl;
 }
 
@@ -823,6 +903,9 @@ async function postLensUpload(endpoint, raw, mime, fname, q) {
     });
     return { status: 'ok', resp: resp };
   } catch (err) {
+    try {
+      if (ctrl.signal.aborted) return { status: 'aborted' };
+    } catch (e) {}
     return { status: 'threw' };
   } finally {
     clearTimeout(timer);
@@ -843,7 +926,10 @@ async function handleImageSearchDirect(raw, text, name) {
     if (url) return applyLensText(url, q) || url;
     return null;
   }
-  // Primary fetch THREW (network-level TypeError/abort) — try the alt once.
+  // A timeout/abort means the network path itself is wedged — retrying the
+  // alt would just double the stall. Only a network throw tries the alt once.
+  if (primary.status !== 'threw') return null;
+  // Primary fetch THREW (network-level TypeError) — try the alt once.
   const alt = await postLensUpload(SW_LENS_UPLOAD_ALT, raw, mime, fname, q);
   if (alt.status !== 'ok') return null;
   const url = searchResultUrl(alt.resp, SW_LENS_UPLOAD_ALT);
@@ -858,6 +944,23 @@ async function handleImageSearchFallback(b64, text, name) {
     tab = await chrome.tabs.create({ url: 'https://www.google.com/', active: false });
   } catch (err) { return null; }
   if (!tab || typeof tab.id !== 'number') return null;
+  // Readiness gate: injecting into a still-loading google.com tab makes the
+  // page-world fetch resolve against about:blank and fail. Wait for a
+  // committed google.com load first (8 s cap), then run the upload attempts.
+  for (let w = 0; w < 80; w++) {
+    let cur = null;
+    try {
+      cur = await chrome.tabs.get(tab.id);
+    } catch (e) {
+      return null;
+    }
+    if (cur && cur.status === 'complete' && typeof cur.url === 'string' && /^https:\/\/www\.google\.com/i.test(cur.url)) break;
+    if (w === 79) {
+      try { await chrome.tabs.remove(tab.id); } catch (e) {}
+      return null;
+    }
+    await new Promise((r) => setTimeout(r, 100));
+  }
   for (let i = 0; i < 12; i++) {
     try {
       const res = await chrome.scripting.executeScript({
@@ -867,9 +970,7 @@ async function handleImageSearchFallback(b64, text, name) {
         args: [b64, text, safeLensFilename(name, 'image/jpeg')]
       });
       const url = res && res[0] && res[0].result;
-      const isGoogleSearch = typeof url === 'string' && /^https:\/\/(lens\.google\.com\/|([^/]+\.)?google\.[a-z.]+\/search\?)/.test(url);
-      const isLens = typeof url === 'string' && /^https:\/\/lens\.google\.com\//.test(url);
-      if (isGoogleSearch || isLens) {
+      if (isLensResultUrl(url)) {
         const finalUrl = applyLensText(url, text) || url;
         try {
           await chrome.tabs.update(tab.id, { url: finalUrl, active: true });
@@ -897,25 +998,20 @@ async function handleImageSearch(payload) {
   const b64 = typeof p.bytes === 'string' ? p.bytes : '';
   const rawMax = QLENS.CONFIG.IMAGE_MAX_BYTES || 5 * 1024 * 1024;
   const maxB64 = Math.ceil(rawMax * 4 / 3) + 64;
-  if (!b64 || b64.length > maxB64) {
-    try { await chrome.tabs.create({ url: SW_LENS_FALLBACK, active: true }); } catch (err) { return false; }
-    return true;
-  }
-  if (!/^[A-Za-z0-9+/=]+$/.test(b64)) {
-    try { await chrome.tabs.create({ url: SW_LENS_FALLBACK, active: true }); } catch (err) { return false; }
-    return true;
-  }
+  // Invalid payload: report failure so the caller can surface the true cause.
+  // Opening the Lens homepage here would mask oversize/corrupt pastes as success.
+  if (!b64 || b64.length > maxB64) return false;
+  if (!/^[A-Za-z0-9+/=]+$/.test(b64)) return false;
   const raw = b64ToBytesSW(b64);
-  if (!raw) {
-    try { await chrome.tabs.create({ url: SW_LENS_FALLBACK, active: true }); } catch (err) { return false; }
-    return true;
-  }
+  if (!raw) return false;
   const b64ForFallback = b64;
   // --- Hash key: payload.hash > fnv1a32 (feature-detected) > legacy slice ---
   const key = imageHashKey(p, b64, raw, text, name);
   if (imageInFlight) {
     if (imageFlightKey === key) return true;
-    throw new Error('Another image search is still uploading. Please try again in a moment.');
+    // A second image while one is uploading: report busy instead of throwing
+    // so the caller can surface it. The overlay re-opens with the message.
+    return { ok: false, busy: true };
   }
   // --- Cache hit: zero upload, instant ---
   try {
@@ -943,7 +1039,7 @@ async function handleImageSearch(payload) {
     // LIGHTSPEED: direct SW fetch — zero google.com flash, zero waitFor tab
     const directTarget = await handleImageSearchDirect(raw, text, name);
     if (directTarget) {
-      const valid = typeof directTarget === 'string' && /^https:\/\/(lens\.google\.com\/|([^/]+\.)?google\.[a-z.]+\/search\?)/.test(directTarget) && directTarget !== SW_LENS_UPLOAD && QLENS.isSafeHttpUrl(directTarget);
+      const valid = isLensResultUrl(directTarget) && directTarget !== SW_LENS_UPLOAD && QLENS.isSafeHttpUrl(directTarget);
       const finalUrl = valid ? directTarget : SW_LENS_FALLBACK;
       if (valid) {
         try { cacheSet(key, finalUrl); } catch (err) {}
@@ -1017,7 +1113,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   if (msg.type === QLENS.MSG.IMAGE_SEARCH) {
     handleImageSearch(msg.payload)
-      .then((ok) => sendResponse({ ok }))
+      .then((r) => sendResponse(r && typeof r === 'object' ? r : { ok: r }))
       .catch((err) => sendResponse({ ok: false, error: String(err) }));
     return true;
   }
@@ -1053,10 +1149,19 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           p.then(() => sendResponse({ ok: true })).catch(() => sendResponse({ ok: false }));
           return true;
         }
+        sendResponse({ ok: true });
+        return false;
       }
     } catch (err) {}
-    sendResponse({ ok: false });
-    return true;
+    // openOptionsPage missing/rejected (restricted setups): open as a tab.
+    try {
+      chrome.tabs.create({ url: chrome.runtime.getURL('src/options/options.html'), active: true })
+        .then(() => sendResponse({ ok: true }), () => sendResponse({ ok: false }));
+      return true;
+    } catch (err) {
+      sendResponse({ ok: false });
+      return false;
+    }
   }
   return false;
 });
@@ -1191,6 +1296,12 @@ async function handleOmniboxEntered(text, disposition) {
       url = null;
     }
     if (!url || !QLENS.isSafeHttpUrl(url)) return;
+    // Same last-engine persistence as the overlay/popup path so Tab-cycle
+    // and reopen behavior stay consistent across entry points.
+    try {
+      const known = engineId && (QLENS.ENGINES[engineId] || customIds.has(engineId));
+      if (known) QLENS.storage.setLastEngine(engineId).catch(() => {});
+    } catch (err) {}
     if (disposition === 'currentTab') {
       chrome.tabs.update({ url }).catch(() => {
         chrome.tabs.create({ url, active: true }).catch(() => {});
@@ -1307,8 +1418,11 @@ try {
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (!info || info.menuItemId !== MENU_ID) return;
-  const text = typeof info.selectionText === 'string' ? info.selectionText.trim() : '';
+  // Truncate like the overlay does: a multi-KB selection would build a URL
+  // tabs.create rejects, and the .catch swallows it into a silent no-op.
+  let text = typeof info.selectionText === 'string' ? info.selectionText.trim() : '';
   if (!text) return;
+  if (text.length > 500) text = text.slice(0, 500);
   const tabId = tab && typeof tab.id === 'number' ? tab.id : undefined;
   QLENS.storage
     .getSettings()
@@ -1318,9 +1432,24 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
         try {
           if (typeof QLENS.getCustomEngines === 'function') customs = QLENS.getCustomEngines(settings);
         } catch (err) {}
+        // Smart-URL first, like overlay/popup/omnibox: right-clicking a URL
+        // navigates instead of searching for the URL string.
+        let site = null;
+        try {
+          site = QLENS.detectSmartUrl(text);
+        } catch (err) {
+          site = null;
+        }
+        if (site && QLENS.isSafeHttpUrl(site)) {
+          chrome.tabs.create({ url: site, active: true }).catch(() => {});
+          return;
+        }
         const url = QLENS.buildSearchUrl(settings.defaultEngine, text, null, false, customs);
         if (!url) return;
         chrome.tabs.create({ url, active: true }).catch(() => {});
+        try {
+          QLENS.storage.setLastEngine(settings.defaultEngine).catch(() => {});
+        } catch (err) {}
       } else {
         openQuickSearch(text, tabId);
       }

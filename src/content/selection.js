@@ -10,8 +10,9 @@ function truncateSelection(text, max) {
   if (!clean) return null;
   const n = Number(max);
   const limit = Number.isFinite(n) && n > 0 ? Math.floor(n) : 200;
-  if (clean.length <= limit) return clean;
-  return clean.slice(0, limit).trimEnd() + '\u2026';
+  const chars = Array.from(clean);
+  if (chars.length <= limit) return clean;
+  return chars.slice(0, limit).join('').trimEnd() + '\u2026';
 }
 
 function readFieldSelection(el) {
@@ -51,6 +52,7 @@ function readShadowSelections() {
     for (const host of hosts) {
       let sr = null;
       try {
+        // Closed roots throw on access — skip without touching them.
         sr = host.shadowRoot || null;
       } catch (err) {
         sr = null;
@@ -60,7 +62,12 @@ function readShadowSelections() {
         const sel = sr.getSelection();
         if (!sel || sel.rangeCount === 0 || sel.isCollapsed) continue;
         const text = sel.toString();
-        if (text) texts.push(text);
+        if (text) {
+          texts.push(text);
+          // First hit wins: capture() truncates to one blob anyway, so
+          // scanning the rest of the DOM is pure open-path cost.
+          break;
+        }
       } catch (err) {}
     }
   } catch (err) {}

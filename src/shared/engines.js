@@ -55,6 +55,22 @@ const OMNIBOX_ENGINE_BANGS = {
   duckduckgo: 'duckduckgo'
 };
 
+function safeEncodeQuery(q) {
+  const s = String(q == null ? '' : q);
+  try {
+    return encodeURIComponent(s);
+  } catch (err) {
+    try {
+      const cleaned = s
+        .replace(/([\uD800-\uDBFF])(?![\uDC00-\uDFFF])/g, '')
+        .replace(/([^\uD800-\uDBFF]|^)([\uDC00-\uDFFF])/g, '$1');
+      return encodeURIComponent(cleaned);
+    } catch (err2) {
+      return '';
+    }
+  }
+}
+
 function buildSearchUrl(engineId, query, modeId, ai, customEngines) {
   const q = String(query == null ? '' : query).trim();
   if (!q) return null;
@@ -69,7 +85,7 @@ function buildSearchUrl(engineId, query, modeId, ai, customEngines) {
   const tpl = ai && spec === ENGINES.google && spec.aiSearch ? spec.aiSearch : spec.search;
   let url;
   try {
-    url = new URL(tpl.replace('{q}', encodeURIComponent(q)), spec.base);
+    url = new URL(tpl.replace('{q}', safeEncodeQuery(q)), spec.base);
   } catch (err) {
     return null;
   }
@@ -79,7 +95,7 @@ function buildSearchUrl(engineId, query, modeId, ai, customEngines) {
 
 function suggestUrlFor(engineId, query) {
   const tpl = ENGINES.google.suggestion;
-  return tpl.replace('{q}', encodeURIComponent(String(query == null ? '' : query).trim()));
+  return tpl.replace('{q}', safeEncodeQuery(String(query == null ? '' : query).trim()));
 }
 function parsePrefix(input) {
   const trimmed = String(input == null ? '' : input).trimStart();
@@ -109,7 +125,7 @@ function isValidCustomEngine(obj) {
   if (!name || name.length > 40) return false;
   if (url.length < 12 || url.length > 2000 || !url.includes('{q}')) return false;
   try {
-    const u = new URL(url.replace('{q}', 'test'));
+    const u = new URL(url.split('{q}').join('test'));
     if (u.protocol !== 'https:' && u.protocol !== 'http:') return false;
   } catch (err) {
     return false;
@@ -168,7 +184,7 @@ function getCustomEngines(settings) {
 function buildCustomSearchUrl(custom, query) {
   const q = String(query == null ? '' : query).trim();
   if (!q || !custom || typeof custom.url !== 'string' || !custom.url.includes('{q}')) return null;
-  const tpl = custom.url.replace(/\{q\}/g, encodeURIComponent(q));
+  const tpl = custom.url.replace(/\{q\}/g, safeEncodeQuery(q));
   let url;
   try {
     url = new URL(tpl);
@@ -219,7 +235,7 @@ function parseOmniboxInput(input, customEngines) {
 function buildFallbackPopupUrl(popupUrl, selectionText) {
   const base = String(popupUrl == null ? '' : popupUrl);
   const q = typeof selectionText === 'string' ? selectionText : '';
-  return base + '?q=' + encodeURIComponent(q) + '&fallback=1';
+  return base + '?q=' + safeEncodeQuery(q) + '&fallback=1';
 }
 
 const HOST_LABEL = /^[a-z0-9_\u00a1-\uffff](?:[a-z0-9_\u00a1-\uffff-]*[a-z0-9_\u00a1-\uffff])?$/i;
@@ -248,7 +264,13 @@ function isNavigableHost(hostRaw) {
 function detectSmartUrl(input) {
   let text = String(input == null ? '' : input).trim();
   if (!text) return null;
-  text = text.replace(/[.,!?;:)]+$/, '');
+  text = text.replace(/[.,!?;:]+$/, '');
+  while (text.endsWith(')')) {
+    const opens = (text.match(/\(/g) || []).length;
+    const closes = (text.match(/\)/g) || []).length;
+    if (closes > opens) text = text.slice(0, -1);
+    else break;
+  }
   if (!text || /\s/.test(text)) return null;
   let candidate = null;
   if (/^https?:\/\//i.test(text)) {
@@ -282,6 +304,8 @@ function bareHost(value) {
   let s = String(value == null ? '' : value).trim().toLowerCase();
   s = s.replace(/^https?:\/\//, '');
   s = s.split('/')[0];
+  s = s.split('@').pop();
+  s = s.split(':')[0];
   s = s.replace(/^www\./, '');
   return s;
 }
@@ -305,6 +329,7 @@ QLENS.ENGINE_ORDER = Object.keys(ENGINES);
 QLENS.OMNIBOX_ENGINE_BANGS = OMNIBOX_ENGINE_BANGS;
 QLENS.RESERVED_BANGS = RESERVED_BANGS;
 QLENS.buildSearchUrl = buildSearchUrl;
+QLENS.safeEncodeQuery = safeEncodeQuery;
 QLENS.buildCustomSearchUrl = buildCustomSearchUrl;
 QLENS.isValidCustomEngine = isValidCustomEngine;
 QLENS.sanitizeCustomEngines = sanitizeCustomEngines;

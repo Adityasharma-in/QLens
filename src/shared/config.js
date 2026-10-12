@@ -57,6 +57,9 @@ QLENS.CONFIG = {
   SUGGESTION_TIMEOUT_MS: 800,
   SUGGESTION_CACHE_TTL_MS: 120000,
   SUGGESTION_CACHE_MAX: 48,
+  // Launcher rows go stale in seconds (tabs close, SW memos them 1-5s) —
+  // they must not share the 120s suggestion TTL.
+  LAUNCHER_CACHE_TTL_MS: 5000,
   MAX_SELECTION_MIN: 50,
   MAX_SELECTION_MAX: 1000,
   IMAGE_SEARCH_TIMEOUT_MS: 15000,
@@ -68,8 +71,7 @@ QLENS.CONFIG = {
   IMAGE_CACHE_MAX: 20,
   LENS_WARM_URL: 'https://www.google.com/generate_204',
   LENS_FILENAME: 'qlens-search.png',
-  MAX_FAVORITES: 20,
-  SHORTCUT_RE: /^[a-z0-9]{1,12}$/i
+  MAX_FAVORITES: 20
 };
 
 const MODIFIER_NAMES = ['Ctrl', 'Alt', 'Shift', 'Command', 'MacCtrl'];
@@ -122,6 +124,10 @@ function isValidCombo(combo) {
   const mods = parts.slice(0, -1);
   if (!mods.length || mods.some((m) => !MODIFIER_SET.has(m))) return false;
   if (new Set(mods).size !== mods.length) return false;
+  // 'MacCtrl' can never match (matchesCombo has no such key) and 'Command'
+  // only fires on macOS — reject savable-but-never-firing combos elsewhere.
+  if (mods.includes('MacCtrl')) return false;
+  if (mods.includes('Command') && !isMacPlatform()) return false;
   return mods.some((m) => m === 'Ctrl' || m === 'Alt' || m === 'Command');
 }
 

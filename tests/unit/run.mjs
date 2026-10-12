@@ -1037,6 +1037,103 @@ test('async: validWait falls back on bad input', () => {
 test('messaging: OPEN_OPTIONS registered', () => {
   assert.equal(Q.MSG.OPEN_OPTIONS, 'QLENS_OPEN_OPTIONS');
 });
+test('audit: lone surrogate query never throws (builtin + custom)', () => {
+  const lone = 'x ';
+  assert.doesNotThrow(() => Q.buildSearchUrl('google', lone));
+  const url = Q.buildSearchUrl('google', lone);
+  assert.ok(typeof url === 'string' && url.startsWith('https://www.google.com/search?q='));
+  const custom = { id: 't', name: 'T', url: 'https://ok.com/?a={q}&b={q}', bang: 't' };
+  assert.doesNotThrow(() => Q.buildCustomSearchUrl(custom, lone));
+  assert.ok(String(Q.buildCustomSearchUrl(custom, lone)).includes('a='));
+});
+test('audit: multi-{q} validation matches ship behavior', () => {
+  const multi = { id: 'm', name: 'M', url: 'https://ok.com/?a={q}&b={q}', bang: 'm' };
+  assert.equal(Q.isValidCustomEngine(multi), true);
+  assert.equal(Q.buildCustomSearchUrl(multi, 'x y'), 'https://ok.com/?a=x%20y&b=x%20y');
+});
+test('audit: detectSmartUrl keeps balanced parens, strips unbalanced', () => {
+  assert.equal(Q.detectSmartUrl('wikipedia.org/wiki/X_(disambiguation)'), 'https://wikipedia.org/wiki/X_(disambiguation)');
+  assert.equal(Q.detectSmartUrl('example.com/foo_(bar'), 'https://example.com/foo_(bar');
+  assert.equal(Q.detectSmartUrl('example.com/foo)'), 'https://example.com/foo');
+});
+test('audit: bareHost strips port + credentials', () => {
+  assert.equal(Q.bareHost('https://www.google.com:8080/'), 'google.com');
+  assert.equal(Q.bareHost('https://user@www.google.com/'), 'google.com');
+  assert.equal(Q.bareHost('https://google.evil.com/search?q=x'), 'google.evil.com');
+});
+test('audit: isValidCombo rejects never-firing modifiers off-Mac', () => {
+  assert.equal(Q.isValidCombo('MacCtrl+K'), false);
+  assert.equal(Q.isValidCombo('Ctrl+MacCtrl+K'), false);
+  if (!Q.isMacPlatform()) {
+    assert.equal(Q.isValidCombo('Command+K'), false);
+  } else {
+    assert.equal(Q.isValidCombo('Command+K'), true);
+  }
+  assert.equal(Q.isValidCombo('Ctrl+Shift+K'), true);
+});
+test('audit: selection truncate never splits surrogate pairs', () => {
+  const emoji = '😀'.repeat(300);
+  const out = Q.Selection.truncate(emoji, 200);
+  assert.equal(Array.from(out.replace(/…$/, '')).length, 200);
+  assert.equal(out.endsWith('…'), true);
+  assert.doesNotThrow(() => encodeURIComponent(out.replace(/…$/, '')));
+});
+test('audit: image caps derive from config + filename strips new exts', () => {
+  assert.ok(Q.ImageEngine.buildLensFilename('photo.avif', 'image/avif').endsWith('.avif'));
+  assert.ok(Q.ImageEngine.buildLensFilename('photo.avif.avif', 'image/avif').endsWith('.avif'));
+  assert.ok(!Q.ImageEngine.buildLensFilename('photo.avif.avif', 'image/avif').endsWith('.avif.avif'));
+  assert.ok(Q.ImageEngine.buildLensFilename('pic.heic', 'image/heic').endsWith('.heic'));
+  assert.ok(Q.ImageEngine.buildLensFilename('pic.svg', 'image/svg+xml').endsWith('.png'));
+});
+test('audit: launcher 100-cap is global across kinds', () => {
+  const tabs = [];
+  for (let i = 0; i < 150; i++) tabs.push({ title: 't' + i, url: 'https://t' + i + '.com/' });
+  const bms = [{ title: 'wanted', url: 'https://wanted.com/' }];
+  const out = Q.rankLauncherResults('t', tabs, bms, [], { tabs: true, bookmarks: true, history: true, maxResults: 10 });
+  assert.ok(out.length <= 10);
+});
+test('audit: launcher cache TTL is short, suggestion TTL long', () => {
+  assert.ok(typeof Q.CONFIG.LAUNCHER_CACHE_TTL_MS === 'number' && Q.CONFIG.LAUNCHER_CACHE_TTL_MS <= 10000);
+  assert.ok(Q.CONFIG.SUGGESTION_CACHE_TTL_MS >= 60000);
+});
+await testAsync('audit: engineIds falls back without ENGINES (lean context)', async () => {
+  const keep = Q.ENGINES;
+  try {
+    delete Q.ENGINES;
+    loadScript('src/shared/storage.js');
+    assert.doesNotThrow(() => Q.storage.getSettings());
+  } finally {
+    if (keep) Q.ENGINES = keep;
+    loadScript('src/shared/storage.js');
+  }
+  const s = await Q.storage.getSettings();
+  assert.ok(Array.isArray(s.engineOrder) && s.engineOrder.includes('google'));
+});
+await testAsync('audit: setSettings serializes concurrent patches', async () => {
+  const area = loadWithChromeStub('src/shared/config.js');
+  loadWithChromeStub('src/shared/engines.js');
+  loadWithChromeStub('src/shared/launcher.js');
+  loadWithChromeStub('src/shared/async.js');
+  loadWithChromeStub('src/shared/storage.js');
+  void area;
+  const p1 = Q.storage.setSettings({ theme: 'dark' });
+  const p2 = Q.storage.setSettings({ accent: 'rose' });
+  const [s1, s2] = await Promise.all([p1, p2]);
+  // s1 ran first (theme only); the serialized s2 must carry both patches —
+  // without the queue, p2's stale read would have clobbered p1's theme.
+  assert.equal(s1.theme, 'dark');
+  assert.equal(s2.theme, 'dark');
+  assert.equal(s2.accent, 'rose');
+});
+await testAsync('audit: getLastEngine uses memory cache + pre-fetched settings', async () => {
+  loadWithChromeStub('src/shared/config.js');
+  loadWithChromeStub('src/shared/engines.js');
+  loadWithChromeStub('src/shared/launcher.js');
+  loadWithChromeStub('src/shared/async.js');
+  loadWithChromeStub('src/shared/storage.js', { lastEngine: 'brave' });
+  assert.equal(await Q.storage.getLastEngine(), 'brave');
+  assert.equal(await Q.storage.getLastEngine({ customEngines: [], defaultEngine: 'bing', engineOrder: ['bing'] }), 'brave');
+});
 
 console.log('\n' + results.pass + ' passed, ' + results.fail + ' failed');
 if (results.fail > 0) {

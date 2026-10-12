@@ -204,6 +204,7 @@ function rankLauncherResults(query, tabsArr, bookmarksArr, historyArr, opts) {
       item.order = order++;
       candidates.push(item);
     }
+    if (candidates.length >= 100) break;
   }
   candidates.sort((a, b) => (b.score - a.score) || (a.kindRank - b.kindRank) || (a.order - b.order));
   for (const item of candidates) {

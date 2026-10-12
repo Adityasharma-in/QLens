@@ -189,6 +189,8 @@ globalThis.QLENS = globalThis.QLENS || {};
 
   function bindSeg(id) {
     const wrap = $(id);
+    if (!wrap || wrap.dataset.segBound === '1') return;
+    wrap.dataset.segBound = '1';
     wrap.addEventListener('click', async (e) => {
       const btn = e.target.closest('.seg-btn');
       if (!btn) return;
@@ -558,11 +560,15 @@ globalThis.QLENS = globalThis.QLENS || {};
   async function saveEdge(patch) {
     clearTimeout(edgeSaveTimer);
     edgeSaveTimer = 0;
+    // A preset click racing a pending slider flush must merge, not discard:
+    // the debounce holds the latest slider patch and saveEdge holds the preset.
+    const pending = pendingEdgePatch;
     pendingEdgePatch = null;
     const base = getVS();
     let next = base;
-    if (patch && typeof patch === 'object') {
-      next = mergeEdgePatch(base, patch);
+    const mergedPatch = mergeEdgePatches(pending, patch);
+    if (mergedPatch && typeof mergedPatch === 'object' && Object.keys(mergedPatch).length) {
+      next = mergeEdgePatch(base, mergedPatch);
     } else if (typeof patch === 'function') {
       next = patch(base);
     }
@@ -919,11 +925,11 @@ globalThis.QLENS = globalThis.QLENS || {};
     } catch (ex) {
       return 'Enter a valid http(s):// URL.';
     }
-    const engineBangs = { g: 1, b: 1, k: 1, d: 1, google: 1, brave: 1, bing: 1, duckduckgo: 1, ddg: 1 };
+    const engineBangs = QLENS.OMNIBOX_ENGINE_BANGS || { g: 1, b: 1, k: 1, d: 1, google: 1, brave: 1, bing: 1, duckduckgo: 1, ddg: 1 };
     const modeBangs = { w: 1, wiki: 1, wikipedia: 1, images: 1, image: 1, videos: 1, video: 1, news: 1, yt: 1, youtube: 1 };
     if (QLENS.ENGINES && QLENS.ENGINES[b]) return 'Bang "!' + b + '" is reserved for a built-in engine.';
     if ((QLENS.ENGINE_PREFIXES && QLENS.ENGINE_PREFIXES[b]) || engineBangs[b]) return 'Bang "!' + b + '" is reserved for a built-in shortcut.';
-    if (modeBangs[b]) return 'Bang "!' + b + '" is reserved for a quick mode.';
+    if ((QLENS.RESERVED_BANGS && QLENS.RESERVED_BANGS.has(b)) || modeBangs[b]) return 'Bang "!' + b + '" is reserved for a quick mode.';
     const customs = getCustoms();
     const clash = customs.find((c) => (c.bang.toLowerCase() === b || c.id === b) && c.id !== excludeId);
     if (clash) return 'Bang "!' + b + '" already used for "' + clash.name + '".';
@@ -1055,8 +1061,25 @@ globalThis.QLENS = globalThis.QLENS || {};
       if (editingEngId) {
         const idx = customs.findIndex((c) => c.id === editingEngId);
         if (idx !== -1) {
-          customs[idx] = { id: editingEngId === bang ? editingEngId : customs[idx].id, name, url, bang };
-          if (editingEngId !== bang) customs[idx].id = bang;
+          const oldId = customs[idx].id;
+          const newId = editingEngId === bang ? editingEngId : bang;
+          customs[idx] = { id: newId, name, url, bang };
+          // A rename changes the engine id (id follows bang): remap order
+          // and default in the same write or sanitizeSettings drops the old
+          // id, appends the new one at the end, and resets a pointed default.
+          if (oldId !== newId) {
+            const order = Array.isArray(settings.engineOrder) ? settings.engineOrder.slice() : [];
+            const at = order.indexOf(oldId);
+            if (at !== -1) order[at] = newId;
+            else order.push(newId);
+            const patch = { customEngines: customs, engineOrder: order };
+            if (settings.defaultEngine === oldId) patch.defaultEngine = newId;
+            settings = await QLENS.storage.setSettings(patch);
+            refreshEngineViews();
+            closeEngForm();
+            showToast('Engine updated');
+            return;
+          }
         }
       } else {
         if (customs.length >= (QLENS.CUSTOM_ENGINE_MAX || 30)) {

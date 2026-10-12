@@ -48,7 +48,8 @@
   "web_accessible_resources": [
     {
       "resources": ["src/fonts/*.woff2"],
-      "matches": ["http://*/*", "https://*/*"]
+      "matches": ["http://*/*", "https://*/*"],
+      "use_dynamic_url": true
     }
   ],
   "icons": {

@@ -90,6 +90,9 @@ globalThis.QLENS = globalThis.QLENS || {};
   }
 
   function bindTheme() {
+    const host = document.getElementById('pop-theme');
+    if (!host || host.dataset.themeBound === '1') return;
+    host.dataset.themeBound = '1';
     for (const btn of document.querySelectorAll('#pop-theme .seg-btn')) {
       btn.addEventListener('click', async () => {
         settings = await QLENS.storage.setSettings({ theme: btn.dataset.value });
@@ -134,12 +137,23 @@ globalThis.QLENS = globalThis.QLENS || {};
       parsed = null;
     }
     if (parsed && parsed.url && QLENS.isSafeHttpUrl(parsed.url)) {
+      let opened = false;
       try {
-        await chrome.runtime.sendMessage({
+        const res = await chrome.runtime.sendMessage({
           type: QLENS.MSG.OPEN_TAB,
           payload: { url: parsed.url }
         });
+        opened = Boolean(res && res.ok !== false);
       } catch (err) {
+        opened = false;
+      }
+      // Keep the popup open on failure so the dead click is diagnosable
+      // instead of looking like a success that opened nothing.
+      if (!opened) {
+        try {
+          qEl.setAttribute('aria-invalid', 'true');
+          qEl.title = 'Could not open a new tab.';
+        } catch (err) {}
         return;
       }
       window.close();
@@ -158,12 +172,21 @@ globalThis.QLENS = globalThis.QLENS || {};
       url = null;
     }
     if (!url) return;
+    let sent = false;
     try {
-      await chrome.runtime.sendMessage({
+      const res = await chrome.runtime.sendMessage({
         type: QLENS.MSG.OPEN_TAB,
         payload: { url, query: q, engine }
       });
+      sent = Boolean(res && res.ok !== false);
     } catch (err) {
+      sent = false;
+    }
+    if (!sent) {
+      try {
+        qEl.setAttribute('aria-invalid', 'true');
+        qEl.title = 'Could not open a new tab.';
+      } catch (err) {}
       return;
     }
     window.close();
@@ -230,8 +253,22 @@ globalThis.QLENS = globalThis.QLENS || {};
     });
     if (goEl) goEl.addEventListener('click', doSearch);
     if (settingsEl) settingsEl.addEventListener('click', () => {
+      // Mirror the overlay fallback: openOptionsPage can be unavailable or
+      // reject in popup context, in which case the SW opens Options as a tab.
+      const viaSw = () => {
+        try {
+          chrome.runtime.sendMessage({ type: QLENS.MSG.OPEN_OPTIONS }).catch(() => {});
+        } catch (err) {}
+      };
       if (chrome && chrome.runtime && typeof chrome.runtime.openOptionsPage === 'function') {
-        chrome.runtime.openOptionsPage();
+        try {
+          const p = chrome.runtime.openOptionsPage();
+          if (p && typeof p.catch === 'function') p.catch(viaSw);
+        } catch (err) {
+          viaSw();
+        }
+      } else {
+        viaSw();
       }
     });
     showShortcut();

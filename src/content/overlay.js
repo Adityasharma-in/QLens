@@ -1398,6 +1398,10 @@ const Overlay = (() => {
   let initialEngineId = null;
   let aiMode = false;
   let engineOrder = [];
+  // Set by every explicit engine/AI choice (pill click, key nav, prefix, Tab
+  // toggle): hydrate() must not overwrite a user-touched engine with
+  // lastEngine when the async settings read resolves after the user acted.
+  let userTouchedEngine = false;
   let suggestionTimer = null;
   let aiPillEl = null;
   let suggestionReqId = 0;
@@ -1426,6 +1430,7 @@ const Overlay = (() => {
   let caretEl = null;
   let measureEl = null;
   let toastTimer = null;
+  let focusOutTimer = null;
   let closing = false;
   let removeTimer = null;
   let fontsApplied = false;
@@ -2027,7 +2032,10 @@ const Overlay = (() => {
               if (encoded) {
                 try {
                   const ab = await encoded.arrayBuffer();
-                  if (gen !== attachGen || !host) return;
+                  if (gen !== attachGen || !host) {
+                    try { if (bitmap) bitmap.close(); } catch (closeErr) {}
+                    return;
+                  }
                   outBytes = new Uint8Array(ab);
                   encodedBlob = encoded;
                   outMime = encoded.type || 'image/jpeg';
@@ -2149,13 +2157,31 @@ const Overlay = (() => {
       }
     } catch (e) { showError('Could not prepare that image.'); return; }
     if (!b64) { showError('Could not prepare that image.'); return; }
-    if (b64.length > 2.5e6) { showError('Image is too large to search.'); return; }
+    // Single derived cap: base64 inflates bytes by 4/3, so compare against the
+    // shared IMAGE_MAX_BYTES instead of a hardcoded literal that drifts when
+    // the config changes (a 3MB image used to pass validation then fail here).
+    const rawMax = (QLENS.CONFIG && typeof QLENS.CONFIG.IMAGE_MAX_BYTES === 'number')
+      ? QLENS.CONFIG.IMAGE_MAX_BYTES : 5 * 1024 * 1024;
+    if (b64.length > Math.ceil(rawMax * 4 / 3) + 64) { showError('Image is too large to search.'); return; }
+    // Destroy synchronously on success only: the async response is awaited
+    // first so a busy single-flight ({ok:false, busy:true}) can surface a
+    // toast on the live host instead of vanishing with a dead overlay.
     try {
       const res = chrome.runtime.sendMessage({ type: QLENS.MSG.IMAGE_SEARCH, payload: { bytes: b64, text, name, hash, mime } });
-      if (res && typeof res.catch === 'function') res.catch(() => {});
-    } catch (err) {}
-    // lightspeed: synchronous destroy before tabs.create (zero residue, zero google.com flash)
-    try { destroy(false); } catch (e) { try { destroy(false); } catch (_) {} }
+      const done = (r) => {
+        if (r && r.ok === false) {
+          if (r.busy) showError('Another image search is still uploading. Please try again in a moment.');
+          else showError('Could not start that image search.');
+          return;
+        }
+        // lightspeed: synchronous destroy before tabs.create (zero residue, zero google.com flash)
+        try { destroy(false); } catch (e) { try { destroy(false); } catch (_) {} }
+      };
+      if (res && typeof res.then === 'function') res.then(done, () => showError('Could not start that image search.'));
+      else done(res);
+    } catch (err) {
+      showError('Could not start that image search.');
+    }
   }
 
   function safeNameFallback() {
@@ -2437,6 +2463,9 @@ const Overlay = (() => {
   function onWindowCaptureKey(e) {
     if (!host || !root) return;
     if (e.key === 'Escape') {
+      // Root onKeyDown respects IME composition; match it here so Esc during
+      // composition doesn't close the overlay and drop an image attachment.
+      if (e.isComposing || e.defaultPrevented) return;
       e.preventDefault();
       e.stopPropagation();
       try { e.stopImmediatePropagation(); } catch (err) {}
@@ -2611,6 +2640,7 @@ const Overlay = (() => {
 
   function setAi(on) {
     aiMode = Boolean(on);
+    userTouchedEngine = true;
     if (aiMode && engineId !== 'google') {
       engineId = 'google';
       QLENS.storage.setLastEngine('google');
@@ -2648,6 +2678,7 @@ function handleTab(e) {
   function setEngine(id, persist) {
     engineId = id;
     aiMode = false;
+    userTouchedEngine = true;
     renderPills();
     updateFootEngine();
     if (persist === false) return;
@@ -2668,7 +2699,12 @@ function handleTab(e) {
     const base = String(site.url || '').trim();
     const q = String(rest || '').trim();
     if (!q) return base;
-    if (base.includes('{q}')) return base.replace('{q}', encodeURIComponent(q));
+    if (base.includes('{q}')) {
+      try {
+        if (QLENS.safeEncodeQuery) return base.split('{q}').join(QLENS.safeEncodeQuery(q));
+      } catch (err) {}
+      return base.split('{q}').join(encodeURIComponent(q));
+    }
     // Plain homepage favorite with a trailing query: the extra words are
     // intentionally dropped rather than bolted on as a bogus ?q=. Keeps the
     // open target predictable; callers still run the result through the
@@ -2751,11 +2787,16 @@ function handleTab(e) {
     setSuggestHeight(Math.min(want, max));
   }
 
-  function launcherShouldRun(value) {
+  function launcherShouldRun(value, pre) {
     const v = String(value == null ? '' : value).trim();
     if (!v) return false;
     if (!launcherCfg().enabled || isFavoriteInput(value)) return false;
-    if (typeof QLENS.parseBang === 'function' && QLENS.parseBang(value, getCustoms())) return false;
+    if (pre && pre.bangChecked) {
+      if (pre.bang) return false;
+    } else if (typeof QLENS.parseBang === 'function' && QLENS.parseBang(value, getCustoms())) {
+      return false;
+    }
+    if (pre && pre.prefixChecked) return !pre.prefix;
     return !QLENS.parsePrefix(value);
   }
 
@@ -2786,8 +2827,19 @@ function handleTab(e) {
       applyPrefix(parsed);
       return;
     }
-    if (launcherShouldRun(value)) scheduleLauncher();
+    // Parse once and hand the results down: launcherShouldRun re-parses the
+    // same value on every keystroke today (regex + new URL + sanitize work).
+    const customs = getCustoms();
+    const pre = {
+      bangChecked: typeof QLENS.parseBang === 'function',
+      bang: typeof QLENS.parseBang === 'function' ? QLENS.parseBang(value, customs) : null,
+      prefixChecked: true,
+      prefix: QLENS.parsePrefix(value)
+    };
+    if (launcherShouldRun(value, pre)) scheduleLauncher();
     else clearLauncher();
+    // Smart-URL check needs no second parse of bang/prefix (already done),
+    // but detectSmartUrl is a single cheap pass — keep it direct.
     const site = QLENS.detectSmartUrl(value);
     if (site && !QLENS.isOwnHost(site, engineId)) {
       clearSuggestions(true);
@@ -2808,6 +2860,7 @@ function handleTab(e) {
 
   function applyPrefix(parsed) {
     aiMode = false;
+    userTouchedEngine = true;
     if (parsed.type === 'engine') {
       const known = QLENS.ENGINES[parsed.id]
         || (parsed.custom === true)
@@ -2961,10 +3014,13 @@ function handleTab(e) {
         && typeof window.requestIdleCallback === 'function')
         ? window.requestIdleCallback.bind(window)
         : null;
-      if (ric) ric(() => { load().then(() => { markReady(); }); }, { timeout: 1500 });
-      else setTimeout(() => { load().then(() => { markReady(); }); }, 0);
+      // The callback fires after close if the user dismisses fast — guard at
+      // entry and before marking ready so no FONT_FACE fetch/decode runs
+      // pointlessly on a dead overlay. The persistent font cache is untouched.
+      if (ric) ric(() => { if (host) load().then(() => { if (host) markReady(); }); }, { timeout: 1500 });
+      else setTimeout(() => { if (host) load().then(() => { if (host) markReady(); }); }, 0);
     } catch (err) {
-      load();
+      if (host) load();
     }
   }
 
@@ -3147,7 +3203,7 @@ function handleTab(e) {
     if (reqId !== suggestionReqId) return;
     finishSuggestionRequest(reqId);
     if (!host || !inputEl || inputEl.value.trim() !== String(query).trim()) return;
-    suggestCacheSet(key, results);
+    if (results.length) suggestCacheSet(key, results);
     lastSuggestKey = key;
     lastSuggestResults = results.slice();
     renderSuggestions(results, query);
@@ -3489,7 +3545,9 @@ function handleTab(e) {
     if (!key) return null;
     const entry = launcherCache.get(key);
     if (!entry) return null;
-    const ttl = (QLENS.CONFIG && QLENS.CONFIG.SUGGESTION_CACHE_TTL_MS) || 120000;
+    // Tab/bookmark rows go stale in seconds (SW memos them 1-5s); reusing the
+    // 120s suggestion TTL here would show closed tabs for up to 2 minutes.
+    const ttl = (QLENS.CONFIG && QLENS.CONFIG.LAUNCHER_CACHE_TTL_MS) || 5000;
     try {
       if (Date.now() - entry.ts > ttl) launcherCache.delete(key);
       else return entry.items;
@@ -3501,6 +3559,9 @@ function handleTab(e) {
 
   function launcherCacheSet(key, items) {
     if (!key || !Array.isArray(items)) return;
+    // Never cache empties: a transient SW error would suppress the launcher
+    // for the full TTL. The render path already handles empty without cache.
+    if (!items.length) return;
     const max = (QLENS.CONFIG && QLENS.CONFIG.SUGGESTION_CACHE_MAX) || 48;
     try {
       launcherCache.set(key, { items: items.slice(), ts: Date.now() });
@@ -3530,8 +3591,9 @@ function handleTab(e) {
       renderLauncher(cached);
       return;
     }
-    let debounce = QLENS.CONFIG.LAUNCHER_DEBOUNCE_MS;
-    if (typeof debounce !== 'number' || !isFinite(debounce) || debounce < 0) debounce = 220;
+    const debounce = (QLENS.validWait
+      ? QLENS.validWait(QLENS.CONFIG.LAUNCHER_DEBOUNCE_MS, 220)
+      : 220);
     launcherTimer = setTimeout(() => {
       if (!host || !inputEl) return;
       fetchLauncher(inputEl.value);
@@ -3587,6 +3649,10 @@ function handleTab(e) {
 
   function setHighlight(idx) {
     const idxChanged = idx !== suggestionHighlight;
+    // Unchanged selection: classes, aria and scroll are already correct.
+    // Skips a full row loop plus a forced layout (scrollIntoView) per
+    // Arrow/pointerenter repeat.
+    if (!idxChanged) return;
     for (let i = 0; i < suggestions.length; i++) {
       const on = i === idx;
       suggestions[i].classList.toggle('is-active', on);
@@ -3668,13 +3734,14 @@ function handleTab(e) {
     const payload = { url };
     if (query) payload.query = query;
     if (engine) payload.engine = engine;
+    // Destroy synchronously BEFORE the tabs.create round trip (AGENTS.md):
+    // the overlay, its listeners and the focus loop must not outlive submit.
+    try { destroy(false); } catch (err) {}
     try {
       chrome.runtime.sendMessage({ type: QLENS.MSG.OPEN_TAB, payload }).then((res) => {
         if (res && res.ok === false) {
           showError('Could not open a new tab.');
-          return;
         }
-        destroy(false);
       }).catch(() => {
         showError('Could not open a new tab.');
       });
@@ -3812,9 +3879,9 @@ function handleTab(e) {
       } else if (inputEl && inputEl.value && launcherShouldRun(inputEl.value)) {
         scheduleLauncher();
       }
-      if (engineId === initialEngineId) {
+      if (engineId === initialEngineId && !userTouchedEngine) {
         try {
-          const last = await QLENS.storage.getLastEngine();
+          const last = await QLENS.storage.getLastEngine(settings);
           if (!host) return;
           setEngine(last, false);
         } catch (err) {}
@@ -3848,7 +3915,9 @@ function handleTab(e) {
     if (!settings || !settings.blurClose) return;
     const related = e.relatedTarget;
     if (related && host && host.contains(related)) return;
-    setTimeout(() => {
+    try { clearTimeout(focusOutTimer); } catch (err) {}
+    focusOutTimer = setTimeout(() => {
+      focusOutTimer = null;
       if (!host) return;
       const active = document.activeElement;
       if (!host.contains(active)) destroy(true);
@@ -3862,6 +3931,8 @@ function handleTab(e) {
     suggestionTimer = null;
     clearTimeout(launcherTimer);
     launcherTimer = null;
+    try { clearTimeout(focusOutTimer); } catch (err) {}
+    focusOutTimer = null;
     suggestionReqId++;
     launcherReqId++;
     let reduced = false;

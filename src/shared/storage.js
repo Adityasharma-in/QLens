@@ -8,7 +8,8 @@ const VALID_THEMES = ['system', 'light', 'dark'];
 const VALID_ACTIONS = ['overlay', 'direct'];
 
 function engineIds(extraCustoms) {
-  const ids = Object.keys(QLENS.ENGINES);
+  const base = QLENS.ENGINES && typeof QLENS.ENGINES === 'object' ? Object.keys(QLENS.ENGINES) : [];
+  const ids = base.length ? base.slice() : ['google', 'brave', 'bing', 'duckduckgo'];
   if (Array.isArray(extraCustoms)) {
     for (const c of extraCustoms) {
       if (c && typeof c.id === 'string' && !ids.includes(c.id)) ids.push(c.id);
@@ -107,7 +108,7 @@ function sanitizeSettings(raw) {
     : [];
   const cids = customs.map((c) => c.id);
   const ids = engineIds(customs);
-  const builtinIds = Object.keys(QLENS.ENGINES);
+  const builtinIds = engineIds();
   let order = Array.isArray(raw.engineOrder) ? raw.engineOrder.filter((id) => ids.includes(id)) : [];
   order = order.filter((id, i) => order.indexOf(id) === i);
   for (const id of builtinIds) {
@@ -153,7 +154,16 @@ async function getSettings() {
   }
 }
 
-async function setSettings(patch) {
+let settingsTail = Promise.resolve();
+
+function setSettings(patch) {
+  const run = () => doSetSettings(patch);
+  const next = settingsTail.then(run, run);
+  settingsTail = next.catch(() => {});
+  return next;
+}
+
+async function doSetSettings(patch) {
   const current = await getSettings();
   const merged = { ...current, ...patch };
   if (isPlainObject(patch.viewportShadow) && isPlainObject(current.viewportShadow)) {
@@ -187,22 +197,32 @@ async function setSettings(patch) {
 
 let lastEngineKnown = null;
 
-async function getLastEngine() {
+async function getLastEngine(preSettings) {
+  const readSettings = async () => (
+    preSettings && isPlainObject(preSettings) ? preSettings : getSettings()
+  );
+  if (typeof lastEngineKnown === 'string' && lastEngineKnown) {
+    try {
+      const s = await readSettings();
+      if (engineIds(s.customEngines).includes(lastEngineKnown)) return lastEngineKnown;
+    } catch (err) {
+      /* fall through and re-read */
+    }
+    lastEngineKnown = null;
+  }
   try {
     const res = await chrome.storage.local.get(KEY_LAST_ENGINE);
     const id = res[KEY_LAST_ENGINE];
-    if (typeof id === 'string' && id) {
-      const settings = await getSettings();
-      const ids = engineIds(settings.customEngines);
-      if (ids.includes(id)) return id;
-      return ids.includes(settings.defaultEngine) ? settings.defaultEngine : ids[0];
+    const settings = await readSettings();
+    const ids = engineIds(settings.customEngines);
+    if (typeof id === 'string' && id && ids.includes(id)) {
+      lastEngineKnown = id;
+      return id;
     }
+    return ids.includes(settings.defaultEngine) ? settings.defaultEngine : ids[0];
   } catch (err) {
     return QLENS.CONFIG.DEFAULT_SETTINGS.defaultEngine;
   }
-  const settings = await getSettings();
-  const ids = engineIds(settings.customEngines);
-  return ids.includes(settings.defaultEngine) ? settings.defaultEngine : ids[0];
 }
 
 async function setLastEngine(id) {
@@ -211,7 +231,7 @@ async function setLastEngine(id) {
   // Fire-and-forget validation: the hot paths (overlay Enter, SW OPEN_TAB)
   // must not stall on a storage read. A stored unknown id is harmless —
   // getLastEngine re-validates against settings on every read.
-  if (!Object.prototype.hasOwnProperty.call(QLENS.ENGINES, id)) {
+  if (!Object.prototype.hasOwnProperty.call(QLENS.ENGINES || {}, id)) {
     try {
       const res = await chrome.storage.local.get(KEY_SETTINGS);
       const raw = res && res[KEY_SETTINGS];
