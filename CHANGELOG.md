@@ -8,6 +8,11 @@
 - The service worker now repairs already-open tabs: `repairOpenTabs()` re-injects the message bridge into up to 80 normal http(s) tabs (4 at a time) on `chrome.runtime.onInstalled` and whenever the shortcut storage key changes, so the shortcut works immediately after an update with no reset or reapply.
 - Version bumped to `1.1.1` across `manifest.json`, `package.json`, and the config fallback.
 
+### Fixed (only one overlay can ever be visible)
+- A press can no longer produce two search panels. The live shortcut handler now claims the combo at `window` capture and stops it before any listener deeper in the tree can act, so an orphaned injector from before an extension update cannot handle the same keypress and open a second panel.
+- Both the injector and `QLENS.Overlay.show()` now check the page DOM for an existing QLens host (`data-qlens-overlay`, with a legacy `role="dialog"` + label fallback verified by its `.ql-panel` shadow content). If another instance is on screen, the press closes that panel through its own close control instead of stacking a new one; `show()` also clears a foreign host before building, so the service-worker message path cannot duplicate a panel either.
+- Closing a foreign panel is guaranteed in one press even when it holds a typed query: the close control normally clears text first and only closes an empty field, so its shadow input is cleared before the click. The host is then detached immediately rather than left for its 90 ms fade, and `show()` reclaims the search input after that fade would have restored focus to the page — so no frame shows two panels and typing still works right away.
+
 ### Fixed (polish + correctness audit)
 - The overlay no longer washes out to light when the operating system is in light mode and the extension's Appearance is set to Dark: the system-light token block now only applies when no explicit theme is chosen (the same guard `options.css` already used), and the duplicated input-row overrides were collapsed.
 - If a search tab cannot be opened (popup blocked, a rejected message), the overlay now comes back with the typed query and "Could not open a new tab." instead of vanishing into a blank page. The URL is validated before the overlay is torn down.

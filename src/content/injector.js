@@ -25,6 +25,53 @@ globalThis.QLENS = globalThis.QLENS || {};
   const shortcutDefault = config.SHORTCUT_DEFAULT || 'Ctrl+Shift+K';
   const shortcutKey = (config.STORAGE_KEYS && config.STORAGE_KEYS.SHORTCUT) || 'shortcut';
   const openOverlayType = (QLENS.MSG && QLENS.MSG.OPEN_OVERLAY) || 'QLENS_OPEN_OVERLAY';
+  const overlaySelector =
+    '[data-qlens-overlay], div[role="dialog"][aria-label="QLens quick search"]';
+
+  // Closes a panel owned by another QLens instance (an orphaned content script
+  // from before an extension update) so a press can never stack a second one.
+  // Clicking its close control also tears down that instance's global key
+  // listeners; detaching the node is the fallback when its context is gone.
+  function closeForeignOverlay() {
+    let nodes = [];
+    try {
+      nodes = document.querySelectorAll(overlaySelector);
+    } catch (err) {
+      return false;
+    }
+    for (const node of nodes) {
+      let panel = null;
+      try {
+        panel = node.shadowRoot && node.shadowRoot.querySelector('.ql-panel');
+      } catch (err) {
+        panel = null;
+      }
+      if (!panel) continue;
+      try {
+        const shadow = node.shadowRoot;
+        const input = shadow && shadow.querySelector('.ql-input');
+        // The close control clears a non-empty query before it actually
+        // closes, so clear the field first: one press must close the foreign
+        // panel, not just its text.
+        if (input) input.value = '';
+        const btn = shadow && shadow.querySelector('.ql-close');
+        if (btn && typeof btn.click === 'function') {
+          btn.click();
+          try { node.remove(); } catch (err) {}
+          return true;
+        }
+      } catch (err) {
+        /* fall through to detaching the node */
+      }
+      try {
+        node.remove();
+      } catch (err) {
+        /* already detached */
+      }
+      return true;
+    }
+    return false;
+  }
 
   function openOverlayDirect(openOnly) {
     const overlay = QLENS.Overlay;
@@ -37,22 +84,24 @@ globalThis.QLENS = globalThis.QLENS || {};
       return;
     }
     const visible = overlay.isVisible();
-    if (visible && !openOnly) {
-      if (typeof overlay.destroy === 'function') overlay.destroy(true);
-    } else if (!visible) {
-      try {
-        overlay.show({});
-      } catch (err) {
-        try {
-          chrome.runtime.sendMessage({ type: openOverlayType }).catch(() => {});
-        } catch (err2) {
-          /* ignore */
-        }
-        return;
-      }
-      directAt = Date.now();
+    if (visible) {
+      if (!openOnly && typeof overlay.destroy === 'function') overlay.destroy(true);
+      return;
     }
-    return;
+    // Another QLens instance may already have its panel on screen. Never open
+    // a second one: close that panel instead and let the next press open ours.
+    if (closeForeignOverlay()) return;
+    try {
+      overlay.show({});
+    } catch (err) {
+      try {
+        chrome.runtime.sendMessage({ type: openOverlayType }).catch(() => {});
+      } catch (err2) {
+        /* ignore */
+      }
+      return;
+    }
+    directAt = Date.now();
   }
 
   function handleMessage(msg, sender, sendResponse) {
@@ -189,12 +238,22 @@ globalThis.QLENS = globalThis.QLENS || {};
       } catch (err) {
         /* ignore */
       }
+      try {
+        window.removeEventListener('keydown', window.__QLENS_KEYHANDLER__, true);
+      } catch (err) {
+        /* ignore */
+      }
     }
     window.__QLENS_KEYHANDLER__ = (e) => {
       if (!e || e.defaultPrevented || (!e.ctrlKey && !e.metaKey && !e.altKey)) return;
       const combo = comboMemo;
       if (!combo || !comboReady) return;
       if (typeof QLENS.matchesCombo !== 'function' || !QLENS.matchesCombo(e, combo)) return;
+      // Claim the combo in the capture phase before it reaches any listener
+      // deeper in the tree. An orphaned injector from before an extension
+      // update listens on document; without this, one keypress would let both
+      // instances open their own panel.
+      if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
       if (combo === shortcutDefault) {
         // The default combo is normally delivered by the manifest command
         // (chrome.commands.onCommand in the SW), which only fires if Chrome
@@ -214,9 +273,13 @@ globalThis.QLENS = globalThis.QLENS || {};
       openOverlayDirect(false);
     };
     try {
-      document.addEventListener('keydown', window.__QLENS_KEYHANDLER__, true);
+      window.addEventListener('keydown', window.__QLENS_KEYHANDLER__, true);
     } catch (err) {
-      /* ignore */
+      try {
+        document.addEventListener('keydown', window.__QLENS_KEYHANDLER__, true);
+      } catch (err2) {
+        /* ignore */
+      }
     }
   }
 

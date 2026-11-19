@@ -1447,6 +1447,7 @@ const ACCENT_INKS = {
 };
 
 const Overlay = (() => {
+  const HOST_SELECTOR = '[data-qlens-overlay], div[role="dialog"][aria-label="QLens quick search"]';
   let host = null;
   let root = null;
   let panel = null;
@@ -1503,6 +1504,7 @@ const Overlay = (() => {
   let focusOutTimer = null;
   let closing = false;
   let removeTimer = null;
+  let foreignFocusTimer = null;
   let fontsApplied = false;
   let fontsReady = false;
   let attachGen = 0;
@@ -1615,6 +1617,7 @@ const Overlay = (() => {
 
   function build() {
     host = document.createElement('div');
+    host.setAttribute('data-qlens-overlay', '');
     host.setAttribute('role', 'dialog');
     host.setAttribute('aria-modal', 'true');
     host.setAttribute('aria-label', 'QLens quick search');
@@ -3766,6 +3769,53 @@ const Overlay = (() => {
     }
   }
 
+  function foreignOverlayHost() {
+    try {
+      const nodes = document.querySelectorAll(HOST_SELECTOR);
+      for (const node of nodes) {
+        if (node === host) continue;
+        try {
+          // Never touch an unrelated page dialog that happens to copy the
+          // marker: only a node with our open shadow panel is a QLens host.
+          if (node.shadowRoot && node.shadowRoot.querySelector('.ql-panel')) return node;
+        } catch (err) {
+          /* not a QLens host */
+        }
+      }
+    } catch (err) {}
+    return null;
+  }
+
+  // Only one QLens overlay may exist in a page. A tab that was already open
+  // across an extension update can still carry an overlay from the orphaned
+  // content-script instance, and the service worker's repair injection runs in
+  // the live context: a second instance must close the first instead of
+  // stacking another panel on top of it.
+  function closeForeignOverlay() {
+    const node = foreignOverlayHost();
+    if (!node) return false;
+    try {
+      const shadow = node.shadowRoot;
+      const input = shadow && shadow.querySelector('.ql-input');
+      // The close control clears a non-empty query before it actually closes,
+      // so clear the field first: one open must always close the foreign
+      // panel instead of leaving it on screen next to ours.
+      if (input) input.value = '';
+      const btn = shadow && shadow.querySelector('.ql-close');
+      if (btn && typeof btn.click === 'function') {
+        btn.click();
+        // Its close runs a 90 ms fade before detaching; remove it now so no
+        // frame can show two panels.
+        try { node.remove(); } catch (err) {}
+        return true;
+      }
+    } catch (err) {}
+    try {
+      node.remove();
+    } catch (err) {}
+    return true;
+  }
+
   function show(payload) {
     if (closing) {
       try { clearTimeout(removeTimer); } catch (err) {}
@@ -3788,6 +3838,7 @@ const Overlay = (() => {
       try { removeHost(); } catch (err) {}
       host = null;
     }
+    const closedForeign = closeForeignOverlay();
     prevFocusEl = document.activeElement;
     engineId = QLENS.CONFIG.DEFAULT_SETTINGS.defaultEngine;
     initialEngineId = engineId;
@@ -3868,6 +3919,16 @@ const Overlay = (() => {
       // through onWindowCaptureKey and land in the input.
       if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => { focusInput(); });
       else focusInput();
+      if (closedForeign) {
+        // The foreign instance finishes its 90 ms close fade after we build
+        // and then restores focus to the page. Reclaim the input once it is
+        // gone so the user can type immediately.
+        clearTimeout(foreignFocusTimer);
+        foreignFocusTimer = setTimeout(() => {
+          foreignFocusTimer = null;
+          if (host && host.isConnected && !closing) focusInput();
+        }, 140);
+      }
       updateInputState();
       hydrate();
     } catch (err) {
@@ -3968,6 +4029,8 @@ const Overlay = (() => {
   }
 
   function removeHost() {
+    clearTimeout(foreignFocusTimer);
+    foreignFocusTimer = null;
     window.removeEventListener('keydown', onWindowCaptureKey, true);
     window.removeEventListener('keydown', onWindowKey, true);
     window.removeEventListener('keyup', onWindowKey, true);

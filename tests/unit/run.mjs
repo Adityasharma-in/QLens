@@ -835,10 +835,13 @@ test('sw: a stored custom combo suppresses the manifest command', () => {
 function makeInjectorCtx(opts) {
   const o = opts || {};
   const calls = { show: 0, destroy: 0, sendMessage: 0, storageReads: 0 };
+  const winHandlers = [];
   const docHandlers = [];
   const changeListeners = [];
   let visible = o.initiallyVisible === true;
   let storedShortcut = o.shortcut || 'Ctrl+Shift+K';
+  let foreignHost = null;
+  const foreignState = { clicks: 0, removals: 0 };
   const overlay = {
     isVisible: () => visible,
     show: () => { calls.show++; visible = true; },
@@ -857,7 +860,14 @@ function makeInjectorCtx(opts) {
       removeEventListener: (t, f) => {
         const i = docHandlers.indexOf(f);
         if (i !== -1) docHandlers.splice(i, 1);
-      }
+      },
+      querySelectorAll: () => (foreignHost ? [foreignHost] : []),
+      querySelector: () => foreignHost
+    },
+    addEventListener: (t, f) => { if (t === 'keydown') winHandlers.push(f); },
+    removeEventListener: (t, f) => {
+      const i = winHandlers.indexOf(f);
+      if (i !== -1) winHandlers.splice(i, 1);
     },
     chrome: {
       runtime: {
@@ -903,12 +913,21 @@ function makeInjectorCtx(opts) {
   // refreshCombo() resolves the shortcut through a promise, and comboReady
   // gates the keydown handler. Let those microtasks settle before pressing.
   const settled = () => new Promise((r) => setTimeout(r, 0));
-  const press = (e) => { for (const f of docHandlers.slice()) f({ preventDefault() {}, stopPropagation() {}, stopImmediatePropagation() {}, ...e }); };
+  const press = (e) => {
+    const event = {
+      preventDefault() {},
+      stopPropagation() {},
+      stopImmediatePropagation() { event.immediateStopped = true; },
+      ...e
+    };
+    for (const f of winHandlers.concat(docHandlers).slice()) f(event);
+    return event;
+  };
   return {
     ctx,
     calls,
     press,
-    handlers: docHandlers,
+    handlers: winHandlers,
     settled,
     isVisible: () => visible,
     rerun: () => vm.runInContext(src, ctx),
@@ -916,7 +935,37 @@ function makeInjectorCtx(opts) {
     emitShortcutChange: () => {
       for (const f of changeListeners.slice()) f({ shortcut: { newValue: storedShortcut } }, 'local');
     },
-    storageListenerCount: () => changeListeners.length
+    storageListenerCount: () => changeListeners.length,
+    setForeignOverlay: (query) => {
+      foreignState.clicks = 0;
+      foreignState.removals = 0;
+      const input = { value: typeof query === 'string' ? query : '' };
+      foreignState.input = input;
+      foreignHost = {
+        shadowRoot: {
+          querySelector: (sel) => {
+            if (sel === '.ql-input') return input;
+            if (sel === '.ql-panel') return {};
+            if (sel === '.ql-close') {
+              return {
+                click: () => {
+                  // Mirrors the real close control: a non-empty query is
+                  // cleared first, and only an empty one actually closes.
+                  if (input.value) {
+                    input.value = '';
+                    return;
+                  }
+                  foreignState.clicks++;
+                }
+              };
+            }
+            return null;
+          }
+        },
+        remove: () => { foreignState.removals++; }
+      };
+      return foreignState;
+    }
   };
 }
 
@@ -950,6 +999,39 @@ await testAsync('shortcut: custom combo still toggles closed', async () => {
   assert.equal(h.calls.show, 1, 'custom combo opens');
   h.press(press);
   assert.equal(h.calls.destroy, 1, 'custom combo must still toggle shut');
+});
+await testAsync('shortcut: a matched press never reaches an orphaned document listener', async () => {
+  // An injector left behind by a previous extension instance listens on
+  // document. The live handler claims the combo at window capture so one
+  // keypress cannot be handled twice (which opened two panels).
+  const h = makeInjectorCtx({ shortcut: 'Ctrl+Alt+J' });
+  await h.settled();
+  const event = h.press({ key: 'J', ctrlKey: true, altKey: true, shiftKey: false, metaKey: false, defaultPrevented: false });
+  assert.equal(event.immediateStopped, true, 'the event is stopped before it reaches document listeners');
+  assert.equal(h.calls.show, 1, 'only the live instance opens a panel');
+});
+await testAsync('shortcut: a foreign panel is closed instead of stacked', async () => {
+  // If another QLens instance is already on screen, opening a second panel is
+  // never allowed: the foreign one is asked to close through its own control.
+  const h = makeInjectorCtx({ shortcut: 'Ctrl+Alt+J' });
+  const foreign = h.setForeignOverlay();
+  await h.settled();
+  h.press({ key: 'J', ctrlKey: true, altKey: true, shiftKey: false, metaKey: false, defaultPrevented: false });
+  assert.equal(foreign.clicks, 1, 'the foreign panel is closed');
+  assert.equal(foreign.removals, 1, 'the host is detached so it cannot linger next to ours');
+  assert.equal(h.calls.show, 0, 'no second panel is built');
+});
+await testAsync('shortcut: a foreign panel with a typed query still closes in one press', async () => {
+  // The close control only closes when its input is empty: if the foreign
+  // panel held text, a plain click would merely clear it and both panels
+  // would be on screen. The query must be cleared before the click.
+  const h = makeInjectorCtx({ shortcut: 'Ctrl+Alt+J' });
+  const foreign = h.setForeignOverlay('cats');
+  await h.settled();
+  h.press({ key: 'J', ctrlKey: true, altKey: true, shiftKey: false, metaKey: false, defaultPrevented: false });
+  assert.equal(foreign.input.value, '', 'the foreign query is cleared first');
+  assert.equal(foreign.clicks, 1, 'the foreign panel still closes on that same press');
+  assert.equal(h.calls.show, 0, 'no second panel is built');
 });
 await testAsync('shortcut: handler survives a synchronous getShortcut() throw', async () => {
   // refreshCombo runs during script evaluation. A throw there would abort the
@@ -1005,7 +1087,36 @@ test('sw: extension updates and shortcut changes repair already-open tabs', () =
   );
   assert.ok(
     injector.includes("document.removeEventListener('keydown'"),
-    're-injection must remove the previous keydown handler before installing a new one'
+    're-injection must remove the previous document keydown handler'
+  );
+  assert.ok(
+    injector.includes("window.addEventListener('keydown'") && injector.includes('stopImmediatePropagation'),
+    'the live handler claims the shortcut at window capture so an orphaned listener cannot open a second panel'
+  );
+  assert.ok(
+    injector.includes('closeForeignOverlay'),
+    'a press must close a foreign QLens panel instead of stacking another'
+  );
+  assert.ok(
+    injector.includes("querySelector('.ql-input')") && injector.includes('input.value = \'\''),
+    'the injector clears a foreign query before clicking close'
+  );
+  const overlay = readFileSync(join(ROOT, 'src/content/overlay.js'), 'utf8');
+  assert.ok(
+    overlay.includes("setAttribute('data-qlens-overlay'"),
+    'the overlay host carries a marker both instances can see'
+  );
+  assert.ok(
+    overlay.includes('const closedForeign = closeForeignOverlay();'),
+    'show() must clear any foreign panel before building'
+  );
+  assert.ok(
+    overlay.includes("querySelector('.ql-input')") && overlay.includes('input.value = \'\''),
+    'show() clears a foreign query before clicking close'
+  );
+  assert.ok(
+    overlay.includes('foreignFocusTimer'),
+    'show() reclaims focus after the foreign close animation restores it to the page'
   );
   const sw = readFileSync(join(ROOT, 'src/background/service-worker.js'), 'utf8');
   assert.ok(sw.includes('function repairOpenTabs('), 'the SW owns the open-tab repair');
