@@ -99,7 +99,7 @@ ${FONT_FACE}
 }
 
 @media (prefers-color-scheme: light) {
-  :host {
+  :host:not([data-theme="dark"]):not([data-theme="light"]) {
     --ql-caret: #4f46e5;
     --ql-text: #141824;
     --ql-text-dim: rgba(23, 28, 45, .64);
@@ -429,17 +429,17 @@ ${FONT_FACE}
 }
 
 @media (prefers-color-scheme: light) {
-  :host:not([data-theme="dark"]) .ql-input-row {
+  :host:not([data-theme="dark"]):not([data-theme="light"]) .ql-input-row {
     background:
       linear-gradient(180deg, rgba(var(--ql-accent-rgb), .14), rgba(var(--ql-accent-rgb), .04) 34%, transparent 62%),
       linear-gradient(135deg, #f4f6fc 0%, #e4e9f5 55%, #d3daec 100%);
     border-color: rgba(var(--ql-accent-rgb), .42);
     box-shadow: 0 4px 14px rgba(23, 28, 50, .14), 0 0 22px -10px rgba(var(--ql-accent-rgb), .55), inset 0 1px 0 rgba(255, 255, 255, .9), inset 0 -1px 0 rgba(var(--ql-accent-rgb), .14);
   }
-  :host:not([data-theme="dark"]) .ql-input-row::before {
+  :host:not([data-theme="dark"]):not([data-theme="light"]) .ql-input-row::before {
     opacity: .06;
   }
-  :host:not([data-theme="dark"]) .ql-input-row:focus-within {
+  :host:not([data-theme="dark"]):not([data-theme="light"]) .ql-input-row:focus-within {
     background:
       linear-gradient(180deg, rgba(var(--ql-accent-rgb), .18), rgba(var(--ql-accent-rgb), .05) 34%, transparent 62%),
       linear-gradient(135deg, #ffffff 0%, #e6ebf8 55%, #d5dcef 100%);
@@ -673,7 +673,7 @@ ${FONT_FACE}
   backdrop-filter: blur(2px);
   border-radius: var(--ql-radius-card);
   color: var(--ql-accent);
-  font: 700 12px 'QLens Inter', system-ui, sans-serif;
+  font: 700 12px 'QLens Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
   letter-spacing: .02em;
   pointer-events: none;
   opacity: 0;
@@ -966,6 +966,146 @@ ${FONT_FACE}
   }
 }
 
+/* ---------- calculator ---------- */
+.ql-calc-zone {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  margin-top: 0;
+  visibility: hidden;
+  transition: max-height var(--ql-dur-med) var(--ql-ease-gentle), opacity var(--ql-dur-fast) var(--ql-ease-out), margin-top var(--ql-dur-med) var(--ql-ease-gentle), visibility 0s linear var(--ql-dur-med);
+}
+
+.ql-calc-zone.is-open {
+  opacity: 1;
+  max-height: 92px;
+  margin-top: var(--ql-space-3);
+  visibility: visible;
+  transition: max-height var(--ql-dur-med) var(--ql-ease-gentle), opacity var(--ql-dur-fast) var(--ql-ease-out), margin-top var(--ql-dur-med) var(--ql-ease-gentle), visibility 0s;
+}
+
+.ql-calc {
+  display: flex;
+  align-items: center;
+  gap: var(--ql-space-3);
+  width: 100%;
+  min-height: 60px;
+  padding: 9px var(--ql-space-4);
+  border-radius: var(--ql-radius-lg);
+  border: 1px solid rgba(var(--ql-accent-rgb), .34);
+  background:
+    radial-gradient(120% 170% at 0% 0%, rgba(var(--ql-accent-rgb), .18), transparent 58%),
+    var(--ql-liner);
+  color: var(--ql-text);
+  text-align: left;
+  overflow: hidden;
+  cursor: pointer;
+  transition: background var(--ql-dur-fast), border-color var(--ql-dur-fast), box-shadow var(--ql-dur-fast), transform var(--ql-dur-fast) var(--ql-ease-spring);
+}
+
+.ql-calc:hover {
+  border-color: rgba(var(--ql-accent-rgb), .55);
+  background:
+    radial-gradient(120% 170% at 0% 0%, rgba(var(--ql-accent-rgb), .26), transparent 58%),
+    var(--ql-liner-hover);
+  box-shadow: 0 12px 28px -20px rgba(var(--ql-accent-rgb), .9);
+  transform: translateY(-1px);
+}
+
+.ql-calc:active {
+  transform: scale(.993);
+}
+
+.ql-calc:focus-visible {
+  outline: 2px solid var(--ql-accent);
+  outline-offset: 2px;
+}
+
+.ql-calc.is-copied {
+  border-color: rgba(var(--ql-accent-rgb), .68);
+  box-shadow: 0 0 0 1px rgba(var(--ql-accent-rgb), .22), 0 10px 30px -18px rgba(var(--ql-accent-rgb), .85);
+}
+
+.ql-calc-badge {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--ql-accent-rgb), .26);
+  background: linear-gradient(145deg, rgba(var(--ql-accent-rgb), .24), rgba(var(--ql-accent-rgb), .07));
+  color: var(--ql-accent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12);
+}
+
+.ql-calc.is-copied .ql-calc-badge {
+  background: rgba(var(--ql-accent-rgb), .28);
+  animation: ql-pill-pop .28s var(--ql-ease-spring);
+}
+
+.ql-calc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ql-calc-expr {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  color: var(--ql-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ql-calc-hint {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .015em;
+  color: var(--ql-text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color var(--ql-dur-fast);
+}
+
+.ql-calc.is-copied .ql-calc-hint {
+  color: var(--ql-accent);
+}
+
+.ql-calc-value {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 58%;
+  margin-left: auto;
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 12px rgba(var(--ql-accent-rgb), .3);
+}
+
+.ql-calc-value.is-medium {
+  font-size: 18px;
+}
+
+.ql-calc-value.is-long {
+  font-size: 15px;
+}
+
+.ql-calc-value.is-tiny {
+  font-size: 13px;
+  letter-spacing: -.01em;
+}
+
 /* ---------- suggestions ---------- */
 .ql-suggest {
   display: flex;
@@ -991,77 +1131,6 @@ ${FONT_FACE}
    instantly while the list is still being replaced. */
 .ql-suggest.is-updating {
   transition: opacity var(--ql-dur-fast) var(--ql-ease-out);
-}
-
-/* ---------- launcher ---------- */
-.ql-launch {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  max-height: 0;
-  opacity: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  overscroll-behavior: contain;
-  margin-top: var(--ql-space-3);
-  transition: max-height var(--ql-dur-med) var(--ql-ease-gentle), opacity var(--ql-dur-fast) var(--ql-ease-out);
-  scrollbar-width: thin;
-  scrollbar-color: rgba(var(--ql-accent-rgb), .5) transparent;
-}
-
-.ql-launch.is-open {
-  opacity: 1;
-}
-
-.ql-launch.is-updating {
-  transition: opacity var(--ql-dur-fast) var(--ql-ease-out);
-}
-
-.ql-launch::-webkit-scrollbar {
-  width: 6px;
-}
-
-.ql-launch::-webkit-scrollbar-thumb {
-  background: rgba(var(--ql-accent-rgb), .45);
-  border-radius: 3px;
-}
-
-.ql-launch::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.ql-launch-head {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .10em;
-  text-transform: uppercase;
-  color: var(--ql-text-faint);
-  padding: 6px 12px 2px;
-}
-
-.ql-sug-row.is-launcher {
-  cursor: pointer;
-}
-
-.ql-launch-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  display: grid;
-  place-items: center;
-  flex: none;
-  background: linear-gradient(135deg, rgba(var(--ql-accent-rgb), .18), rgba(var(--ql-accent-rgb), .06));
-  border: 1px solid rgba(var(--ql-accent-rgb), .18);
-  color: var(--ql-accent);
-}
-
-.ql-launch-url {
-  font-size: 11px;
-  color: var(--ql-text-faint);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  letter-spacing: -.01em;
 }
 
 .ql-suggest::-webkit-scrollbar {
@@ -1108,7 +1177,6 @@ ${FONT_FACE}
 }
 
 .ql-smarturl .ql-smart-sub,
-.ql-launch-url,
 .ql-fav-url,
 .ql-sug-k {
   text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
@@ -1248,7 +1316,7 @@ ${FONT_FACE}
   border-bottom: 1px solid var(--ql-hairline);
 }
 .ql-fav-head span:first-child {
-  font-family: 'QLens Inter', monospace;
+  font-family: 'QLens Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: .10em;
@@ -1256,7 +1324,7 @@ ${FONT_FACE}
   color: var(--ql-text-faint);
 }
 .ql-fav-head span:last-child {
-  font-family: 'QLens Inter', monospace;
+  font-family: 'QLens Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
   font-size: 10px;
   font-weight: 600;
   color: var(--ql-text-faint);
@@ -1275,7 +1343,7 @@ ${FONT_FACE}
   background: linear-gradient(135deg, rgba(var(--ql-accent-rgb), .18), rgba(var(--ql-accent-rgb), .06));
   border: 1px solid rgba(var(--ql-accent-rgb), .18);
   color: var(--ql-accent);
-  font: 800 13px 'QLens Inter', system-ui, sans-serif;
+  font: 800 13px 'QLens Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
   letter-spacing: -.02em;
 }
 .ql-fav-shortcut {
@@ -1288,7 +1356,7 @@ ${FONT_FACE}
   background: var(--ql-liner);
   border: 1px solid var(--ql-hairline);
   color: var(--ql-text-dim);
-  font: 600 11px 'QLens Inter', monospace;
+  font: 600 11px 'QLens Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
   letter-spacing: .02em;
   white-space: nowrap;
   max-width: 110px;
@@ -1301,7 +1369,7 @@ ${FONT_FACE}
   color: var(--ql-accent-ink);
 }
 .ql-fav-url {
-  font-family: 'QLens Inter', monospace;
+  font-family: 'QLens Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
   font-size: 11px;
   color: var(--ql-text-faint);
   white-space: nowrap;
@@ -1353,6 +1421,7 @@ const ICON_ARROW = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" 
 const ICON_GLOBE = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg>';
 const ICON_RETICLE = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4"/></svg>';
 const ICON_CAMERA = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8a2 2 0 0 1 2-2h2l1.2-2h7.6L17 6h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.5" r="3.2"/></svg>';
+const ICON_CALC = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8 7.5h8M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/></svg>';
 
 function iconSvg(markup, cls) {
   const wrap = document.createElement('span');
@@ -1389,8 +1458,14 @@ const Overlay = (() => {
   let pillZone = null;
   let pillsRow = null;
   let smartZone = null;
+  let calcZone = null;
+  let calcBtn = null;
+  let calcExpr = null;
+  let calcHint = null;
+  let calcValue = null;
+  let calcResult = null;
+  let calcCopyTimer = null;
   let suggestEl = null;
-  let launchEl = null;
   let footEngine = null;
   let prevFocusEl = null;
   let settings = null;
@@ -1405,7 +1480,6 @@ const Overlay = (() => {
   let suggestionTimer = null;
   let aiPillEl = null;
   let suggestionReqId = 0;
-  let launcherReqId = 0;
   const suggestCache = new Map();
   let lastSuggestKey = '';
   let lastSuggestResults = [];
@@ -1414,12 +1488,8 @@ const Overlay = (() => {
   const sugNodeByKey = new Map();
   let suggestSettledHeight = 0;
   let suggestInFlight = false;
-  const launcherCache = new Map();
-  let launcherTimer = null;
   let suggestions = [];
   let suggestionHighlight = -1;
-  let launcherRows = [];
-  let launcherItems = [];
   let actionSite = null;
   let selectionText = null;
   let selectionActive = false;
@@ -1439,6 +1509,8 @@ const Overlay = (() => {
   let dragDepth = 0;
   let uploading = false;
   let pendingSearch = false;
+  let searching = false;
+  let searchGen = 0;
   let dropHintEl = null;
 
   function el(tag, cls, text) {
@@ -1455,18 +1527,34 @@ const Overlay = (() => {
   // The 30KB stylesheet parses once per page load, not once per open:
   // constructible stylesheets are cheaply shared across shadow roots,
   // so reuse the same compiled sheet for every show() in this document.
+  // compileSheet() is also called at page idle (bottom of this IIFE) so the
+  // first shortcut does not pay the CSS parse; a cold/busy idle slot simply
+  // compiles on demand in applyStyles().
+  function compileSheet() {
+    if (cachedSheet) return cachedSheet;
+    if (typeof CSSStyleSheet === 'undefined') return null;
+    try {
+      const sheet = new CSSStyleSheet();
+      sheet.replaceSync(CSS);
+      cachedSheet = sheet;
+      return sheet;
+    } catch (err) {
+      cachedSheet = null;
+      return null;
+    }
+  }
+
   function applyStyles(shadow) {
     if (typeof CSSStyleSheet !== 'undefined' && 'adoptedStyleSheets' in shadow) {
-      try {
-        if (!cachedSheet) {
-          cachedSheet = new CSSStyleSheet();
-          cachedSheet.replaceSync(CSS);
+      const sheet = compileSheet();
+      if (sheet) {
+        try {
+          shadow.adoptedStyleSheets = [sheet];
+          return;
+        } catch (err) {
+          cachedSheet = null;
+          /* fall through to style element */
         }
-        shadow.adoptedStyleSheets = [cachedSheet];
-        return;
-      } catch (err) {
-        cachedSheet = null;
-        /* fall through to style element */
       }
     }
     const style = document.createElement('style');
@@ -1630,11 +1718,24 @@ const Overlay = (() => {
     smartZone = el('div', 'ql-smart-zone');
     content.appendChild(smartZone);
 
-    launchEl = el('div', 'ql-launch');
-    launchEl.id = 'ql-launch';
-    launchEl.setAttribute('role', 'group');
-    launchEl.setAttribute('aria-label', 'Launcher');
-    content.appendChild(launchEl);
+    calcZone = el('div', 'ql-calc-zone');
+    calcZone.setAttribute('aria-hidden', 'true');
+    calcBtn = el('button', 'ql-calc');
+    calcBtn.type = 'button';
+    calcBtn.dataset.action = 'calc';
+    calcBtn.tabIndex = -1;
+    calcBtn.addEventListener('click', () => { copyCalcResult(); });
+    const calcBadge = el('span', 'ql-calc-badge');
+    calcBadge.setAttribute('aria-hidden', 'true');
+    calcBadge.appendChild(iconSvg(ICON_CALC));
+    calcExpr = el('span', 'ql-calc-expr');
+    calcHint = el('span', 'ql-calc-hint');
+    const calcBody = el('span', 'ql-calc-body');
+    calcBody.append(calcExpr, calcHint);
+    calcValue = el('span', 'ql-calc-value');
+    calcBtn.append(calcBadge, calcBody, calcValue);
+    calcZone.appendChild(calcBtn);
+    content.appendChild(calcZone);
 
     suggestEl = el('div', 'ql-suggest');
     suggestEl.id = 'ql-suggest';
@@ -1721,24 +1822,30 @@ const Overlay = (() => {
 
   function renderImageChip() {
     if (!chipZoneEl || !attachment || !attachment.src) return;
+    // The chip keeps the overlay's only progress surface: a search can take a
+    // few seconds on the fallback path, and the overlay stays up for all of it.
+    const busy = uploading || searching;
+    const label = searching
+      ? 'Searching Google Lens…'
+      : (uploading ? 'Preparing image…' : 'Search this image. Click to remove.');
     const chip = el('button', 'ql-img-chip');
     chip.type = 'button';
-    chip.setAttribute('aria-label', uploading ? 'Searching image…' : 'Search this image. Click to remove.');
-    chip.title = uploading ? 'Preparing image…' : 'Search this image';
-    if (uploading) chip.classList.add('ql-uploading');
+    chip.setAttribute('aria-label', label);
+    chip.title = label;
+    if (busy) chip.classList.add('ql-uploading');
     const thumb = el('span', 'ql-img-thumb');
     try { thumb.style.backgroundImage = 'url(' + attachment.src + ')'; } catch (e) {}
     chip.appendChild(thumb);
-    if (uploading) {
+    if (busy) {
       const sp = el('span', 'ql-spinner');
       sp.setAttribute('aria-hidden', 'true');
       chip.appendChild(sp);
     } else {
-      const label = el('span', 'ql-img-x');
-      label.textContent = '×';
-      chip.appendChild(label);
+      const x = el('span', 'ql-img-x');
+      x.textContent = '×';
+      chip.appendChild(x);
     }
-    if (!uploading) {
+    if (!busy) {
       chip.addEventListener('click', () => { removeImage(); });
     }
     chipZoneEl.appendChild(chip);
@@ -1815,11 +1922,22 @@ const Overlay = (() => {
 
   function setUploading(v) {
     uploading = Boolean(v);
-    if (imgBtn) { imgBtn.disabled = uploading; imgBtn.style.opacity = uploading ? '.55' : ''; }
+    syncImageButton();
     // NOTE: input stays enabled during image processing so the user can keep
     // typing and hit Enter-to-queue (pendingSearch) while the spinner shows.
     // re-render chip to show spinner
     try { renderChip(); } catch (e) {}
+  }
+
+  function setSearching(v) {
+    searching = Boolean(v);
+    syncImageButton();
+    try { renderChip(); } catch (e) {}
+  }
+
+  function syncImageButton() {
+    const busy = uploading || searching;
+    if (imgBtn) { imgBtn.disabled = busy; imgBtn.style.opacity = busy ? '.55' : ''; }
   }
 
   // Revoke an object URL only when no live attachment owns it, so abort paths
@@ -1882,6 +2000,7 @@ const Overlay = (() => {
     } else {
       attachment = { bytes: null, src: instantURL, name: originalName, mime: claimedMime, hash: '' };
     }
+    hideCalc();
     setUploading(true);
     try { if (inputEl) inputEl.focus(); } catch (e) {}
 
@@ -1906,6 +2025,7 @@ const Overlay = (() => {
       if (attachment && attachment.src === instantURL) attachment = null;
       else if (attachment && !attachment.bytes) attachment = null;
       setUploading(false);
+      updateInputState();
       showError('Could not read that image.');
       return;
     }
@@ -1926,6 +2046,7 @@ const Overlay = (() => {
       revokeOrphanURL(instantURL);
       attachment = null;
       setUploading(false);
+      updateInputState();
       showError(validated && validated.error ? validated.error : 'That does not look like an image.');
       return;
     }
@@ -1941,7 +2062,7 @@ const Overlay = (() => {
     } catch (e) {}
 
     // 4-5. Fast path decode/resize/encode with raw fallback for undecodable types.
-    const maxDim = Math.min(configNum('IMAGE_MAX_DIM', 1600), 1024);
+    const maxDim = configNum('IMAGE_MAX_DIM', 1600);
     const webpQ = (() => { try { const v = QLENS.CONFIG && QLENS.CONFIG.IMAGE_WEBP_QUALITY; if (typeof v === 'number' && v > 0 && v <= 1) return v; } catch (e) {} return 0.85; })();
     const jpegQ = (() => { try { const v = QLENS.CONFIG && QLENS.CONFIG.IMAGE_JPEG_QUALITY; if (typeof v === 'number' && v > 0 && v <= 1) return v; } catch (e) {} return 0.82; })();
     const maxBytes = configNum('IMAGE_MAX_BYTES', 5 * 1024 * 1024);
@@ -1949,12 +2070,13 @@ const Overlay = (() => {
     let outMime = mime;
     const previewURL = instantURL;
     let encodedBlob = null;
+    let bitmap = null;
     let failed = false;
     let failReason = '';
     try {
       if (typeof createImageBitmap === 'function') {
         const blob = new Blob([bytes], { type: mime });
-        let bitmap = null;
+        bitmap = null;
         try {
           bitmap = await createImageBitmap(blob);
         } catch (e) { bitmap = null; }
@@ -1984,15 +2106,8 @@ const Overlay = (() => {
             } else {
               // Single-step resize: prefer decoder-side resize, fallback to canvas drawImage.
               const dims = targetDims(bw, bh, maxDim);
-              let resizedBitmap = null;
-              try {
-                if (typeof createImageBitmap === 'function') {
-                  resizedBitmap = await createImageBitmap(blob, { resizeWidth: dims.width, resizeHeight: dims.height, resizeQuality: 'high' });
-                }
-              } catch (e) { resizedBitmap = null; }
               if (gen !== attachGen || !host) {
                 try { bitmap.close(); } catch (e) {}
-                if (resizedBitmap) { try { resizedBitmap.close(); } catch (e) {} }
                 revokeOrphanURL(instantURL);
                 return;
               }
@@ -2004,12 +2119,10 @@ const Overlay = (() => {
               if (ctx) {
                 try {
                   ctx.imageSmoothingQuality = 'high';
-                  if (resizedBitmap) ctx.drawImage(resizedBitmap, 0, 0, canvas.width, canvas.height);
-                  else ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+                  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
                 } catch (e) { encoded = null; }
                 if (gen !== attachGen || !host) {
                   try { bitmap.close(); } catch (e) {}
-                  if (resizedBitmap) { try { resizedBitmap.close(); } catch (e) {} }
                   revokeOrphanURL(instantURL);
                   return;
                 }
@@ -2028,12 +2141,12 @@ const Overlay = (() => {
                   }
                 }
               }
-              if (resizedBitmap) { try { resizedBitmap.close(); } catch (e) {} }
               if (encoded) {
                 try {
                   const ab = await encoded.arrayBuffer();
                   if (gen !== attachGen || !host) {
                     try { if (bitmap) bitmap.close(); } catch (closeErr) {}
+                    revokeOrphanURL(instantURL);
                     return;
                   }
                   outBytes = new Uint8Array(ab);
@@ -2052,6 +2165,7 @@ const Overlay = (() => {
               }
             }
           } catch (e) {
+            try { if (bitmap) bitmap.close(); } catch (closeErr) {}
             outBytes = bytes;
             outMime = mime;
             encodedBlob = null;
@@ -2061,6 +2175,7 @@ const Overlay = (() => {
       }
     } catch (err) {
       // decode/encode threw — raw fallback below.
+      try { if (bitmap) bitmap.close(); } catch (closeErr) {}
       outBytes = bytes;
       outMime = mime;
       encodedBlob = null;
@@ -2074,6 +2189,7 @@ const Overlay = (() => {
       revokeOrphanURL(instantURL);
       attachment = null;
       setUploading(false);
+      updateInputState();
       showError(failReason || 'Image is too large (max 5 MB).');
       return;
     }
@@ -2083,7 +2199,7 @@ const Overlay = (() => {
     if (encodedBlob) {
       try {
         const u = URL.createObjectURL(encodedBlob);
-        if (gen !== attachGen || !host) { try { URL.revokeObjectURL(u); } catch (e) {} return; }
+        if (gen !== attachGen || !host) { try { URL.revokeObjectURL(u); } catch (e) {} revokeOrphanURL(instantURL); return; }
         finalURL = u;
       } catch (e) {
         finalURL = previewURL;
@@ -2097,16 +2213,21 @@ const Overlay = (() => {
         revokeOrphanURL(instantURL);
         attachment = null;
         setUploading(false);
+        updateInputState();
         showError('Could not preview that image.');
         return;
       }
     }
-    if (gen !== attachGen || !host) { revokeOrphanURL(finalURL); return; }
+    if (gen !== attachGen || !host) { try { if (!attachment || attachment.src !== finalURL) URL.revokeObjectURL(finalURL); } catch (e) {} return; }
     // Revoke the instant URL if the final preview is a different object URL.
     if (instantURL && finalURL !== instantURL) { try { URL.revokeObjectURL(instantURL); } catch (e) {} }
 
     const hash = fnv1a32Hex(outBytes);
-    attachment = { bytes: outBytes, src: finalURL, name: safeName, mime: outMime, hash: hash };
+    let b64 = '';
+    try {
+      if (QLENS.ImageEngine && typeof QLENS.ImageEngine.bytesToBase64 === 'function') b64 = QLENS.ImageEngine.bytesToBase64(outBytes);
+    } catch (e) { b64 = ''; }
+    attachment = { bytes: outBytes, b64: b64, src: finalURL, name: safeName, mime: outMime, hash: hash };
     setUploading(false);
     renderChip();
     // subtle success micro-feedback: focus input so Enter is instant
@@ -2114,11 +2235,16 @@ const Overlay = (() => {
     if (pendingSearch) {
       pendingSearch = false;
       try { searchImage(); } catch (e) {}
+    } else {
+      fireImagePreflight();
     }
   }
 
   function removeImage() {
     attachGen++;
+    // A reply for a removed image must never act on a later overlay.
+    searchGen++;
+    searching = false;
     pendingSearch = false;
     showDropHint(false);
     setUploading(false);
@@ -2127,6 +2253,7 @@ const Overlay = (() => {
     }
     attachment = null;
     try { renderChip(); } catch (e) {}
+    updateInputState();
   }
 
   function searchImage() {
@@ -2139,48 +2266,72 @@ const Overlay = (() => {
       return;
     }
     pendingSearch = false;
+    if (searching) return;
     const text = inputEl ? inputEl.value.trim().slice(0, 2000) : '';
-    const bytes = attachment.bytes;
     const name = attachment.name || safeNameFallback();
     const mime = attachment.mime || 'image/jpeg';
     const hash = typeof attachment.hash === 'string' ? attachment.hash : '';
-    // NOTE: extension messaging is JSON-only — typed arrays do NOT survive
-    // sendMessage (they arrive as plain index-keyed objects). Base64 is the
-    // only safe transport; the SW accepts `bytes` as the primary payload.
-    let b64 = '';
-    try {
-      if (QLENS.ImageEngine && typeof QLENS.ImageEngine.bytesToBase64 === 'function') b64 = QLENS.ImageEngine.bytesToBase64(bytes);
-      else {
-        let bin = '';
-        for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
-        b64 = btoa(bin);
+    const lensUrl = typeof attachment.lensUrl === 'string' ? attachment.lensUrl : '';
+    let payload = null;
+    if (lensUrl) {
+      // Fast path: the attach-time preflight already resolved the Lens session,
+      // so the tab opens without any upload waiting. No bytes, no re-encode.
+      payload = { url: lensUrl, text: text, name: name, mime: mime, hash: hash };
+    } else {
+      // NOTE: extension messaging is JSON-only — typed arrays do NOT survive
+      // sendMessage (they arrive as plain index-keyed objects). Base64 is the
+      // only safe transport; the SW accepts `bytes` as the primary payload.
+      let b64 = typeof attachment.b64 === 'string' ? attachment.b64 : '';
+      if (!b64) {
+        try {
+          const bytes = attachment.bytes;
+          if (QLENS.ImageEngine && typeof QLENS.ImageEngine.bytesToBase64 === 'function') b64 = QLENS.ImageEngine.bytesToBase64(bytes);
+          else {
+            let bin = '';
+            for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+            b64 = btoa(bin);
+          }
+        } catch (e) { showError('Could not prepare that image.'); return; }
+        if (!b64) { showError('Could not prepare that image.'); return; }
       }
-    } catch (e) { showError('Could not prepare that image.'); return; }
-    if (!b64) { showError('Could not prepare that image.'); return; }
-    // Single derived cap: base64 inflates bytes by 4/3, so compare against the
-    // shared IMAGE_MAX_BYTES instead of a hardcoded literal that drifts when
-    // the config changes (a 3MB image used to pass validation then fail here).
-    const rawMax = (QLENS.CONFIG && typeof QLENS.CONFIG.IMAGE_MAX_BYTES === 'number')
-      ? QLENS.CONFIG.IMAGE_MAX_BYTES : 5 * 1024 * 1024;
-    if (b64.length > Math.ceil(rawMax * 4 / 3) + 64) { showError('Image is too large to search.'); return; }
-    // Destroy synchronously on success only: the async response is awaited
-    // first so a busy single-flight ({ok:false, busy:true}) can surface a
-    // toast on the live host instead of vanishing with a dead overlay.
+      // Single derived cap: base64 inflates bytes by 4/3, so compare against the
+      // shared IMAGE_MAX_BYTES instead of a hardcoded literal that drifts when
+      // the config changes (a 3MB image used to pass validation then fail here).
+      const rawMax = (QLENS.CONFIG && typeof QLENS.CONFIG.IMAGE_MAX_BYTES === 'number')
+        ? QLENS.CONFIG.IMAGE_MAX_BYTES : 5 * 1024 * 1024;
+      if (b64.length > Math.ceil(rawMax * 4 / 3) + 64) { showError('Image is too large to search.'); return; }
+      payload = { bytes: b64, text: text, name: name, hash: hash, mime: mime };
+    }
+    // The overlay stays up until the service worker answers. Closing first left
+    // a failed upload with nowhere to report: no tab opened, and the user saw
+    // the panel vanish with no explanation.
+    const gen = ++searchGen;
+    setSearching(true);
+    let settled = false;
+    const waitMs = (QLENS.CONFIG && QLENS.CONFIG.IMAGE_SEARCH_UI_WAIT_MS) || 30000;
+    const timer = setTimeout(() => { finish(null); }, waitMs);
+    function finish(reply) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (gen !== searchGen || closing) return;
+      if (reply && reply.ok === true) {
+        // The results tab has already been opened and focused by the worker.
+        try { destroy(false); } catch (e) {}
+        return;
+      }
+      setSearching(false);
+      const code = reply && typeof reply.error === 'string' ? reply.error : '';
+      showError(code === 'bad-payload'
+        ? 'That image could not be sent to Lens.'
+        : 'Google Lens did not answer. Try again.');
+    }
     try {
-      const res = chrome.runtime.sendMessage({ type: QLENS.MSG.IMAGE_SEARCH, payload: { bytes: b64, text, name, hash, mime } });
-      const done = (r) => {
-        if (r && r.ok === false) {
-          if (r.busy) showError('Another image search is still uploading. Please try again in a moment.');
-          else showError('Could not start that image search.');
-          return;
-        }
-        // lightspeed: synchronous destroy before tabs.create (zero residue, zero google.com flash)
-        try { destroy(false); } catch (e) { try { destroy(false); } catch (_) {} }
-      };
-      if (res && typeof res.then === 'function') res.then(done, () => showError('Could not start that image search.'));
-      else done(res);
+      const reply = chrome.runtime.sendMessage({ type: QLENS.MSG.IMAGE_SEARCH, payload: payload });
+      if (reply && typeof reply.then === 'function') reply.then(finish, () => { finish(null); });
+      else finish(reply);
     } catch (err) {
-      showError('Could not start that image search.');
+      finish(null);
     }
   }
 
@@ -2192,6 +2343,30 @@ const Overlay = (() => {
       if (QLENS.CONFIG && QLENS.CONFIG.LENS_FILENAME) return QLENS.CONFIG.LENS_FILENAME;
     } catch (e) {}
     return 'qlens-search.jpg';
+  }
+
+  function fireImagePreflight() {
+    if (!host || !attachment) return;
+    const b64 = typeof attachment.b64 === 'string' ? attachment.b64 : '';
+    const hash = typeof attachment.hash === 'string' ? attachment.hash : '';
+    if (!b64 || !hash) return;
+    const name = attachment.name || safeNameFallback();
+    const mime = attachment.mime || 'image/jpeg';
+    try {
+      const res = chrome.runtime.sendMessage({
+        type: QLENS.MSG.IMAGE_SEARCH,
+        payload: { preflight: true, bytes: b64, hash: hash, name: name, mime: mime }
+      });
+      if (res && typeof res.then === 'function') {
+        res.then((r) => {
+          try {
+            if (r && r.ok === true && typeof r.url === 'string' && r.url && attachment && attachment.hash === hash) {
+              attachment.lensUrl = r.url;
+            }
+          } catch (e) {}
+        }, () => {});
+      }
+    } catch (e) {}
   }
 
   function updateFootEngine() {
@@ -2359,15 +2534,20 @@ const Overlay = (() => {
     if (!host) return;
     const files = e.dataTransfer && e.dataTransfer.files ? e.dataTransfer.files : null;
     if (!files || files.length === 0) return;
+    const isImage = (f) => {
+      try {
+        if (QLENS.ImageEngine && typeof QLENS.ImageEngine.isImageFileLike === 'function' && QLENS.ImageEngine.isImageFileLike(f)) return true;
+      } catch (err) {}
+      try { return String(f && f.type || '').startsWith('image/'); } catch (err) { return false; }
+    };
     let picked = null;
     for (const f of files) {
-      if (QLENS.ImageEngine ? QLENS.ImageEngine.isImageFileLike(f) : String(f.type||'').startsWith('image/')) { picked = f; break; }
-      if (!picked && String(f.type||'').startsWith('image/')) picked = f;
+      if (isImage(f)) { picked = f; break; }
     }
     if (!picked) {
       // last resort: take first file and let validateImageBytes give proper toast
       picked = files[0];
-      if (!picked || !QLENS.ImageEngine.isImageFileLike(picked)) { showError('Drop an image file to search it.'); return; }
+      if (!picked || !isImage(picked)) { showError('Drop an image file to search it.'); return; }
     }
     attachImage(picked);
   }
@@ -2582,12 +2762,12 @@ const Overlay = (() => {
       e.preventDefault();
       if (attachment) {
         searchImage();
+      } else if (calcResult) {
+        if (e.shiftKey) submitQuery(inputEl.value);
+        else copyCalcResult();
+        return;
       } else if (suggestionHighlight >= 0 && suggestions[suggestionHighlight]) {
         const row = suggestions[suggestionHighlight];
-        if (row.dataset.launchKind) {
-          activateLauncherRow(row, e.shiftKey);
-          return;
-        }
         const fav = row.dataset.favUrl;
         if (fav) {
           const site = { url: row.dataset.favUrl, shortcut: row.dataset.favShortcut };
@@ -2649,19 +2829,19 @@ const Overlay = (() => {
     updateFootEngine();
   }
 
-function handleTab(e) {
-  const focusables = getFocusables();
-  if (e.target === inputEl) {
-    e.preventDefault();
-    if (e.shiftKey) {
-      const idx = focusables.indexOf(inputEl);
-      const prev = idx <= 0 ? focusables[focusables.length - 1] : focusables[idx - 1];
-      if (prev) prev.focus();
-    } else {
-      setAi(!aiMode);
+  function handleTab(e) {
+    const focusables = getFocusables();
+    if (e.target === inputEl) {
+      e.preventDefault();
+      if (e.shiftKey) {
+        const idx = focusables.indexOf(inputEl);
+        const prev = idx <= 0 ? focusables[focusables.length - 1] : focusables[idx - 1];
+        if (prev) prev.focus();
+      } else {
+        setAi(!aiMode);
+      }
+      return;
     }
-    return;
-  }
     e.preventDefault();
     const idx = focusables.indexOf(e.target);
     let next = e.shiftKey ? idx - 1 : idx + 1;
@@ -2736,7 +2916,9 @@ function handleTab(e) {
       suggestEl.classList.add('is-open');
       suggestions = [];
       suggestionHighlight = -1;
-      inputEl.setAttribute('aria-expanded', 'true');
+      if (inputEl) {
+        try { inputEl.setAttribute('aria-expanded', 'true'); } catch (e) {}
+      }
       setSuggestHeight(140);
       // store filtered for later Enter handling
       suggestions = [];
@@ -2781,34 +2963,31 @@ function handleTab(e) {
     suggestions = rows;
     suggestionHighlight = -1;
     suggestEl.classList.add('is-open');
-    inputEl.setAttribute('aria-expanded', 'true');
+    if (inputEl) {
+      try { inputEl.setAttribute('aria-expanded', 'true'); } catch (e) {}
+    }
     const want = (rows.length + 1) * 48 + 12;
     const max = Math.max(180, Math.round(window.innerHeight * 0.46));
     setSuggestHeight(Math.min(want, max));
   }
 
-  function launcherShouldRun(value, pre) {
-    const v = String(value == null ? '' : value).trim();
-    if (!v) return false;
-    if (!launcherCfg().enabled || isFavoriteInput(value)) return false;
-    if (pre && pre.bangChecked) {
-      if (pre.bang) return false;
-    } else if (typeof QLENS.parseBang === 'function' && QLENS.parseBang(value, getCustoms())) {
-      return false;
-    }
-    if (pre && pre.prefixChecked) return !pre.prefix;
-    return !QLENS.parsePrefix(value);
+  function detectCalculation(value) {
+    if (attachment) return null;
+    try {
+      if (QLENS.Calc && typeof QLENS.Calc.detect === 'function') return QLENS.Calc.detect(value);
+    } catch (err) {}
+    return null;
   }
 
   function updateInputState() {
     if (!host || !inputEl) return;
     const value = inputEl.value;
+    hideCalc();
     if (selectionActive && value.trim() !== selectionText) {
       selectionActive = false;
       renderChip();
     }
     if (isFavoriteInput(value)) {
-      clearLauncher();
       const after = value.trimStart().slice(1);
       renderFavoriteCommands(after);
       return;
@@ -2816,33 +2995,28 @@ function handleTab(e) {
     if (typeof QLENS.parseBang === 'function') {
       const bang = QLENS.parseBang(value, getCustoms());
       if (bang) {
-        clearLauncher();
         applyPrefix(bang);
         return;
       }
     }
     const parsed = QLENS.parsePrefix(value);
     if (parsed) {
-      clearLauncher();
       applyPrefix(parsed);
       return;
     }
-    // Parse once and hand the results down: launcherShouldRun re-parses the
-    // same value on every keystroke today (regex + new URL + sanitize work).
-    const customs = getCustoms();
-    const pre = {
-      bangChecked: typeof QLENS.parseBang === 'function',
-      bang: typeof QLENS.parseBang === 'function' ? QLENS.parseBang(value, customs) : null,
-      prefixChecked: true,
-      prefix: QLENS.parsePrefix(value)
-    };
-    if (launcherShouldRun(value, pre)) scheduleLauncher();
-    else clearLauncher();
-    // Smart-URL check needs no second parse of bang/prefix (already done),
-    // but detectSmartUrl is a single cheap pass — keep it direct.
+    const calc = detectCalculation(value);
+    if (calc) {
+      clearTimeout(suggestionTimer);
+      suggestionTimer = null;
+      hideAction();
+      clearSuggestions();
+      renderCalc(calc);
+      return;
+    }
+    // Smart-URL check is a single cheap pass.
     const site = QLENS.detectSmartUrl(value);
     if (site && !QLENS.isOwnHost(site, engineId)) {
-      clearSuggestions(true);
+      clearSuggestions();
       renderActionRow(site, value.trim());
     } else if (value.trim()) {
       hideAction();
@@ -2850,7 +3024,7 @@ function handleTab(e) {
       if (settings && settings.suggestions) {
         scheduleSuggestions();
       } else {
-        clearSuggestions(true);
+        clearSuggestions();
       }
     } else {
       hideAction();
@@ -2911,8 +3085,20 @@ function handleTab(e) {
     measureEl.style.position = 'absolute';
     measureEl.style.visibility = 'hidden';
     measureEl.style.whiteSpace = 'pre';
-    measureEl.style.font = "600 16px/1 'QLens Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif";
-    measureEl.style.letterSpacing = '-.012em';
+    // Mirror the input's resolved metrics instead of hardcoding 16 px/600:
+    // the stylesheet owns --ql-font-input, so a type-scale change must not
+    // silently misplace the caret.
+    let font = "600 16px/1 'QLens Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif";
+    let letterSpacing = '-.012em';
+    try {
+      const cs = inputEl ? getComputedStyle(inputEl) : null;
+      if (cs && cs.fontSize && cs.fontFamily) {
+        font = (cs.fontWeight || '600') + ' ' + cs.fontSize + '/1 ' + cs.fontFamily;
+      }
+      if (cs && cs.letterSpacing) letterSpacing = cs.letterSpacing;
+    } catch (err) {}
+    measureEl.style.font = font;
+    measureEl.style.letterSpacing = letterSpacing;
     root.appendChild(measureEl);
   }
 
@@ -2969,22 +3155,27 @@ function handleTab(e) {
       queueCaret();
     };
     try {
-      if (typeof document.fonts !== 'undefined' && typeof document.fonts.check === 'function') {
-        let present = true;
+      if (typeof document.fonts !== 'undefined' && typeof document.fonts.forEach === 'function') {
+        let present = false;
         try {
-          present = [400, 500, 600, 700].every((w) => document.fonts.check(w + ' 16px "' + INTER_FAMILY + '"'));
+          const loaded = new Set();
+          document.fonts.forEach((face) => {
+            try {
+              if (String(face.family).replace(/^["']|["']$/g, '') !== INTER_FAMILY) return;
+              if (face.status === 'loaded') loaded.add(String(face.weight));
+            } catch (faceErr) {}
+          });
+          present = [400, 500, 600, 700].every((w) => loaded.has(String(w)));
         } catch (checkErr) {
           present = false;
         }
         if (present) {
-          fontsReady = true;
-          try { if (host) host.setAttribute('data-fonts', 'ready'); } catch (e) {}
-          queueCaret();
+          markReady();
           return;
         }
       }
     } catch (err) {
-      /* check unsupported — fall through to binary path */
+      /* FontFaceSet unavailable — fall through to binary path */
     }
     const load = async () => {
       let applied = 0;
@@ -3213,18 +3404,16 @@ function handleTab(e) {
     suggestEl.style.maxHeight = px + 'px';
   }
 
-  function clearSuggestions(keepLauncher) {
+  function clearSuggestions() {
     if (!suggestEl) return;
     suggestEl.textContent = '';
     sugNodeByKey.clear();
     suggestEl.classList.remove('is-open');
-    suggestions = keepLauncher ? launcherRows.slice() : [];
+    suggestions = [];
     suggestionHighlight = -1;
     if (inputEl) {
       try { inputEl.removeAttribute('aria-activedescendant'); } catch (e) {}
-      if (!keepLauncher) {
-        try { inputEl.setAttribute('aria-expanded', 'false'); } catch (e) {}
-      }
+      try { inputEl.setAttribute('aria-expanded', 'false'); } catch (e) {}
     }
     /* Nothing is on screen for an in-flight request any more, so invalidate it
        rather than letting it paint over this state when it resolves. */
@@ -3235,13 +3424,7 @@ function handleTab(e) {
 
   function renderEmpty() {
     if (!host) return;
-    clearSuggestions(true);
-    if (launcherRows.length) {
-      if (inputEl) {
-        try { inputEl.setAttribute('aria-expanded', 'true'); } catch (e) {}
-      }
-      return;
-    }
+    clearSuggestions();
     const empty = el('div', 'ql-empty');
     empty.appendChild(iconSvg(ICON_RETICLE));
     const t = el('b');
@@ -3266,7 +3449,7 @@ function handleTab(e) {
     txt.append(t);
     row.append(k, txt, iconSvg(ICON_ARROW, 'ql-sug-arrow'));
     // Resolve the highlight position at event time: rows survive keystrokes,
-    // so a captured index would drift as launcher and suggestion counts move.
+    // so a captured index would drift as the list is rebuilt.
     row.addEventListener('pointerenter', () => {
       const at = suggestions.indexOf(row);
       if (at !== -1) setHighlight(at);
@@ -3341,13 +3524,15 @@ function handleTab(e) {
       items.push({ key: text, title: text, submit: text });
     }
     const rows = reconcileSugRows(items);
-    suggestions = launcherRows.concat(rows);
+    suggestions = rows;
     suggestionHighlight = -1;
     if (inputEl) {
       try { inputEl.removeAttribute('aria-activedescendant'); } catch (e) {}
     }
     suggestEl.classList.add('is-open');
-    inputEl.setAttribute('aria-expanded', 'true');
+    if (inputEl) {
+      try { inputEl.setAttribute('aria-expanded', 'true'); } catch (e) {}
+    }
     const want = rows.length * 48 + 6;
     const max = Math.max(180, Math.round(window.innerHeight * 0.46));
     const target = Math.min(want, max);
@@ -3355,287 +3540,6 @@ function handleTab(e) {
        never visibly collapses between keystroke and response. */
     setSuggestHeight(suggestInFlight ? Math.max(target, suggestSettledHeight) : target);
     if (!suggestInFlight) suggestSettledHeight = target;
-  }
-
-  let launcherCfgMemo = null;
-  let launcherCfgKey = null;
-
-  // Same story as getCustoms: sanitizeLauncher allocates a fresh object and
-  // runs per keystroke via launcherShouldRun(). Keyed on `settings` identity.
-  function launcherCfg() {
-    if (settings && launcherCfgKey === settings) return launcherCfgMemo;
-    let cfg = null;
-    try {
-      if (settings && settings.launcher && typeof QLENS.sanitizeLauncher === 'function') {
-        cfg = QLENS.sanitizeLauncher(settings.launcher);
-      }
-    } catch (err) {}
-    if (!cfg) {
-      try {
-        const d = QLENS.CONFIG && QLENS.CONFIG.DEFAULT_SETTINGS && QLENS.CONFIG.DEFAULT_SETTINGS.launcher;
-        if (d && typeof QLENS.sanitizeLauncher === 'function') cfg = QLENS.sanitizeLauncher(d);
-      } catch (err) {}
-    }
-    if (!cfg) cfg = { enabled: true, tabs: true, bookmarks: true, history: true, maxResults: 6 };
-    if (settings) {
-      launcherCfgKey = settings;
-      launcherCfgMemo = cfg;
-    }
-    return cfg;
-  }
-
-  function clearLauncher(keepState) {
-    try { clearTimeout(launcherTimer); } catch (err) {}
-    launcherTimer = null;
-    if (launchEl) {
-      launchEl.textContent = '';
-      launchEl.classList.remove('is-open');
-      launchEl.classList.remove('is-updating');
-      launchEl.style.maxHeight = '';
-    }
-    launcherRows = [];
-    if (!keepState) launcherItems = [];
-  }
-
-  function launcherKindLabel(kind) {
-    if (kind === 'tab') return 'Open tabs';
-    if (kind === 'bookmark') return 'Bookmarks';
-    return 'History';
-  }
-
-  function launcherKindIcon(kind) {
-    if (kind === 'tab') {
-      return '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="13" rx="2"/><path d="M8 21h8M12 17.5V21"/></svg>';
-    }
-    if (kind === 'bookmark') {
-      return '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h12v17l-6-4-6 4z"/></svg>';
-    }
-    return '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3.5 2"/></svg>';
-  }
-
-  function activateLauncherRow(row, shiftKey) {
-    if (!row || !row.dataset) return;
-    const kind = row.dataset.launchKind;
-    const url = row.dataset.launchUrl || '';
-    const tabId = row.dataset.launchTabId != null && row.dataset.launchTabId !== '' ? Number(row.dataset.launchTabId) : NaN;
-    if (kind === 'tab' && Number.isFinite(tabId)) {
-      if (shiftKey) {
-        try {
-          const res = chrome.runtime.sendMessage({ type: QLENS.MSG.LAUNCHER_CLOSE, payload: { tabId } });
-          if (res && typeof res.catch === 'function') res.catch(() => {});
-        } catch (err) {}
-        removeLauncherRow(tabId);
-        return;
-      }
-      try {
-        const res = chrome.runtime.sendMessage({ type: QLENS.MSG.LAUNCHER_ACTIVATE, payload: { tabId } });
-        if (res && typeof res.catch === 'function') res.catch(() => {});
-      } catch (err) {}
-      try { destroy(false); } catch (e) { try { destroy(false); } catch (_) {} }
-      return;
-    }
-    if (QLENS.isSafeHttpUrl(url)) openTab(url, null, null);
-  }
-
-  function removeLauncherRow(tabId) {
-    launcherItems = launcherItems.filter((it) => it.tabId !== tabId);
-    renderLauncher(launcherItems);
-  }
-
-  function renderLauncher(list) {
-    if (!host || !launchEl) return;
-    clearTimeout(launcherTimer);
-    launcherTimer = null;
-    launcherItems = Array.isArray(list) ? list.slice() : [];
-    launcherRows = [];
-    launchEl.textContent = '';
-    if (!launcherItems.length) {
-      launchEl.classList.remove('is-open');
-      launchEl.style.maxHeight = '';
-      suggestions = suggestEl ? Array.from(suggestEl.querySelectorAll('.ql-sug-row')) : [];
-      suggestionHighlight = -1;
-      return;
-    }
-    const kindsInOrder = ['tab', 'bookmark', 'history'];
-    const grouped = kindsInOrder
-      .map((k) => ({ kind: k, items: launcherItems.filter((it) => it && it.kind === k) }))
-      .filter((g) => g.items.length);
-    let idx = 0;
-    for (const g of grouped) {
-      const head = el('div', 'ql-launch-head');
-      head.textContent = launcherKindLabel(g.kind);
-      head.setAttribute('aria-hidden', 'true');
-      launchEl.appendChild(head);
-      for (const item of g.items) {
-        if (idx >= launcherItems.length) break;
-        const row = el('div', 'ql-sug-row is-launcher');
-        row.id = 'ql-launch-' + idx;
-        row.setAttribute('role', 'option');
-        row.setAttribute('aria-selected', 'false');
-        row.dataset.launchKind = item.kind;
-        row.dataset.launchUrl = item.url;
-        if (typeof item.tabId === 'number') row.dataset.launchTabId = String(item.tabId);
-        if (item.id != null) row.dataset.launchId = String(item.id);
-        row.style.setProperty('--i', idx);
-        const badge = el('span', 'ql-launch-icon');
-        badge.setAttribute('aria-hidden', 'true');
-        try {
-          if (!(QLENS.setIcon && QLENS.setIcon(badge, launcherKindIcon(item.kind)))) badge.textContent = '';
-        } catch (err) { try { badge.textContent = ''; } catch (e2) {} }
-        const txtWrap = el('span', 'ql-sug-txt');
-        const t = el('b', 'ql-sug-title');
-        t.textContent = item.title || item.url;
-        const u = el('span', 'ql-launch-url');
-        u.textContent = item.url;
-        txtWrap.append(t, u);
-        const arr = iconSvg(ICON_ARROW, 'ql-sug-arrow');
-        row.append(badge, txtWrap, arr);
-        const rowIdx = idx;
-        row.addEventListener('pointerenter', () => setHighlight(rowIdx));
-        row.addEventListener('click', (e) => activateLauncherRow(row, Boolean(e && e.shiftKey)));
-        launchEl.appendChild(row);
-        launcherRows.push(row);
-        idx++;
-      }
-    }
-    launcherRows.forEach((row, i) => { row.id = 'ql-launch-' + i; });
-    launchEl.classList.add('is-open');
-    sizeLauncher(grouped);
-    rebuildHighlightList();
-    if (!inputEl.value.trim()) {
-      renderEmpty();
-    }
-  }
-
-  function sizeLauncher(grouped) {
-    if (!launchEl) return;
-    const rows = launcherRows.length;
-    const heads = grouped ? grouped.length : 0;
-    const want = rows * 52 + heads * 26 + 8;
-    let maxH = 150;
-    try {
-      maxH = Math.max(150, Math.round(window.innerHeight * 0.3));
-      const launchTop = launchEl.getBoundingClientRect().top;
-      const footH = 64;
-      const avail = Math.round(window.innerHeight - launchTop - footH - 24);
-      if (isFinite(avail) && avail > 150) maxH = Math.min(maxH, avail);
-    } catch (err) {
-      /* viewport math is best-effort */
-    }
-    launchEl.style.maxHeight = Math.min(want, maxH) + 'px';
-  }
-
-  function rebuildHighlightList() {
-    const keepId = suggestionHighlight >= 0 && suggestions[suggestionHighlight] ? suggestions[suggestionHighlight].id : null;
-    suggestions = launcherRows.concat(suggestEl ? Array.from(suggestEl.querySelectorAll('.ql-sug-row')) : []);
-    launcherRows.forEach((row, i) => { row.id = 'ql-launch-' + i; });
-    if (keepId) {
-      const next = suggestions.findIndex((r) => r.id === keepId);
-      suggestionHighlight = next;
-      setHighlight(next);
-    } else {
-      suggestionHighlight = -1;
-      if (inputEl) {
-        try { inputEl.removeAttribute('aria-activedescendant'); } catch (e) {}
-      }
-    }
-  }
-
-  function launcherCacheGet(key) {
-    if (!key) return null;
-    const entry = launcherCache.get(key);
-    if (!entry) return null;
-    // Tab/bookmark rows go stale in seconds (SW memos them 1-5s); reusing the
-    // 120s suggestion TTL here would show closed tabs for up to 2 minutes.
-    const ttl = (QLENS.CONFIG && QLENS.CONFIG.LAUNCHER_CACHE_TTL_MS) || 5000;
-    try {
-      if (Date.now() - entry.ts > ttl) launcherCache.delete(key);
-      else return entry.items;
-    } catch (err) {
-      try { launcherCache.delete(key); } catch (e) {}
-    }
-    return null;
-  }
-
-  function launcherCacheSet(key, items) {
-    if (!key || !Array.isArray(items)) return;
-    // Never cache empties: a transient SW error would suppress the launcher
-    // for the full TTL. The render path already handles empty without cache.
-    if (!items.length) return;
-    const max = (QLENS.CONFIG && QLENS.CONFIG.SUGGESTION_CACHE_MAX) || 48;
-    try {
-      launcherCache.set(key, { items: items.slice(), ts: Date.now() });
-      while (launcherCache.size > max) {
-        const oldest = launcherCache.keys().next();
-        if (oldest.done) break;
-        launcherCache.delete(oldest.value);
-      }
-    } catch (err) {}
-  }
-
-  function scheduleLauncher() {
-    clearTimeout(launcherTimer);
-    if (!host || !inputEl) return;
-    const value = String(inputEl.value == null ? '' : inputEl.value).trim();
-    if (!value) return;
-    if (value.length < 2) {
-      clearLauncher();
-      rebuildHighlightList();
-      return;
-    }
-    /* Serve a repeat query on this frame instead of after a debounce plus a
-       round trip, so the tab rows and the suggestion rows resize together
-       rather than one frame apart. */
-    const cached = launcherCacheGet(value.toLowerCase());
-    if (cached) {
-      renderLauncher(cached);
-      return;
-    }
-    const debounce = (QLENS.validWait
-      ? QLENS.validWait(QLENS.CONFIG.LAUNCHER_DEBOUNCE_MS, 220)
-      : 220);
-    launcherTimer = setTimeout(() => {
-      if (!host || !inputEl) return;
-      fetchLauncher(inputEl.value);
-    }, debounce);
-  }
-
-  async function fetchLauncher(query) {
-    const q = String(query == null ? '' : query);
-    const cfg = launcherCfg();
-    if (!cfg.enabled) {
-      clearLauncher();
-      rebuildHighlightList();
-      return;
-    }
-    const reqId = ++launcherReqId;
-    const cached = launcherCacheGet(q.trim().toLowerCase());
-    if (cached) {
-      if (reqId !== launcherReqId) return;
-      if (!host || !inputEl || inputEl.value !== q) return;
-      renderLauncher(cached);
-      return;
-    }
-    if (launchEl) launchEl.classList.add('is-updating');
-    let results = [];
-    try {
-      const resp = await chrome.runtime.sendMessage({
-        type: QLENS.MSG.LAUNCHER_QUERY,
-        payload: { query: q, id: reqId, launcher: cfg }
-      });
-      if (resp && resp.ok && resp.id === reqId) {
-        results = Array.isArray(resp.results) ? resp.results : [];
-      }
-    } catch (err) {
-      results = [];
-    }
-    if (reqId !== launcherReqId) return;
-    if (launchEl) launchEl.classList.remove('is-updating');
-    if (!host || !inputEl) return;
-    if (inputEl.value !== q) return;
-    const cleaned = results.filter((it) => it && typeof it.url === 'string' && QLENS.isSafeHttpUrl(it.url));
-    launcherCacheSet(q.trim().toLowerCase(), cleaned);
-    renderLauncher(cleaned);
   }
 
   function moveHighlight(dir) {
@@ -3660,7 +3564,9 @@ function handleTab(e) {
     }
     suggestionHighlight = idx;
     if (idx >= 0 && suggestions[idx]) {
-      inputEl.setAttribute('aria-activedescendant', suggestions[idx].id);
+      if (inputEl) {
+        try { inputEl.setAttribute('aria-activedescendant', suggestions[idx].id); } catch (err) {}
+      }
       if (idxChanged) {
         try {
           suggestions[idx].scrollIntoView({ block: 'nearest' });
@@ -3668,8 +3574,8 @@ function handleTab(e) {
           /* scrolling is best-effort */
         }
       }
-    } else {
-      inputEl.removeAttribute('aria-activedescendant');
+    } else if (inputEl) {
+      try { inputEl.removeAttribute('aria-activedescendant'); } catch (err) {}
     }
   }
 
@@ -3698,6 +3604,111 @@ function handleTab(e) {
     if (smartZone) {
       smartZone.textContent = '';
       smartZone.classList.remove('is-open');
+    }
+  }
+
+  function renderCalc(calc) {
+    if (!calcZone || !calcBtn || !calcExpr || !calcHint || !calcValue || !calc) return;
+    clearTimeout(calcCopyTimer);
+    calcCopyTimer = null;
+    calcResult = calc;
+    calcBtn.classList.remove('is-copied');
+    calcExpr.textContent = calc.expression;
+    calcValue.textContent = calc.display;
+    calcValue.title = calc.copy;
+    const len = calc.display.length;
+    calcValue.classList.toggle('is-medium', len > 16 && len <= 28);
+    calcValue.classList.toggle('is-long', len > 28 && len <= 44);
+    calcValue.classList.toggle('is-tiny', len > 44);
+    setCalcHintIdle();
+    calcZone.classList.add('is-open');
+    calcZone.removeAttribute('aria-hidden');
+    calcBtn.tabIndex = 0;
+    if (inputEl) {
+      try { inputEl.setAttribute('aria-expanded', 'false'); } catch (err) {}
+    }
+  }
+
+  function setCalcHintIdle() {
+    if (!calcBtn || !calcHint || !calcResult) return;
+    calcHint.textContent = 'Enter to copy \u00b7 Shift+Enter to search';
+    calcBtn.setAttribute(
+      'aria-label',
+      'Result ' + calcResult.display + ' for ' + calcResult.expression + '. Press Enter to copy, Shift+Enter to search.'
+    );
+  }
+
+  function hideCalc() {
+    calcResult = null;
+    clearTimeout(calcCopyTimer);
+    calcCopyTimer = null;
+    if (calcBtn) {
+      calcBtn.classList.remove('is-copied');
+      calcBtn.tabIndex = -1;
+    }
+    if (calcZone) {
+      calcZone.classList.remove('is-open');
+      calcZone.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  async function copyCalcResult() {
+    if (!calcResult || !calcResult.copy) return;
+    const target = calcResult;
+    const ok = await copyTextToClipboard(target.copy);
+    if (!host || !calcResult || calcResult.copy !== target.copy) return;
+    if (!ok) {
+      showError('Could not copy the result.');
+      return;
+    }
+    clearTimeout(calcCopyTimer);
+    if (calcBtn) {
+      calcBtn.classList.add('is-copied');
+      calcBtn.setAttribute('aria-label', 'Copied result ' + target.display + ' to the clipboard.');
+    }
+    if (calcHint) calcHint.textContent = 'Copied to clipboard';
+    calcCopyTimer = setTimeout(() => {
+      calcCopyTimer = null;
+      if (!host) return;
+      if (calcBtn) calcBtn.classList.remove('is-copied');
+      setCalcHintIdle();
+    }, 1600);
+  }
+
+  async function copyTextToClipboard(text) {
+    const value = String(text == null ? '' : text);
+    if (!value) return false;
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(value);
+        return true;
+      }
+    } catch (err) {
+      /* permission denied or document unfocused — fall back to execCommand */
+    }
+    let node = null;
+    try {
+      node = document.createElement('textarea');
+      node.value = value;
+      node.setAttribute('readonly', '');
+      node.setAttribute('aria-hidden', 'true');
+      node.style.position = 'fixed';
+      node.style.top = '0';
+      node.style.left = '-9999px';
+      node.style.opacity = '0';
+      node.style.pointerEvents = 'none';
+      (document.body || document.documentElement).appendChild(node);
+      node.focus();
+      node.select();
+      try { node.setSelectionRange(0, value.length); } catch (err) {}
+      return Boolean(document.execCommand('copy'));
+    } catch (err) {
+      return false;
+    } finally {
+      if (node && node.parentNode) {
+        try { node.parentNode.removeChild(node); } catch (err) {}
+      }
+      try { if (inputEl && host) inputEl.focus(); } catch (err) {}
     }
   }
 
@@ -3731,22 +3742,27 @@ function handleTab(e) {
   }
 
   function openTab(url, query, engine) {
+    if (!url || !QLENS.isSafeHttpUrl(url)) return;
     const payload = { url };
     if (query) payload.query = query;
     if (engine) payload.engine = engine;
     // Destroy synchronously BEFORE the tabs.create round trip (AGENTS.md):
     // the overlay, its listeners and the focus loop must not outlive submit.
     try { destroy(false); } catch (err) {}
+    const reopenWithError = () => {
+      // The overlay is already torn down, so the old showError target is gone.
+      // Rebuild it around the attempted query instead of failing silently.
+      try {
+        if (!host) show(query ? { query } : undefined);
+        showError('Could not open a new tab.');
+      } catch (err) {}
+    };
     try {
       chrome.runtime.sendMessage({ type: QLENS.MSG.OPEN_TAB, payload }).then((res) => {
-        if (res && res.ok === false) {
-          showError('Could not open a new tab.');
-        }
-      }).catch(() => {
-        showError('Could not open a new tab.');
-      });
+        if (res && res.ok === false) reopenWithError();
+      }).catch(reopenWithError);
     } catch (err) {
-      showError('Could not open a new tab.');
+      reopenWithError();
     }
   }
 
@@ -3779,15 +3795,11 @@ function handleTab(e) {
     actionSite = null;
     suggestions = [];
     suggestionHighlight = -1;
-    launcherRows = [];
-    launcherItems = [];
     lastSuggestKey = '';
     lastSuggestResults = [];
     sugNodeByKey.clear();
     suggestSettledHeight = 0;
     suggestInFlight = false;
-    launcherCache.clear();
-    launcherReqId++;
     selectionText = null;
     selectionActive = false;
     attachment = null;
@@ -3800,6 +3812,8 @@ function handleTab(e) {
     engineOrder = QLENS.CONFIG.DEFAULT_SETTINGS.engineOrder.slice();
 
     const p = payload || {};
+    // Internal recovery path: reopen with the query the failed submit carried.
+    const queryText = typeof p.query === 'string' ? p.query.trim() : '';
     const pre = p.settings && typeof p.settings === 'object' && Array.isArray(p.settings.engineOrder)
       ? p.settings
       : null;
@@ -3827,10 +3841,12 @@ function handleTab(e) {
     const maxSel = pre ? pre.maxSelection : QLENS.CONFIG.DEFAULT_SETTINGS.maxSelection;
 
     let text = null;
-    if (typeof p.selection === 'string' && p.selection.trim()) {
-      text = QLENS.Selection.truncate(p.selection, maxSel);
-    } else {
-      text = QLENS.Selection.capture(maxSel);
+    if (!queryText) {
+      if (typeof p.selection === 'string' && p.selection.trim()) {
+        text = QLENS.Selection.truncate(p.selection, maxSel);
+      } else {
+        text = QLENS.Selection.capture(maxSel);
+      }
     }
 
     try {
@@ -3843,9 +3859,15 @@ function handleTab(e) {
         selectionText = text;
         selectionActive = true;
         inputEl.value = text;
+      } else if (queryText) {
+        inputEl.value = QLENS.Selection.truncate(queryText, maxSel);
       }
       renderChip();
-      focusInput();
+      // The first native focus in a fresh shadow tree can block for a frame;
+      // defer it so the overlay paints immediately. Printable keys still route
+      // through onWindowCaptureKey and land in the input.
+      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => { focusInput(); });
+      else focusInput();
       updateInputState();
       hydrate();
     } catch (err) {
@@ -3857,7 +3879,8 @@ function handleTab(e) {
     }
   }
 
-  async function hydrate() {    if (!settings) {
+  async function hydrate() {
+    if (!settings) {
       // One storage round trip, not two: getLastEngine() falls back to
       // settings.defaultEngine anyway, so derive it from the settings read.
       let s = null;
@@ -3873,12 +3896,6 @@ function handleTab(e) {
       updateFootEngine();
       applyTheme(s);
       updateViewportFrame();
-      if (!launcherCfg().enabled) {
-        clearLauncher();
-        rebuildHighlightList();
-      } else if (inputEl && inputEl.value && launcherShouldRun(inputEl.value)) {
-        scheduleLauncher();
-      }
       if (engineId === initialEngineId && !userTouchedEngine) {
         try {
           const last = await QLENS.storage.getLastEngine(settings);
@@ -3929,12 +3946,11 @@ function handleTab(e) {
     closing = true;
     clearTimeout(suggestionTimer);
     suggestionTimer = null;
-    clearTimeout(launcherTimer);
-    launcherTimer = null;
+    clearTimeout(calcCopyTimer);
+    calcCopyTimer = null;
     try { clearTimeout(focusOutTimer); } catch (err) {}
     focusOutTimer = null;
     suggestionReqId++;
-    launcherReqId++;
     let reduced = false;
     try {
       reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -3974,8 +3990,15 @@ function handleTab(e) {
     pillsRow = null;
     aiPillEl = null;
     smartZone = null;
+    calcZone = null;
+    calcBtn = null;
+    calcExpr = null;
+    calcHint = null;
+    calcValue = null;
+    calcResult = null;
+    clearTimeout(calcCopyTimer);
+    calcCopyTimer = null;
     suggestEl = null;
-    launchEl = null;
     footEngine = null;
     imgBtn = null;
     fileInput = null;
@@ -3987,9 +4010,6 @@ function handleTab(e) {
     closing = false;
     suggestions = [];
     suggestionHighlight = -1;
-    launcherRows = [];
-    launcherItems = [];
-    launcherTimer = null;
     clearTimeout(toastTimer);
     toastTimer = null;
     dragDepth = 0;
@@ -4011,6 +4031,14 @@ function handleTab(e) {
       }
     }
   }
+
+  // Warm the compiled stylesheet while the page is idle so the first open is
+  // DOM construction only. If idle never happens, applyStyles compiles lazily.
+  try {
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(() => { compileSheet(); }, { timeout: 1500 });
+    }
+  } catch (err) {}
 
   return {
     show,

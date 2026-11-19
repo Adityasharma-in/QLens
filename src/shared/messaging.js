@@ -7,9 +7,6 @@ QLENS.MSG = {
   FETCH_SUGGESTIONS: 'QLENS_FETCH_SUGGESTIONS',
   IMAGE_SEARCH: 'QLENS_IMAGE_SEARCH',
   FONT_FACE: 'QLENS_FONT_FACE',
-  LAUNCHER_QUERY: 'QLENS_LAUNCHER_QUERY',
-  LAUNCHER_ACTIVATE: 'QLENS_LAUNCHER_ACTIVATE',
-  LAUNCHER_CLOSE: 'QLENS_LAUNCHER_CLOSE',
   OPEN_OPTIONS: 'QLENS_OPEN_OPTIONS'
 };
 
@@ -17,7 +14,7 @@ QLENS.CONTENT_FILES = [
   'src/shared/config.js',
   'src/shared/messaging.js',
   'src/shared/engines.js',
-  'src/shared/launcher.js',
+  'src/shared/calculator.js',
   'src/shared/logos.js',
   'src/shared/async.js',
   'src/shared/storage.js',
@@ -27,12 +24,11 @@ QLENS.CONTENT_FILES = [
   'src/content/injector.js'
 ];
 
-// Lean set parsed on EVERY http(s) page at document_idle. All it needs is the
-// custom-combo keydown: MSG + CONFIG (matchesCombo/isValidCombo) + the
-// shortcut reader + the listener. engines.js/launcher.js are deliberately NOT
-// here — the keydown path never touches them, and dropping them takes ~15KB of
-// parse+execute off every single page load. They ride along in the delta that
-// injectContent() sends on first overlay open.
+// Legacy lean set from versions that injected the overlay on first open.
+// Manifest content_scripts now loads CONTENT_FILES eagerly (instant first open),
+// but the service worker still uses this list to detect and repair tabs that
+// were loaded by an older build: lean=true + hasOverlay=false means "inject the
+// delta", so these names must keep describing the old lean set exactly.
 QLENS.KEYDOWN_FILES = [
   'src/shared/config.js',
   'src/shared/messaging.js',

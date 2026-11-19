@@ -2,6 +2,11 @@ globalThis.QLENS = globalThis.QLENS || {};
 
 (() => {
   let settings = null;
+  let savedShortcut = QLENS.CONFIG.SHORTCUT_DEFAULT;
+  let pendingShortcut = null;
+  let capturingShortcut = false;
+  let updateEdgeCollapseUI = null;
+  let toastTimer = null;
 
   function $(id) {
     return document.getElementById(id);
@@ -23,12 +28,14 @@ globalThis.QLENS = globalThis.QLENS || {};
     if (!t) {
       t = document.createElement('div');
       t.className = 'toast';
+      t.setAttribute('role', 'status');
+      t.setAttribute('aria-live', 'polite');
       document.body.appendChild(t);
     }
     t.textContent = text;
     requestAnimationFrame(() => t.classList.add('show'));
-    clearTimeout(showToast.timer);
-    showToast.timer = setTimeout(() => t.classList.remove('show'), 1800);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
   }
 
   function applyAppearance() {
@@ -183,7 +190,7 @@ globalThis.QLENS = globalThis.QLENS || {};
     for (const btn of wrap.querySelectorAll('.seg-btn')) {
       const v = btn.dataset.theme || btn.dataset.action;
       btn.classList.toggle('active', v === value);
-      btn.setAttribute('aria-pressed', String(v === value));
+      btn.setAttribute('aria-checked', String(v === value));
     }
   }
 
@@ -238,72 +245,6 @@ globalThis.QLENS = globalThis.QLENS || {};
       if (!el) continue;
       el.checked = Boolean(settings[TOGGLE_MAP[elId]]);
     }
-    setLauncherStates();
-  }
-
-  function getLauncher() {
-    try {
-      if (settings && settings.launcher && typeof QLENS.sanitizeLauncher === 'function') {
-        return QLENS.sanitizeLauncher(settings.launcher);
-      }
-    } catch (err) {}
-    return QLENS.sanitizeLauncher({});
-  }
-
-  function setLauncherStates() {
-    const l = getLauncher();
-    const map = {
-      'opt-launcherEnabled': l.enabled,
-      'opt-launcherTabs': l.tabs,
-      'opt-launcherBookmarks': l.bookmarks,
-      'opt-launcherHistory': l.history
-    };
-    for (const elId of Object.keys(map)) {
-      const input = $(elId);
-      if (input) input.checked = Boolean(map[elId]);
-    }
-    const maxEl = $('opt-launcherMax');
-    if (maxEl) maxEl.value = String(l.maxResults);
-  }
-
-  async function saveLauncher() {
-    const read = (id) => { const e = $(id); return e ? Boolean(e.checked) : undefined; };
-    const maxEl = $('opt-launcherMax');
-    let max;
-    if (maxEl) {
-      max = Math.floor(Number(maxEl.value));
-      if (!Number.isFinite(max)) max = getLauncher().maxResults;
-      maxEl.value = String(Math.min(10, Math.max(3, max)));
-    }
-    settings = await QLENS.storage.setSettings({
-      launcher: { enabled: read('opt-launcherEnabled'), tabs: read('opt-launcherTabs'), bookmarks: read('opt-launcherBookmarks'), history: read('opt-launcherHistory'), maxResults: max }
-    });
-    setLauncherStates();
-  }
-
-  function bindLauncher() {
-    for (const id of ['opt-launcherEnabled', 'opt-launcherTabs', 'opt-launcherBookmarks', 'opt-launcherHistory']) {
-      const input = $(id);
-      if (input) input.addEventListener('change', async () => {
-        if ((id === 'opt-launcherHistory' || id === 'opt-launcherBookmarks') && input.checked) {
-          const perm = id === 'opt-launcherHistory' ? 'history' : 'bookmarks';
-          let granted = true;
-          try {
-            if (chrome.permissions && chrome.permissions.request) {
-              granted = await chrome.permissions.request({ permissions: [perm] });
-            }
-          } catch (err) { granted = true; }
-          if (!granted) {
-            input.checked = false;
-            showToast(perm + ' permission denied — ' + (perm === 'history' ? 'history' : 'bookmark') + ' results stay off');
-            return;
-          }
-        }
-        await saveLauncher();
-      });
-    }
-    const maxEl = $('opt-launcherMax');
-    if (maxEl) maxEl.addEventListener('change', async () => { await saveLauncher(); showToast('Launcher results saved'); });
   }
 
   function bindToggles() {
@@ -317,11 +258,15 @@ globalThis.QLENS = globalThis.QLENS || {};
   }
 
   function showShortcut() {
-    QLENS.storage
+    return QLENS.storage
       .getShortcut()
       .then((combo) => {
+        savedShortcut = combo;
         const el = $('shortcut-input');
-        if (el) el.value = combo;
+        if (el && !capturingShortcut && !pendingShortcut) {
+          el.value = combo;
+          el.classList.remove('is-pending');
+        }
       })
       .catch(() => {});
   }
@@ -329,41 +274,130 @@ globalThis.QLENS = globalThis.QLENS || {};
   function bindShortcutCapture() {
     const input = $('shortcut-input');
     const note = $('shortcut-note');
-    let pending = null;
+    const saveBtn = $('shortcut-save');
+    const resetBtn = $('shortcut-reset');
+    const testBtn = $('shortcut-test');
+    if (!input || !note) return;
+
+    const setNote = (text, tone) => {
+      note.textContent = text;
+      if (tone) note.dataset.tone = tone;
+      else delete note.dataset.tone;
+    };
+    const clearPending = () => {
+      pendingShortcut = null;
+      input.classList.remove('is-pending');
+      if (saveBtn) saveBtn.disabled = true;
+    };
+    const rejectCombo = (text) => {
+      clearPending();
+      input.value = savedShortcut;
+      setNote(text, 'error');
+    };
+    const setPending = (combo) => {
+      pendingShortcut = combo;
+      input.value = combo;
+      input.classList.add('is-pending');
+      if (saveBtn) saveBtn.disabled = false;
+      setNote('Shortcut: ' + combo + ' — click Save to apply.', 'ok');
+    };
+
     input.addEventListener('focus', () => {
-      note.textContent = 'Press the keys you want to use (Ctrl or Alt + a key), then click Save.';
+      capturingShortcut = true;
+      input.classList.add('is-recording');
+      setNote('Listening… press Ctrl/Alt/Cmd + a key. Esc cancels, Tab moves on.', 'recording');
+    });
+    input.addEventListener('blur', () => {
+      capturingShortcut = false;
+      input.classList.remove('is-recording');
+      if (pendingShortcut) {
+        setNote('Unsaved: ' + pendingShortcut + ' — click Save to apply.', 'ok');
+      } else {
+        input.value = savedShortcut;
+        setNote('Current: ' + savedShortcut + '. Click the field and press a new combo to change it.');
+      }
     });
     input.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') return;
       e.preventDefault();
       e.stopPropagation();
+      if (e.repeat) return;
       if (e.key === 'Escape') {
+        clearPending();
+        input.value = savedShortcut;
         input.blur();
         return;
       }
+      if (e.key === 'Control' || e.key === 'Shift' || e.key === 'Alt' || e.key === 'Meta') return;
       const combo = QLENS.buildCombo(e, e.key, e.code);
       if (!combo) {
-        note.textContent = 'Use a modifier (Ctrl or Alt) plus a letter, number, or F-key.';
+        rejectCombo('Hold Ctrl or Alt (Cmd on Mac) and press a letter, number, F-key, Space, or punctuation key.');
         return;
       }
-      pending = combo;
-      input.value = combo;
-      note.textContent = 'Shortcut: ' + combo + ' — click Save to apply.';
-    });
-    $('shortcut-save').addEventListener('click', async () => {
-      const combo = pending || (input.value.trim() || '');
+      if (typeof QLENS.reservedComboReason === 'function') {
+        const reason = QLENS.reservedComboReason(combo);
+        if (reason) {
+          rejectCombo(reason);
+          return;
+        }
+      }
       if (!QLENS.isValidCombo(combo)) {
-        note.textContent = 'Invalid shortcut. Use Ctrl or Alt plus a key.';
+        rejectCombo('That combo cannot be saved. Use Ctrl or Alt plus one key.');
+        return;
+      }
+      setPending(combo);
+    });
+    if (saveBtn) saveBtn.addEventListener('click', async () => {
+      const combo = pendingShortcut || (input.value.trim() || '');
+      if (!QLENS.isValidCombo(combo)) {
+        rejectCombo('Invalid shortcut. Use Ctrl or Alt plus a key.');
+        return;
+      }
+      const reason = typeof QLENS.reservedComboReason === 'function'
+        ? QLENS.reservedComboReason(combo)
+        : null;
+      if (reason) {
+        rejectCombo(reason);
         return;
       }
       const ok = await QLENS.storage.setShortcut(combo);
       if (!ok) {
-        note.textContent = 'Could not save the shortcut.';
+        setNote('Could not save the shortcut. Try again.', 'error');
         return;
       }
-      pending = null;
-      note.textContent = 'Saved — QLens now opens with ' + combo + ' on any page.';
+      savedShortcut = combo;
+      clearPending();
+      input.value = combo;
+      setNote('Saved — press ' + combo + ' on any normal website tab. Chrome blocks the overlay on settings pages.', 'ok');
       showToast('Shortcut updated');
     });
+    if (resetBtn) resetBtn.addEventListener('click', async () => {
+      const combo = QLENS.CONFIG.SHORTCUT_DEFAULT;
+      const ok = await QLENS.storage.setShortcut(combo);
+      if (!ok) {
+        setNote('Could not restore the default shortcut.', 'error');
+        return;
+      }
+      savedShortcut = combo;
+      clearPending();
+      input.value = combo;
+      setNote('Default restored — press ' + combo + ' on any normal website tab.', 'ok');
+      showToast('Default shortcut restored');
+    });
+    if (testBtn) testBtn.addEventListener('click', async () => {
+      if (pendingShortcut) {
+        setNote('Save ' + pendingShortcut + ' first, then test it on a normal page.', 'error');
+        showToast('Save the shortcut first');
+        return;
+      }
+      try {
+        await chrome.tabs.create({ url: 'https://example.com/', active: true });
+        showToast('Press ' + savedShortcut + ' on the new tab');
+      } catch (err) {
+        showToast('Could not open a test tab');
+      }
+    });
+    if (saveBtn) saveBtn.disabled = true;
     const openBtn = $('shortcut-open');
     if (openBtn) openBtn.addEventListener('click', async () => {
       try {
@@ -698,8 +732,8 @@ globalThis.QLENS = globalThis.QLENS || {};
         showToast(next ? 'Edge lab collapsed' : 'Edge lab expanded');
       });
     }
-    // expose for sync
-    window._updateEdgeCollapse = updateCollapseUI;
+    // module-scoped hook for sync/reset paths
+    updateEdgeCollapseUI = updateCollapseUI;
     updateCollapseUI();
   }
 
@@ -1111,7 +1145,6 @@ globalThis.QLENS = globalThis.QLENS || {};
     renderSwatches();
     setToggleStates();
     bindToggles();
-    bindLauncher();
     bindSeg('theme');
     bindSeg('ctx');
     bindDnD();
@@ -1121,12 +1154,15 @@ globalThis.QLENS = globalThis.QLENS || {};
     showVersion();
     bindEdgeStudio();
     syncEdgeUI();
-    if (window._updateEdgeCollapse) window._updateEdgeCollapse();
+    if (updateEdgeCollapseUI) updateEdgeCollapseUI();
     renderFavList();
     bindFav();
     bindRail();
     bindMast();
-    // update mast stats
+    updateMastStats();
+  }
+
+  function updateMastStats() {
     const statEng = document.getElementById('stat-engines');
     if (statEng) statEng.textContent = String(settings.engineOrder ? settings.engineOrder.length : 4);
     const railVer = document.getElementById('rail-version');
@@ -1158,10 +1194,11 @@ globalThis.QLENS = globalThis.QLENS || {};
   }
 
   function bindMast() {
-    const btn = document.getElementById('mast-open-options');
+    const btn = document.getElementById('mast-quick-commands');
     if (btn) btn.addEventListener('click', () => {
       const el = document.getElementById('card-commands');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (!el) return;
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       // pulse the quick commands card
       el.style.transition = 'box-shadow .3s';
       el.style.boxShadow = '0 0 0 3px var(--accent-soft), 0 18px 50px -20px rgba(0,0,0,.45)';
@@ -1182,8 +1219,13 @@ globalThis.QLENS = globalThis.QLENS || {};
       renderSeg('ctx');
       renderSwatches();
       setToggleStates();
-      setLauncherStates();
       syncEdgeUI();
+      if (updateEdgeCollapseUI) updateEdgeCollapseUI();
+      renderFavList();
+      updateMastStats();
+      showShortcut();
+      closeFavForm();
+      closeEngForm();
       showToast('Reset to defaults');
     });
   }
