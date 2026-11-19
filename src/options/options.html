@@ -15,7 +15,7 @@
 <header class="mast">
   <div class="mast-inner">
     <div class="mast-mark" aria-hidden="true">
-      <div class="mark-ring"><span class="mark-dot"></span></div>
+      <img class="mark-ring" src="../icons/icon128.png" width="64" height="64" alt="">
       <div class="mark-meta"><span>LENS</span><span>01</span></div>
     </div>
     <div class="mast-title">
@@ -27,7 +27,7 @@
       <div class="privacy">100% local — no data leaves your device. <span>·</span> Free · No ads</div>
       <div class="mast-actions">
         <a class="btn btn-ghost" href="https://github.com/Adityasharma-in/QLens" target="_blank" rel="noopener">GitHub ↗</a>
-        <button class="btn btn-accent" id="mast-open-options" type="button">Test Overlay — Ctrl+Shift+K</button>
+        <button class="btn btn-accent" id="mast-quick-commands" type="button">Try Quick Commands</button>
       </div>
       <div class="mast-stats">
         <span><b id="stat-engines">4</b> engines</span>
@@ -47,10 +47,9 @@
       <a href="#card-custom" class="rail-link">03 — Custom Engines</a>
       <a href="#card-appearance" class="rail-link">04 — Appearance</a>
       <a href="#card-edge" class="rail-link">05 — Edge Glow</a>
-      <a href="#card-launcher" class="rail-link">06 — Launcher</a>
-      <a href="#card-behavior" class="rail-link">07 — Behavior</a>
-      <a href="#card-shortcut" class="rail-link">08 — Shortcut</a>
-      <a href="#card-data" class="rail-link">09 — Data</a>
+      <a href="#card-behavior" class="rail-link">06 — Behavior</a>
+      <a href="#card-shortcut" class="rail-link">07 — Shortcut</a>
+      <a href="#card-data" class="rail-link">08 — Data</a>
       <div class="rail-foot">Calibrated for <span id="rail-version">v1.1.0</span></div>
     </div>
   </nav>
@@ -193,9 +192,9 @@
       <div class="field">
         <label class="field-label" id="theme-label">Theme</label>
         <div class="seg" id="theme" role="radiogroup" aria-labelledby="theme-label">
-          <button type="button" class="seg-btn" data-theme="system">System</button>
-          <button type="button" class="seg-btn" data-theme="light">Light</button>
-          <button type="button" class="seg-btn" data-theme="dark">Dark</button>
+          <button type="button" class="seg-btn" role="radio" data-theme="system">System</button>
+          <button type="button" class="seg-btn" role="radio" data-theme="light">Light</button>
+          <button type="button" class="seg-btn" role="radio" data-theme="dark">Dark</button>
         </div>
       </div>
       <div class="field">
@@ -307,54 +306,10 @@
       </div>
     </section>
 
-    <section class="card" id="card-launcher">
-      <div class="card-topline"></div>
-      <div class="card-head">
-        <div class="card-num">06 — LAUNCHER</div>
-        <h2>Unified launcher</h2>
-        <p class="card-desc">Switch open tabs, jump to bookmarks, or revisit history — right from the lens. Everything stays on your device; no page content or URLs ever leave the browser.</p>
-      </div>
-      <label class="tgl-row" for="opt-launcherEnabled">
-        <span class="tgl-text">
-          <span class="tgl-title">Enable launcher</span>
-          <span class="tgl-desc">Show matching tabs, bookmarks, and history above web suggestions</span>
-        </span>
-        <span class="tgl-track"><input type="checkbox" id="opt-launcherEnabled" class="tgl-input"><span class="tgl-thumb" aria-hidden="true"></span></span>
-      </label>
-      <label class="tgl-row" for="opt-launcherTabs">
-        <span class="tgl-text">
-          <span class="tgl-title">Open tabs</span>
-          <span class="tgl-desc">Quick-switch between tabs (Enter switches, Shift+Enter closes)</span>
-        </span>
-        <span class="tgl-track"><input type="checkbox" id="opt-launcherTabs" class="tgl-input"><span class="tgl-thumb" aria-hidden="true"></span></span>
-      </label>
-      <label class="tgl-row" for="opt-launcherBookmarks">
-        <span class="tgl-text">
-          <span class="tgl-title">Bookmarks</span>
-          <span class="tgl-desc">Match bookmark titles and URLs as you type</span>
-        </span>
-        <span class="tgl-track"><input type="checkbox" id="opt-launcherBookmarks" class="tgl-input"><span class="tgl-thumb" aria-hidden="true"></span></span>
-      </label>
-      <label class="tgl-row" for="opt-launcherHistory">
-        <span class="tgl-text">
-          <span class="tgl-title">History</span>
-          <span class="tgl-desc">Match pages visited in the last 14 days</span>
-        </span>
-        <span class="tgl-track"><input type="checkbox" id="opt-launcherHistory" class="tgl-input"><span class="tgl-thumb" aria-hidden="true"></span></span>
-      </label>
-      <div class="data-row">
-        <div>
-          <p class="data-title">Max results</p>
-          <p class="data-note">How many launcher rows to show (3–10).</p>
-        </div>
-        <input type="number" id="opt-launcherMax" class="shortcut-input" style="min-width:96px; width:96px" min="3" max="10" step="1">
-      </div>
-    </section>
-
     <section class="card" id="card-behavior">
       <div class="card-topline"></div>
       <div class="card-head">
-        <div class="card-num">07 — BEHAVIOR</div>
+        <div class="card-num">06 — BEHAVIOR</div>
         <h2>How the lens behaves</h2>
         <p class="card-desc">Suggestions, closing, and copying — small switches that change the feel.</p>
       </div>
@@ -382,8 +337,8 @@
       <div class="field">
         <label class="field-label" id="ctx-label">Right-click search</label>
         <div class="seg" id="ctx" role="radiogroup" aria-labelledby="ctx-label">
-          <button type="button" class="seg-btn" data-action="overlay">Open overlay</button>
-          <button type="button" class="seg-btn" data-action="direct">Search directly</button>
+          <button type="button" class="seg-btn" role="radio" data-action="overlay">Open overlay</button>
+          <button type="button" class="seg-btn" role="radio" data-action="direct">Search directly</button>
         </div>
       </div>
     </section>
@@ -391,22 +346,32 @@
     <section class="card" id="card-shortcut">
       <div class="card-topline"></div>
       <div class="card-head">
-        <div class="card-num">08 — SHORTCUT</div>
+        <div class="card-num">07 — SHORTCUT</div>
         <h2>Keyboard</h2>
         <p class="card-desc">Your summon key. Click the field, press the combo, save.</p>
       </div>
       <div class="shortcut-row">
-        <div>
+        <div class="shortcut-field">
           <label class="field-label" for="shortcut-input">Overlay shortcut</label>
-          <input type="text" id="shortcut-input" class="shortcut-input" value="Ctrl+Shift+K" readonly>
-          <p class="shortcut-note" id="shortcut-note">Click the field and press the keys you want to use (Ctrl or Alt + a key).</p>
+          <input type="text" id="shortcut-input" class="shortcut-input" value="Ctrl+Shift+K" readonly aria-describedby="shortcut-note" spellcheck="false" autocomplete="off">
+          <p class="shortcut-note" id="shortcut-note" aria-live="polite">Click the field, then press the combo you want (Ctrl/Alt/Cmd + a key). Space, letters, numbers, F-keys, and punctuation work.</p>
         </div>
-        <button type="button" class="btn btn-accent" id="shortcut-save">Save shortcut</button>
+        <div class="shortcut-actions">
+          <button type="button" class="btn btn-accent" id="shortcut-save" disabled>Save shortcut</button>
+          <button type="button" class="btn btn-ghost" id="shortcut-reset">Reset to default</button>
+        </div>
+      </div>
+      <div class="data-row">
+        <div>
+          <p class="data-title">Test it on a real page</p>
+          <p class="data-note">Chrome does not run extensions on settings pages. Open a normal website and press your shortcut there.</p>
+        </div>
+        <button type="button" class="btn btn-ghost" id="shortcut-test">Open a test page</button>
       </div>
       <div class="data-row">
         <div>
           <p class="data-title">Chrome shortcut manager</p>
-          <p class="data-note">For advanced rebinding or conflicts, Chrome's own manager always wins. Paste this address into your address bar: <code>chrome://extensions/shortcuts</code></p>
+          <p class="data-note">Chrome's manager controls the browser-level command (the default Ctrl+Shift+K). Once you save a different combo above, QLens uses that in-page and stops honoring the browser command. Paste this address into your address bar: <code>chrome://extensions/shortcuts</code></p>
         </div>
         <button type="button" class="btn btn-ghost" id="shortcut-open">Copy shortcuts address</button>
       </div>
@@ -415,7 +380,7 @@
     <section class="card" id="card-data">
       <div class="card-topline"></div>
       <div class="card-head">
-        <div class="card-num">09 — DATA</div>
+        <div class="card-num">08 — DATA</div>
         <h2>Reset</h2>
         <p class="card-desc">Wipe local settings and start clean. No sync, no server — just this device.</p>
       </div>
@@ -438,7 +403,6 @@
 
 <script src="../shared/config.js"></script>
 <script src="../shared/engines.js"></script>
-<script src="../shared/launcher.js"></script>
 <script src="../shared/logos.js"></script>
 <script src="../shared/storage.js"></script>
 <script src="options.js"></script>

@@ -19,7 +19,7 @@ globalThis.QLENS = globalThis.QLENS || {};
     document.documentElement.style.setProperty('--accent-soft', hex + '1F');
     for (const btn of document.querySelectorAll('#pop-theme .seg-btn')) {
       btn.classList.toggle('active', btn.dataset.value === settings.theme);
-      btn.setAttribute('aria-pressed', String(btn.dataset.value === settings.theme));
+      btn.setAttribute('aria-checked', String(btn.dataset.value === settings.theme));
     }
   }
 
@@ -52,7 +52,6 @@ globalThis.QLENS = globalThis.QLENS || {};
       b.dataset.engine = id;
       b.setAttribute('role', 'radio');
       b.setAttribute('aria-checked', String(id === (chosenEngine || settings.defaultEngine)));
-      b.setAttribute('aria-pressed', String(id === (chosenEngine || settings.defaultEngine)));
       b.setAttribute('aria-label', 'Search with ' + eng.name);
       const icon = document.createElement('span');
       try {

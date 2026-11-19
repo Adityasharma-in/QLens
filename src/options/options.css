@@ -1,5 +1,48 @@
 /* QLens Options — Precision Instrument / Editorial Darkroom */
 
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/inter-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../fonts/inter-latin-500-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../fonts/inter-latin-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/inter-latin-700-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('../fonts/inter-latin-700-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url('../fonts/inter-latin-700-normal.woff2') format('woff2');
+}
+
 :root{
   color-scheme:dark;
   --accent:#6366F1; --accent-soft:rgba(99,102,241,.12); --accent-strong:rgba(99,102,241,.22);
@@ -29,7 +72,7 @@ html,body{height:100%}
 body{
   margin:0; min-height:100vh;
   background:var(--ink); color:var(--text);
-  font-family:"Bricolage Grotesque", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
   font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased;
   overflow-x:hidden;
 }
@@ -112,33 +155,31 @@ html[data-theme="light"] .grid-bg{ background:
 .mast{max-width:var(--max); margin:0 auto; padding:42px 20px 28px; position:relative}
 .mast-inner{display:grid; grid-template-columns:84px 1.2fr .9fr; gap:24px; align-items:start}
 .mast-mark{display:flex; flex-direction:column; gap:10px; align-items:center; padding-top:6px}
-.mark-ring{width:64px; height:64px; border-radius:18px; border:1px solid var(--border-strong); background:var(--card); backdrop-filter:blur(14px); display:grid; place-items:center; position:relative; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.08)}
-.mark-ring::before{content:''; position:absolute; inset:0; background:radial-gradient(220px 120px at 20% 15%, rgba(255,255,255,.12), transparent 60%)}
-.mark-dot{width:18px; height:18px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 6px var(--accent-soft), 0 0 18px var(--accent); position:relative}
-.mark-meta{display:flex; gap:6px; font-family:"JetBrains Mono", monospace; font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--text-faint)}
+.mark-ring{width:64px; height:64px; display:block; filter:drop-shadow(0 10px 18px rgba(0,0,0,.22))}
+.mark-meta{display:flex; gap:6px; font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--text-faint)}
 .mark-meta span{border:1px solid var(--border); padding:2px 6px; border-radius:999px; background:var(--card)}
-.mast-kicker{display:inline-flex; align-items:center; gap:10px; font-family:"JetBrains Mono", monospace; font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--text-dim); margin-bottom:12px}
+.mast-kicker{display:inline-flex; align-items:center; gap:10px; font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--text-dim); margin-bottom:12px}
 .kicker-line{width:32px; height:1px; background:var(--accent); display:inline-block}
-.kicker-ver{font-family:"JetBrains Mono", monospace; font-size:10px; background:var(--accent); color:#fff; padding:2px 8px; border-radius:999px; letter-spacing:.08em}
-.mast-title h1{margin:0; font-family:"Fraunces", serif; font-size:clamp(36px, 6vw, 56px); font-weight:900; line-height:.88; letter-spacing:-.04em; font-variation-settings:"opsz" 144; text-wrap:balance}
+.kicker-ver{font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:10px; background:var(--accent); color:#fff; padding:2px 8px; border-radius:999px; letter-spacing:.08em}
+.mast-title h1{margin:0; font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:clamp(36px, 6vw, 56px); font-weight:900; line-height:.88; letter-spacing:-.04em; text-wrap:balance}
 .mast-title h1 span{font-weight:800; background:linear-gradient(92deg, var(--accent) 0%, #ff8a00 100%); -webkit-background-clip:text; background-clip:text; color:transparent}
 .mast-title p{margin:12px 0 0; color:var(--text-dim); font-size:15.5px; line-height:1.6; max-width:48ch}
 .mast-side{display:flex; flex-direction:column; gap:14px; align-items:stretch; padding-top:8px}
 .privacy{color:var(--text-dim); font-size:12px; line-height:1.5; background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px 14px; backdrop-filter:blur(10px)}
 .privacy span{color:var(--accent)}
 .mast-actions{display:flex; gap:10px; flex-wrap:wrap}
-.mast-stats{display:flex; gap:12px; flex-wrap:wrap; font-family:"JetBrains Mono", monospace; font-size:11px; color:var(--text-faint); border-top:1px solid var(--border); padding-top:12px}
+.mast-stats{display:flex; gap:12px; flex-wrap:wrap; font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:11px; color:var(--text-faint); border-top:1px solid var(--border); padding-top:12px}
 .mast-stats b{color:var(--text); font-size:14px; font-weight:800}
 
 /* layout */
 .layout{max-width:var(--max); margin:0 auto; padding:0 20px 40px; display:grid; grid-template-columns:200px 1fr; gap:28px; align-items:start}
 .rail{position:sticky; top:20px; align-self:start; display:block}
 .rail-sticky{display:flex; flex-direction:column; gap:6px; padding:14px; background:var(--card); border:1px solid var(--border); border-radius:16px; backdrop-filter:blur(16px)}
-.rail-label{font-family:"JetBrains Mono", monospace; font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--text-faint); margin-bottom:6px}
-.rail-link{font-family:"JetBrains Mono", monospace; font-size:11.5px; font-weight:600; color:var(--text-dim); text-decoration:none; padding:8px 10px; border-radius:10px; border:1px solid transparent; transition:all .15s}
+.rail-label{font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--text-faint); margin-bottom:6px}
+.rail-link{font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:11.5px; font-weight:600; color:var(--text-dim); text-decoration:none; padding:8px 10px; border-radius:10px; border:1px solid transparent; transition:all .15s}
 .rail-link:hover{color:var(--text); background:var(--accent-soft); border-color:var(--border)}
 .rail-link.is-active{color:#fff; background:var(--accent); border-color:var(--accent); box-shadow:0 6px 16px rgba(0,0,0,.18)}
-.rail-foot{margin-top:10px; padding-top:10px; border-top:1px solid var(--border); font-family:"JetBrains Mono", monospace; font-size:10px; color:var(--text-faint)}
+.rail-foot{margin-top:10px; padding-top:10px; border-top:1px solid var(--border); font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:10px; color:var(--text-faint)}
 .main{display:flex; flex-direction:column; gap:20px; min-width:0}
 
 /* cards */
@@ -147,12 +188,12 @@ html[data-theme="light"] .grid-bg{ background:
 @keyframes cardIn{from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none}}
 .card-topline{position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg, var(--accent), #ff8a00, #8b5cf6); opacity:.9}
 .card-head{margin-bottom:18px}
-.card-num{font-family:"JetBrains Mono", monospace; font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-bottom:6px}
-.card-head h2{margin:0; font-family:"Fraunces", serif; font-size:22px; font-weight:800; letter-spacing:-.02em; line-height:1; font-variation-settings:"opsz" 64}
+.card-num{font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-bottom:6px}
+.card-head h2{margin:0; font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:22px; font-weight:800; letter-spacing:-.02em; line-height:1}
 .card-desc{margin:6px 0 0; color:var(--text-dim); font-size:13.5px; line-height:1.55; max-width:60ch}
-.card-desc code{font-family:"JetBrains Mono", monospace; font-size:12px; background:var(--accent-soft); border:1px solid var(--border); padding:1px 6px; border-radius:6px}
+.card-desc code{font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:12px; background:var(--accent-soft); border:1px solid var(--border); padding:1px 6px; border-radius:6px}
 .field{margin-bottom:18px} .field:last-child{margin-bottom:0}
-.field-label{display:block; font-family:"JetBrains Mono", monospace; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim); margin-bottom:10px}
+.field-label{display:block; font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim); margin-bottom:10px}
 
 /* pills + order */
 .pill-radio{display:flex; flex-wrap:wrap; gap:8px}
@@ -194,15 +235,15 @@ html[data-theme="light"] .seg{background:rgba(0,0,0,.04)}
 
 /* fav commands */
 .fav-toolbar{display:flex; align-items:center; justify-content:space-between; gap:12px; margin:4px 0 12px; flex-wrap:wrap}
-.fav-count{font-family:"JetBrains Mono", monospace; font-size:11px; color:var(--text-dim)}
+.fav-count{font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:11px; color:var(--text-dim)}
 .fav-count span{color:var(--text); font-weight:700}
 .fav-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px}
 .fav-item{display:flex; align-items:center; gap:12px; padding:10px 12px; border:1px solid var(--border); border-radius:14px; background:var(--card-solid); transition:all .15s}
 .fav-item:hover{border-color:var(--accent); transform:translateY(-1px); box-shadow:0 8px 20px rgba(0,0,0,.12)}
-.fav-shortcut{flex:none; min-width:44px; height:28px; display:inline-grid; place-items:center; padding:0 8px; border-radius:8px; background:var(--accent); color:#fff; font-family:"JetBrains Mono", monospace; font-size:12px; font-weight:800; letter-spacing:.04em}
+.fav-shortcut{flex:none; min-width:44px; height:28px; display:inline-grid; place-items:center; padding:0 8px; border-radius:8px; background:var(--accent); color:#fff; font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:12px; font-weight:800; letter-spacing:.04em}
 .fav-main{flex:1; min-width:0}
 .fav-label{font-weight:800; font-size:13.5px; letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-.fav-url{font-family:"JetBrains Mono", monospace; font-size:11px; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.fav-url{font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:11px; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .fav-actions-item{display:flex; gap:6px; flex:none}
 .icon-btn{width:32px; height:32px; border-radius:10px; border:1px solid var(--border); background:transparent; color:var(--text-dim); display:grid; place-items:center; cursor:pointer; transition:all .15s}
 .icon-btn:hover{background:var(--accent-soft); color:var(--text); border-color:var(--accent)}
@@ -211,39 +252,39 @@ html[data-theme="light"] .seg{background:rgba(0,0,0,.04)}
 html[data-theme="light"] .fav-form{background:var(--paper-2)}
 .fav-form.is-hidden{display:none}
 .fav-form-head{display:flex; align-items:center; justify-content:space-between}
-.fav-form-head strong{font-family:"Fraunces", serif; font-size:16px; font-weight:800}
+.fav-form-head strong{font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:16px; font-weight:800}
 .fav-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
 .fav-field{display:flex; flex-direction:column; gap:6px}
 .fav-field--full{grid-column:1 / -1}
-.fav-field span{font-family:"JetBrains Mono", monospace; font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim)}
+.fav-field span{font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim)}
 .fav-field span em{font-style:normal; color:var(--accent); font-weight:800}
 .fav-field input{height:40px; border-radius:10px; border:1px solid var(--border); background:var(--card-solid); color:var(--text); padding:0 12px; font-size:13.5px; font-weight:600; outline:none; transition:border-color .15s, box-shadow .15s}
 .fav-field input:focus{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft)}
 .fav-field small{font-size:11px; color:var(--text-faint); line-height:1.4}
-.fav-field small code{font-family:"JetBrains Mono", monospace; background:var(--accent-soft); padding:1px 4px; border-radius:4px}
+.fav-field small code{font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background:var(--accent-soft); padding:1px 4px; border-radius:4px}
 .fav-form-actions{display:flex; justify-content:flex-end; gap:8px}
 .form-error{margin:0; color:var(--danger); font-size:12.5px; font-weight:600; min-height:18px}
 .fav-empty{margin-top:12px; text-align:center; padding:18px; border:1px dashed var(--border); border-radius:14px; color:var(--text-dim)}
-.fav-empty-icon{width:42px; height:42px; border-radius:12px; display:grid; place-items:center; margin:0 auto 8px; background:var(--accent-soft); border:1px solid var(--border); font-family:"JetBrains Mono", monospace; font-weight:800; color:var(--accent); font-size:18px}
+.fav-empty-icon{width:42px; height:42px; border-radius:12px; display:grid; place-items:center; margin:0 auto 8px; background:var(--accent-soft); border:1px solid var(--border); font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-weight:800; color:var(--accent); font-size:18px}
 .howto{display:flex; gap:12px; align-items:center; margin-top:14px; padding:12px; border-radius:14px; background:var(--accent-soft); border:1px solid var(--border)}
 .howto-kbd{display:flex; gap:6px; flex:none}
-.howto-kbd span{min-width:28px; height:28px; display:grid; place-items:center; border-radius:8px; background:var(--card-solid); border:1px solid var(--border); border-bottom-width:2px; font-family:"JetBrains Mono", monospace; font-size:12px; font-weight:800}
+.howto-kbd span{min-width:28px; height:28px; display:grid; place-items:center; border-radius:8px; background:var(--card-solid); border:1px solid var(--border); border-bottom-width:2px; font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:12px; font-weight:800}
 .howto-text{font-size:12.5px; line-height:1.5; color:var(--text-dim)}
 .howto-text strong{color:var(--text)}
-.howto-text code{font-family:"JetBrains Mono", monospace; background:var(--card-solid); padding:1px 5px; border-radius:6px; border:1px solid var(--border)}
+.howto-text code{font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background:var(--card-solid); padding:1px 5px; border-radius:6px; border:1px solid var(--border)}
 
 /* edge studio */
 .edge-card{overflow:hidden}
 .edge-head{display:flex; align-items:flex-start; justify-content:space-between; gap:16px}
-.edge-collapse-btn{display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 14px; border-radius:999px; border:1px solid var(--border); background:var(--card-solid); color:var(--text); font-family:"JetBrains Mono", monospace; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; cursor:pointer; transition:all .15s; flex:none}
+.edge-collapse-btn{display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 14px; border-radius:999px; border:1px solid var(--border); background:var(--card-solid); color:var(--text); font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; cursor:pointer; transition:all .15s; flex:none}
 .edge-collapse-btn:hover{border-color:var(--accent); background:var(--accent-soft)}
 .collapse-icon{transition:transform .2s; display:inline-block; font-size:14px}
 .edge-card.is-collapsed .collapse-icon{transform:rotate(180deg)}
 .edge-meta{display:flex; align-items:center; gap:10px; margin:10px 0 6px; flex-wrap:wrap}
-.edge-live{display:inline-flex; align-items:center; gap:8px; font-family:"JetBrains Mono", monospace; font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim); background:var(--card-solid); border:1px solid var(--border); padding:6px 10px; border-radius:999px}
+.edge-live{display:inline-flex; align-items:center; gap:8px; font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim); background:var(--card-solid); border:1px solid var(--border); padding:6px 10px; border-radius:999px}
 .live-dot{width:7px; height:7px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 5px rgba(34,197,94,.18); display:inline-block}
-.edge-note{font-family:"JetBrains Mono", monospace; font-size:11px; color:var(--text-faint)}
-.edge-note code{font-family:"JetBrains Mono", monospace; background:var(--accent-soft); padding:1px 4px; border-radius:4px}
+.edge-note{font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:11px; color:var(--text-faint)}
+.edge-note code{font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background:var(--accent-soft); padding:1px 4px; border-radius:4px}
 #edge-controls{transition:opacity .25s, transform .25s, max-height .35s cubic-bezier(.16,1,.3,1); will-change:opacity, transform}
 .edge-card.is-collapsed #edge-controls{opacity:0; transform:translateY(-6px); max-height:0; overflow:hidden; pointer-events:none; margin-top:0}
 .edge-presets{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:14px 0}
@@ -254,56 +295,73 @@ html[data-theme="light"] .fav-form{background:var(--paper-2)}
 .edge-preset span:not(.ep-swatch){display:block; font-size:11px; color:var(--text-dim); margin-top:2px}
 .ep-swatch{position:absolute; right:8px; top:8px; width:26px; height:26px; border-radius:8px; border:1px solid var(--border)}
 .edge-preview-wrap{margin:14px 0}
-.edge-preview-label{font-family:"JetBrains Mono", monospace; font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim); margin-bottom:8px}
+.edge-preview-label{font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim); margin-bottom:8px}
 .edge-preview{position:relative; height:168px; border-radius:16px; overflow:hidden; background:radial-gradient(700px 260px at 20% -10%, rgba(99,102,241,.18), transparent 60%), radial-gradient(600px 220px at 90% 110%, rgba(139,92,246,.14), transparent 60%), var(--preview-bg); border:1px solid var(--border)}
 .edge-preview-inner{position:absolute; inset:0; display:grid; place-items:center}
 .edge-preview-search{display:flex; align-items:center; gap:10px; background:var(--preview-search-bg); backdrop-filter:blur(14px); border:1px solid var(--preview-search-border); color:var(--preview-search-text); padding:10px 14px; border-radius:14px; font-size:13px; font-weight:700; box-shadow:0 0 0 1px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35), 0 0 24px -10px var(--accent-strong), inset 0 1px 0 rgba(255,255,255,.13); position:relative; overflow:hidden}
 .edge-preview-search::before{content:''; position:absolute; top:0; left:14px; right:14px; height:1px; border-radius:2px; background:linear-gradient(90deg, transparent, var(--accent), transparent); opacity:.8}
 .ep-icon{width:28px; height:28px; border-radius:8px; display:grid; place-items:center; background:var(--preview-chip-bg); border:1px solid var(--preview-chip-border)}
-.ep-kbd{font-family:"JetBrains Mono", monospace; font-size:10px; font-weight:700; background:var(--preview-chip-bg); border:1px solid var(--preview-chip-border); padding:4px 6px; border-radius:6px; color:var(--preview-chip-text)}
-.edge-preview-hint{margin-top:8px; font-family:"JetBrains Mono", monospace; font-size:11px; color:var(--text-faint); line-height:1.4}
-.edge-preview-hint code{font-family:"JetBrains Mono", monospace; background:var(--accent-soft); padding:1px 4px; border-radius:4px}
+.ep-kbd{font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:10px; font-weight:700; background:var(--preview-chip-bg); border:1px solid var(--preview-chip-border); padding:4px 6px; border-radius:6px; color:var(--preview-chip-text)}
+.edge-preview-hint{margin-top:8px; font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:11px; color:var(--text-faint); line-height:1.4}
+.edge-preview-hint code{font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background:var(--accent-soft); padding:1px 4px; border-radius:4px}
 .edge-section{background:var(--card-solid); border:1px solid var(--border); border-radius:16px; padding:14px; margin-bottom:12px}
 .edge-section-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px}
-.edge-section-head h3{margin:0; font-family:"JetBrains Mono", monospace; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--text)}
-.edge-section-head small{font-family:"JetBrains Mono", monospace; font-size:11px; color:var(--text-dim); font-weight:700}
+.edge-section-head h3{margin:0; font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--text)}
+.edge-section-head small{font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:11px; color:var(--text-dim); font-weight:700}
 .edge-control{margin-bottom:12px} .edge-control:last-child{margin-bottom:0}
 .edge-control-row{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:6px}
 .edge-label{font-size:12.5px; font-weight:700; color:var(--text)}
-.edge-value{font-family:"JetBrains Mono", monospace; font-size:11px; font-weight:700; color:var(--text); background:var(--accent-soft); border:1px solid var(--border); padding:4px 8px; border-radius:8px; min-width:58px; text-align:center}
+.edge-value{font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:11px; font-weight:700; color:var(--text); background:var(--accent-soft); border:1px solid var(--border); padding:4px 8px; border-radius:8px; min-width:58px; text-align:center}
 .edge-control input[type="range"]{-webkit-appearance:none; appearance:none; width:100%; height:26px; background:transparent; cursor:pointer}
 .edge-control input[type="range"]::-webkit-slider-runnable-track{height:6px; background:var(--border); border-radius:999px}
 .edge-control input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:#fff; border:2px solid var(--accent); margin-top:-6px; box-shadow:0 2px 8px rgba(0,0,0,.2)}
 .edge-color-row{display:flex; align-items:center; gap:10px; margin-top:8px}
 .edge-swatch{position:relative; width:38px; height:38px; border-radius:10px; overflow:hidden; border:1px solid var(--border); flex:none; cursor:pointer}
 .edge-swatch input{position:absolute; inset:0; opacity:0; cursor:pointer}
-.edge-color-meta{flex:1} .edge-color-meta strong{font-size:12px; font-weight:700} .edge-color-meta span{font-family:"JetBrains Mono", monospace; font-size:11px; color:var(--text-dim)}
+.edge-color-meta{flex:1} .edge-color-meta strong{font-size:12px; font-weight:700} .edge-color-meta span{font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:11px; color:var(--text-dim)}
 .edge-code-block{background:var(--code-bg); border:1px solid var(--border); border-radius:14px; overflow:hidden; margin-top:4px}
 .edge-code-head{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; background:var(--code-head-bg); border-bottom:1px solid var(--border)}
-.edge-code-head strong{font-family:"JetBrains Mono", monospace; font-size:10px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--code-head-text)}
-.edge-code{margin:0; padding:12px; font-family:"JetBrains Mono", monospace; font-size:11.5px; line-height:1.6; color:var(--code-text); white-space:pre-wrap; word-break:break-word; max-height:170px; overflow:auto; background:var(--code-glow)}
+.edge-code-head strong{font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:10px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--code-head-text)}
+.edge-code{margin:0; padding:12px; font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:11.5px; line-height:1.6; color:var(--code-text); white-space:pre-wrap; word-break:break-word; max-height:170px; overflow:auto; background:var(--code-glow)}
 .edge-actions{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
-.edge-footnote{margin:10px 0 0; font-family:"JetBrains Mono", monospace; font-size:11px; color:var(--text-faint); line-height:1.5}
+.edge-footnote{margin:10px 0 0; font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:11px; color:var(--text-faint); line-height:1.5}
 .edge-footnote code{background:var(--accent-soft); padding:1px 4px; border-radius:4px}
 
 /* shortcut + data */
 .shortcut-row,.data-row{display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; padding:6px 0}
+.shortcut-field{flex:1; min-width:260px}
+.shortcut-actions{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
 .data-row{padding:12px 0; border-bottom:1px solid var(--border)} .data-row:last-child{border-bottom:none}
-.shortcut-input{font-family:"JetBrains Mono", monospace; font-size:14px; font-weight:700; background:var(--card-solid); border:1px solid var(--border); border-radius:10px; padding:10px 14px; min-width:220px; color:var(--text)}
-.shortcut-note{margin:8px 0 0; color:var(--text-dim); font-size:12.5px; max-width:420px}
+.shortcut-input{font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:14px; font-weight:700; background:var(--card-solid); border:1px solid var(--border); border-radius:10px; padding:10px 14px; min-width:220px; color:var(--text); outline:none; cursor:pointer; transition:border-color .15s, box-shadow .15s, color .15s}
+.shortcut-input:hover{border-color:var(--accent-strong)}
+.shortcut-input:focus,.shortcut-input.is-recording{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); cursor:text}
+.shortcut-input.is-pending{color:var(--accent); border-color:var(--accent)}
+.shortcut-note{margin:8px 0 0; color:var(--text-dim); font-size:12.5px; max-width:460px; line-height:1.45}
+.shortcut-note[data-tone="error"]{color:var(--danger)}
+.shortcut-note[data-tone="ok"]{color:var(--accent)}
+.shortcut-note[data-tone="recording"]{color:var(--text)}
 .data-title{margin:0; font-weight:800; font-size:14px}
 .data-note{margin:2px 0 0; color:var(--text-dim); font-size:12.5px}
 .btn{height:40px; padding:0 16px; border-radius:12px; border:none; font-size:13.5px; font-weight:700; font-family:inherit; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px; text-decoration:none; transition:all .15s}
 .btn-accent{background:var(--accent); color:#fff; box-shadow:0 8px 18px rgba(0,0,0,.18)}
 .btn-accent:hover{filter:brightness(1.08); transform:translateY(-1px)}
+.btn:disabled{opacity:.45; cursor:not-allowed; transform:none; filter:none}
 .btn-ghost{background:var(--card-solid); color:var(--text); border:1px solid var(--border)}
 .btn-ghost:hover{background:var(--accent-soft); border-color:var(--accent); transform:translateY(-1px)}
 .btn-danger{background:var(--danger-soft); color:var(--danger); border:1px solid transparent}
 .btn-danger:hover{background:var(--danger); color:#fff}
 .btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
-.toast{position:fixed; bottom:28px; left:50%; transform:translateX(-50%); background:var(--text); color:var(--ink); font-family:"JetBrains Mono", monospace; font-size:12px; font-weight:700; padding:10px 16px; border-radius:999px; box-shadow:0 12px 28px rgba(0,0,0,.3); opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; z-index:10}
+.icon-btn:focus-visible,
+.seg-btn:focus-visible,
+.swatch:focus-visible,
+.edge-preset:focus-visible,
+.rail-link:focus-visible,
+.fav-field input:focus-visible,
+.shortcut-input:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.tgl-input:focus-visible + .tgl-thumb{outline:2px solid var(--accent); outline-offset:2px}
+.toast{position:fixed; bottom:28px; left:50%; transform:translateX(-50%); background:var(--text); color:var(--ink); font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:12px; font-weight:700; padding:10px 16px; border-radius:999px; box-shadow:0 12px 28px rgba(0,0,0,.3); opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; z-index:10}
 .toast.show{opacity:1; transform:translateX(-50%) translateY(-8px)}
-.foot{display:flex; align-items:center; justify-content:center; gap:8px; color:var(--text-faint); font-family:"JetBrains Mono", monospace; font-size:11px; margin-top:8px; letter-spacing:.04em}
+.foot{display:flex; align-items:center; justify-content:center; gap:8px; color:var(--text-faint); font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:11px; margin-top:8px; letter-spacing:.04em}
 
 /* responsive */
 @media (max-width: 900px){

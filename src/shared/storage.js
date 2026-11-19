@@ -136,9 +136,6 @@ function sanitizeSettings(raw) {
       : d.contextMenuAction,
     viewportShadow: sanitizeViewportShadow(raw.viewportShadow),
     favoriteSites: sanitizeFavoriteSites(raw.favoriteSites),
-    launcher: typeof QLENS.sanitizeLauncher === 'function'
-      ? QLENS.sanitizeLauncher(raw.launcher)
-      : { enabled: true, tabs: true, bookmarks: true, history: true, maxResults: 6 },
     edgeCollapsed: toBool(raw.edgeCollapsed, d.edgeCollapsed)
   };
 }
@@ -178,10 +175,6 @@ async function doSetSettings(patch) {
   }
   if (Array.isArray(patch.favoriteSites)) {
     merged.favoriteSites = sanitizeFavoriteSites(patch.favoriteSites);
-  }
-  if (isPlainObject(patch.launcher)) {
-    const cur = isPlainObject(current.launcher) ? current.launcher : {};
-    merged.launcher = QLENS.sanitizeLauncher({ ...cur, ...patch.launcher });
   }
   if (Array.isArray(patch.customEngines) && typeof QLENS.sanitizeCustomEngines === 'function') {
     merged.customEngines = QLENS.sanitizeCustomEngines(patch.customEngines);

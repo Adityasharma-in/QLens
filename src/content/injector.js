@@ -19,32 +19,89 @@ globalThis.QLENS = globalThis.QLENS || {};
   let directAt = 0;
   const ECHO_WINDOW_MS = 1500;
 
-  function openOverlayDirect(openOnly) {
-    if (!QLENS.Overlay) {
+  // Captured once: after an extension update the page keeps its old QLENS
+  // object, so these must not depend on a live module registry.
+  const config = QLENS.CONFIG || {};
+  const shortcutDefault = config.SHORTCUT_DEFAULT || 'Ctrl+Shift+K';
+  const shortcutKey = (config.STORAGE_KEYS && config.STORAGE_KEYS.SHORTCUT) || 'shortcut';
+  const openOverlayType = (QLENS.MSG && QLENS.MSG.OPEN_OVERLAY) || 'QLENS_OPEN_OVERLAY';
+  const overlaySelector =
+    '[data-qlens-overlay], div[role="dialog"][aria-label="QLens quick search"]';
+
+  // Closes a panel owned by another QLens instance (an orphaned content script
+  // from before an extension update) so a press can never stack a second one.
+  // Clicking its close control also tears down that instance's global key
+  // listeners; detaching the node is the fallback when its context is gone.
+  function closeForeignOverlay() {
+    let nodes = [];
+    try {
+      nodes = document.querySelectorAll(overlaySelector);
+    } catch (err) {
+      return false;
+    }
+    for (const node of nodes) {
+      let panel = null;
       try {
-        chrome.runtime.sendMessage({ type: QLENS.MSG.OPEN_OVERLAY }).catch(() => {});
+        panel = node.shadowRoot && node.shadowRoot.querySelector('.ql-panel');
+      } catch (err) {
+        panel = null;
+      }
+      if (!panel) continue;
+      try {
+        const shadow = node.shadowRoot;
+        const input = shadow && shadow.querySelector('.ql-input');
+        // The close control clears a non-empty query before it actually
+        // closes, so clear the field first: one press must close the foreign
+        // panel, not just its text.
+        if (input) input.value = '';
+        const btn = shadow && shadow.querySelector('.ql-close');
+        if (btn && typeof btn.click === 'function') {
+          btn.click();
+          try { node.remove(); } catch (err) {}
+          return true;
+        }
+      } catch (err) {
+        /* fall through to detaching the node */
+      }
+      try {
+        node.remove();
+      } catch (err) {
+        /* already detached */
+      }
+      return true;
+    }
+    return false;
+  }
+
+  function openOverlayDirect(openOnly) {
+    const overlay = QLENS.Overlay;
+    if (!overlay || typeof overlay.isVisible !== 'function' || typeof overlay.show !== 'function') {
+      try {
+        chrome.runtime.sendMessage({ type: openOverlayType }).catch(() => {});
       } catch (err) {
         /* ignore */
       }
       return;
     }
-    const visible = QLENS.Overlay.isVisible();
-    if (visible && !openOnly) {
-      QLENS.Overlay.destroy(true);
-    } else if (!visible) {
-      try {
-        QLENS.Overlay.show({});
-      } catch (err) {
-        try {
-          chrome.runtime.sendMessage({ type: QLENS.MSG.OPEN_OVERLAY }).catch(() => {});
-        } catch (err2) {
-          /* ignore */
-        }
-        return;
-      }
-      directAt = Date.now();
+    const visible = overlay.isVisible();
+    if (visible) {
+      if (!openOnly && typeof overlay.destroy === 'function') overlay.destroy(true);
+      return;
     }
-    return;
+    // Another QLens instance may already have its panel on screen. Never open
+    // a second one: close that panel instead and let the next press open ours.
+    if (closeForeignOverlay()) return;
+    try {
+      overlay.show({});
+    } catch (err) {
+      try {
+        chrome.runtime.sendMessage({ type: openOverlayType }).catch(() => {});
+      } catch (err2) {
+        /* ignore */
+      }
+      return;
+    }
+    directAt = Date.now();
   }
 
   function handleMessage(msg, sender, sendResponse) {
@@ -93,15 +150,44 @@ globalThis.QLENS = globalThis.QLENS || {};
     return typeof window.__QLENS_LISTENER__ !== 'function';
   }
 
-  // Combo memoized so every keystroke on every page is a sync match — no
-  // chrome.storage round trip in the hot path. ponytail: if stale-cache bugs
-  // ever surface, fall back to per-keystroke getShortcut() (old behavior).
-  // Optimistic default: the handler must work on the very first keypress,
-  // before the async storage read below resolves. Starting at null/false
-  // would ignore every keystroke in that cold window, which looks exactly
-  // like "the shortcut does nothing" on fast machines and slow storage.
-  let comboMemo = (QLENS.CONFIG && QLENS.CONFIG.SHORTCUT_DEFAULT) || 'Ctrl+Shift+K';
+  // Combo memoized so every keystroke on every page is a sync match - no
+  // chrome.storage round trip in the hot path. It is re-read through the live
+  // extension APIs. QLENS.storage belongs to the script set loaded with the
+  // page, and after an extension update that copy's chrome context is dead: it
+  // silently resolves to the default combo, which looks exactly like a custom
+  // shortcut that stopped working. The storage read below runs in the newly
+  // injected (live) context instead.
+  let comboMemo = shortcutDefault;
   let comboReady = true;
+
+  function sanitizeCombo(combo) {
+    if (typeof combo !== 'string' || !combo) return shortcutDefault;
+    try {
+      if (typeof QLENS.isValidCombo === 'function' && !QLENS.isValidCombo(combo)) return shortcutDefault;
+    } catch (err) {
+      return shortcutDefault;
+    }
+    return combo;
+  }
+
+  function readCombo() {
+    try {
+      if (chrome && chrome.storage && chrome.storage.local && typeof chrome.storage.local.get === 'function') {
+        return Promise.resolve(chrome.storage.local.get(shortcutKey))
+          .then((res) => sanitizeCombo(res && res[shortcutKey]), () => shortcutDefault);
+      }
+    } catch (err) {
+      /* fall through to the page's copy */
+    }
+    try {
+      if (QLENS.storage && typeof QLENS.storage.getShortcut === 'function') {
+        return Promise.resolve(QLENS.storage.getShortcut()).then(sanitizeCombo, () => shortcutDefault);
+      }
+    } catch (err) {
+      /* fall through to the default */
+    }
+    return Promise.resolve(shortcutDefault);
+  }
 
   function refreshCombo() {
     // Must never throw: this runs during script evaluation, and a synchronous
@@ -110,40 +196,65 @@ globalThis.QLENS = globalThis.QLENS || {};
     // back to the default combo (now handled in-page) instead of leaving
     // comboReady false forever, which would ignore every keypress.
     try {
-      const p = QLENS.storage && typeof QLENS.storage.getShortcut === 'function'
-        ? QLENS.storage.getShortcut()
-        : Promise.resolve(null);
-      Promise.resolve(p)
+      Promise.resolve(readCombo())
         .then((combo) => {
-          comboMemo = typeof combo === 'string' && combo ? combo : QLENS.CONFIG.SHORTCUT_DEFAULT;
+          comboMemo = sanitizeCombo(combo);
           comboReady = true;
         })
         .catch(() => {
-          comboMemo = QLENS.CONFIG.SHORTCUT_DEFAULT;
+          comboMemo = shortcutDefault;
           comboReady = true;
         });
     } catch (err) {
-      comboMemo = QLENS.CONFIG.SHORTCUT_DEFAULT;
+      comboMemo = shortcutDefault;
       comboReady = true;
     }
   }
 
   function registerShortcutHandler() {
-    if (typeof window.__QLENS_KEYHANDLER__ === 'function') return;
+    // Always replace, never early-return: the service worker re-injects this
+    // file into already-open tabs after an extension update (and after a
+    // shortcut change). The old handler and its storage listener belong to the
+    // dead context, so they would keep matching the previous combo forever.
+    if (typeof window.__QLENS_STORAGE_LISTENER__ === 'function') {
+      try {
+        chrome.storage.onChanged.removeListener(window.__QLENS_STORAGE_LISTENER__);
+      } catch (err) {
+        /* old context — its listener is dead anyway */
+      }
+    }
+    window.__QLENS_STORAGE_LISTENER__ = (changes, area) => {
+      if (area === 'local' && changes && changes[shortcutKey]) refreshCombo();
+    };
     refreshCombo();
     try {
-      chrome.storage.onChanged.addListener((changes, area) => {
-        if (area === 'local' && changes[QLENS.CONFIG.STORAGE_KEYS.SHORTCUT]) refreshCombo();
-      });
+      chrome.storage.onChanged.addListener(window.__QLENS_STORAGE_LISTENER__);
     } catch (err) {
       /* onChanged unavailable — memo stays at load-time value */
     }
+    if (typeof window.__QLENS_KEYHANDLER__ === 'function') {
+      try {
+        document.removeEventListener('keydown', window.__QLENS_KEYHANDLER__, true);
+      } catch (err) {
+        /* ignore */
+      }
+      try {
+        window.removeEventListener('keydown', window.__QLENS_KEYHANDLER__, true);
+      } catch (err) {
+        /* ignore */
+      }
+    }
     window.__QLENS_KEYHANDLER__ = (e) => {
-      if (e.defaultPrevented || (!e.ctrlKey && !e.metaKey && !e.altKey)) return;
+      if (!e || e.defaultPrevented || (!e.ctrlKey && !e.metaKey && !e.altKey)) return;
       const combo = comboMemo;
       if (!combo || !comboReady) return;
-      if (!QLENS.matchesCombo(e, combo)) return;
-      if (combo === QLENS.CONFIG.SHORTCUT_DEFAULT) {
+      if (typeof QLENS.matchesCombo !== 'function' || !QLENS.matchesCombo(e, combo)) return;
+      // Claim the combo in the capture phase before it reaches any listener
+      // deeper in the tree. An orphaned injector from before an extension
+      // update listens on document; without this, one keypress would let both
+      // instances open their own panel.
+      if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+      if (combo === shortcutDefault) {
         // The default combo is normally delivered by the manifest command
         // (chrome.commands.onCommand in the SW), which only fires if Chrome
         // actually bound the shortcut. That binding can be absent — another
@@ -161,7 +272,15 @@ globalThis.QLENS = globalThis.QLENS || {};
       }
       openOverlayDirect(false);
     };
-    document.addEventListener('keydown', window.__QLENS_KEYHANDLER__, true);
+    try {
+      window.addEventListener('keydown', window.__QLENS_KEYHANDLER__, true);
+    } catch (err) {
+      try {
+        document.addEventListener('keydown', window.__QLENS_KEYHANDLER__, true);
+      } catch (err2) {
+        /* ignore */
+      }
+    }
   }
 
   if (needsRegister()) {

@@ -68,7 +68,9 @@ extension log. Record every row: PASS / FAIL + note.
 ## 8. Options page
 - All settings persist across reload; theme/accent apply to the overlay live.
 - Drag (and arrow buttons) reorder engines; Tab cycle follows the new order.
-- Clear recent + Reset to defaults work; shortcut shown matches `chrome://extensions/shortcuts`.
+- Clear recent + Reset to defaults work.
+- Shortcut field: click it → the note says "Listening…", the field shows a recording border, and Save is disabled. Press `Ctrl+Space` → the field shows `Ctrl+Space` as pending and Save enables; click Save → storage holds `Ctrl+Space` and the note confirms it. `Ctrl+Shift+Space`, `Ctrl+/`, `Ctrl+Shift+1` and `Ctrl+F9` capture the same way; a bare key or a Chrome-owned combo (`Ctrl+T`, `Ctrl+K`, `Ctrl+1`) shows an error and keeps the saved combo. Reset restores `Ctrl+Shift+K`.
+- After saving a custom combo, the manifest command in `chrome://extensions/shortcuts` still reads `Ctrl+Shift+K` but is suppressed — the old combo must not open the overlay on normal pages. On restricted pages (`chrome://…`), use the toolbar popup: content scripts cannot run there, so a custom combo has no path in.
 - Context menu "Search with QLens": overlay mode (default) and direct mode.
 
 ## 9. No-residue test (the product promise)
@@ -79,7 +81,7 @@ extension log. Record every row: PASS / FAIL + note.
 ## 10. Image search
 | # | Scenario | Expected | Result |
 |---|----------|----------|--------|
-| M1 | Camera button → pick a PNG | Thumbnail chip appears; Enter opens Google Lens showing results for that image | |
+| M1 | Camera button → pick a PNG | Thumbnail chip appears; Enter opens Google Lens showing results for that image — directly, with no interstitial and no google.com homepage flash | |
 | M2 | Copy an image, `Ctrl+V` into the overlay input | Same as M1 (clipboard paste) | |
 | M3 | Drag & drop an image onto the overlay | Same as M1 (drop) | |
 | M4 | Attach an image + type text → Enter | Lens results reflect the image AND the text query | |
@@ -90,18 +92,17 @@ extension log. Record every row: PASS / FAIL + note.
 | M9 | Attach an image, hit Enter instantly (spinner still showing) | Search queues and fires automatically when ready (no swallowed Enter) | |
 | M10 | Search the same image twice within 5 minutes | Second search opens results instantly (no re-upload) | |
 | M11 | Attach AVIF / HEIC / SVG file | Attaches and searches (raw fallback for undecodable types) | |
+| M12 | Attach an image, wait ~2 s, then Enter | Results open directly — no loading interstitial tab (upload already done in the background) | |
+| M13 | Watch the tab strip during a search | Exactly one tab is added; it appears already on the Lens results URL (a background helper may exist in the strip, but it is never focused on a Google page) | |
+| M14 | Any search on a machine whose IP Google blocks (403 upload / `/sorry/index` wall) | Either the results tab or the overlay's "Google Lens did not answer. Try again." — never a blank tab, a homepage detour, or an endlessly spinning chip | |
+| M15 | Enter with an image attached, then `Esc` while it searches | The overlay closes cleanly; if the search still succeeds, its results tab is the only leftover | |
 
-## 11. Launcher (unified)
-- Type a query matching an open tab → "Open tabs" section appears above suggestions; Enter switches to it; overlay closes.
-- Shift+Enter on a tab row closes that tab and removes the row (overlay stays open).
-- Bookmarks and history matches appear under their headers; Enter opens in a new tab.
-- Empty query shows open tabs as quick-switch.
-- Options → Launcher off → no launcher section, no `tabs`/`bookmarks`/`history` reads.
-
-## 12. Omnibox + restricted pages
+## 11. Omnibox + restricted pages
 - Type `ql` + Space/Tab in the address bar, then `cats` → default-engine results; `ql g cats` → Google; `ql !kagi cats` → custom Kagi engine; `ql images: cats` → Images.
-- Shortcut on `chrome://extensions`, New Tab, Web Store, PDF → opens the QLens popup as a tab with the selection pre-filled + "Restricted page" notice (never silent, never an error log).
+- With the default combo, shortcut on `chrome://extensions`, New Tab, Web Store, PDF → opens the QLens popup as a tab with the selection pre-filled + "Restricted page" notice (never silent, never an error log). With a custom combo saved, the old manifest command is suppressed; use the toolbar popup on these pages.
 - Restricted-tab popup speaks the full lens language: `!kagi query`, `!w query`, `g query`, `images: query`, `yt: query`, `github.com/foo` (direct open), plain text (default engine). Pill click chooses the engine for plain queries; a `!bang`/prefix in the text wins over the pill.
 
-## 13. Logs
+## 12. Logs
 - `chrome://extensions` → "Errors" must be empty after the full matrix above.
+- If the background died at start-up (its files were edited while QLens was loaded, an editor's atomic save was caught mid-rename, a file was locked), the panel shows `QLens: background modules failed to load … Cause: …` plus an uncaught `QLens: background modules failed to load - reload the extension on chrome://extensions`. Recovery: **Clear all** on that error, then **Reload** QLens — the shortcut and image search must work again straight away, with no Chrome restart and no re-adding the folder.
+- After any edit to a file under `src/`, reload QLens on `chrome://extensions` before testing in that browser: Chrome reads the worker's modules from disk when the worker starts, so a stale page or a half-loaded extension is expected until the reload.

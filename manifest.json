@@ -2,11 +2,10 @@
   "manifest_version": 3,
   "name": "QLens — Quick Search Overlay",
   "short_name": "QLens",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "description": "Search Google, Brave, Bing, or DuckDuckGo from any page with one shortcut. No copy-paste needed.",
   "minimum_chrome_version": "111",
-  "permissions": ["scripting", "storage", "contextMenus", "tabs"],
-  "optional_permissions": ["bookmarks", "history"],
+  "permissions": ["scripting", "storage", "contextMenus"],
   "host_permissions": ["https://suggestqueries.google.com/*", "https://www.google.com/*", "https://lens.google.com/*", "http://*/*", "https://*/*"],
   "content_scripts": [
     {
@@ -14,7 +13,14 @@
       "js": [
         "src/shared/config.js",
         "src/shared/messaging.js",
+        "src/shared/engines.js",
+        "src/shared/calculator.js",
+        "src/shared/logos.js",
+        "src/shared/async.js",
         "src/shared/storage.js",
+        "src/shared/image.js",
+        "src/content/selection.js",
+        "src/content/overlay.js",
         "src/content/injector.js"
       ],
       "run_at": "document_idle",

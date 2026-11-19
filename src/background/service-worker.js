@@ -1,12 +1,26 @@
-importScripts(
-  '../shared/config.js',
-  '../shared/messaging.js',
-  '../shared/engines.js',
-  '../shared/launcher.js',
-  '../shared/async.js',
-  '../shared/storage.js',
-  '../shared/image.js'
-);
+// The whole background depends on this batch: if one file cannot be read the
+// extension is dead, and Chrome's own error ("failed to load" / "unknown error
+// occurred when fetching the script") never says what to do about it. A rejected
+// byte (U+FFFE/U+FFFF in a regex range, a lone surrogate) or files changing under
+// a loaded extension both land here, so name the cause and the fix, then rethrow
+// so the failure stays visible and nothing runs half-initialized.
+try {
+  importScripts(
+    '../shared/config.js',
+    '../shared/messaging.js',
+    '../shared/engines.js',
+    '../shared/async.js',
+    '../shared/storage.js',
+    '../shared/image.js'
+  );
+} catch (err) {
+  console.error(
+    'QLens: background modules failed to load, so no search can run. ' +
+    'Open chrome://extensions, click "Clear all" on the QLens error, then Reload QLens. ' +
+    'Cause: ' + String((err && err.message) || err)
+  );
+  throw new Error('QLens: background modules failed to load - reload the extension on chrome://extensions');
+}
 
 let injectNonce = '';
 let openLastStart = 0;
@@ -19,14 +33,17 @@ const OPEN_GUARD_MS = 400;
 // Lets openQuickSearch build the OPEN_OVERLAY payload with zero awaits on the
 // hot path (fresh SW wake falls back to one storage read).
 let settingsMemo = null;
+let shortcutMemo = null;
 
 function primeSettingsMemo() {
   Promise.all([
     QLENS.storage.getSettings().catch(() => null),
-    QLENS.storage.getLastEngine().catch(() => null)
+    QLENS.storage.getLastEngine().catch(() => null),
+    QLENS.storage.getShortcut().catch(() => QLENS.CONFIG.SHORTCUT_DEFAULT)
   ])
-    .then(([settings, lastEngine]) => {
+    .then(([settings, lastEngine, shortcut]) => {
       settingsMemo = { settings, lastEngine };
+      shortcutMemo = shortcut;
     })
     .catch(() => {});
 }
@@ -37,6 +54,13 @@ try {
     if (changes[QLENS.CONFIG.STORAGE_KEYS.SETTINGS] || changes[QLENS.CONFIG.STORAGE_KEYS.LAST_ENGINE]) {
       settingsMemo = null;
       primeSettingsMemo();
+    }
+    if (changes[QLENS.CONFIG.STORAGE_KEYS.SHORTCUT]) {
+      const next = changes[QLENS.CONFIG.STORAGE_KEYS.SHORTCUT].newValue;
+      shortcutMemo = typeof next === 'string' && QLENS.isValidCombo(next)
+        ? next
+        : QLENS.CONFIG.SHORTCUT_DEFAULT;
+      repairOpenTabs().catch(() => {});
     }
   });
 } catch (err) {
@@ -130,11 +154,12 @@ async function sendOpenOverlay(tabId, payload) {
   return false;
 }
 
-// Pages already carrying the manifest lean set must not get those files
-// re-injected: re-running them re-`const`s top-level bindings (SyntaxError).
-// Inject only the delta the overlay additionally needs -- plus the message
-// bridge, which must be re-run on every open so a dead listener left behind by
-// a previous extension instance gets repaired (see QLENS.MESSAGE_BRIDGE_FILES).
+// Pages loaded by an older build carry the old manifest lean set, so they must
+// not get those files re-injected: re-running them re-`const`s top-level
+// bindings (SyntaxError). Inject only the delta the overlay additionally needs
+// -- plus the message bridge, which must be re-run on every open so a dead
+// listener left behind by a previous extension instance gets repaired (see
+// QLENS.MESSAGE_BRIDGE_FILES).
 const KEYDOWN_DELTA_FILES = QLENS.CONTENT_FILES.filter(
   (f) => !QLENS.KEYDOWN_FILES.includes(f) || QLENS.MESSAGE_BRIDGE_FILES.includes(f)
 );
@@ -160,8 +185,12 @@ async function injectContent(tabId) {
     // const-bearing file in the same isolated world throws
     // "Identifier has already been declared" and aborts the whole batch —
     // including the bridge at the end, which is the one file we need most:
-    //   lean=false            -> fresh page, inject CONTENT_FILES (all new)
-    //   lean=true, no overlay -> first open, inject KEYDOWN_DELTA_FILES (all new)
+    //   lean=false            -> foreign/very old page, inject CONTENT_FILES
+    //                            (all new)
+    //   lean=true, no overlay -> tab loaded by the old lean manifest, inject
+    //                            KEYDOWN_DELTA_FILES (legacy repair; pages
+    //                            loaded by the current manifest already carry
+    //                            the overlay)
     //   lean=true, overlay    -> overlay files already present (possibly from
     //                            an orphaned pre-reload instance); inject ONLY
     //                            the message bridge, which is re-runnable by
@@ -230,6 +259,47 @@ async function injectContent(tabId) {
     warnOpen('script injection failed', err);
     return false;
   }
+}
+
+// After an extension update the pages that were already open keep their old
+// content scripts: the JS listener survives but its chrome context is dead, so
+// a custom combo (which never reaches chrome.commands) looks broken until the
+// page is reloaded. Re-running injector.js in those tabs installs a live
+// keydown handler that reads the stored combo through live storage APIs; the
+// SW also does this when the shortcut changes so a new combo works immediately.
+const REPAIR_TAB_LIMIT = 80;
+let repairRun = null;
+
+function repairOpenTabs() {
+  if (repairRun) return repairRun;
+  repairRun = (async () => {
+    let tabs = [];
+    try {
+      tabs = await chrome.tabs.query({});
+    } catch (err) {
+      return 0;
+    }
+    const targets = [];
+    for (const tab of tabs) {
+      if (!tab || typeof tab.id !== 'number' || tab.discarded) continue;
+      // Host grants cover all http(s) tabs, so a normal tab always exposes its
+      // URL. Anything else (chrome://, the Web Store, extension pages) is not
+      // injectable and is skipped instead of costing a failed executeScript.
+      if (!isAllowedTabUrl(tab.url)) continue;
+      targets.push(tab.id);
+      if (targets.length >= REPAIR_TAB_LIMIT) break;
+    }
+    let repaired = 0;
+    for (let i = 0; i < targets.length; i += 4) {
+      const batch = targets.slice(i, i + 4).map((tabId) => injectContent(tabId));
+      const results = await Promise.all(batch);
+      for (const ok of results) if (ok) repaired++;
+    }
+    return repaired;
+  })().finally(() => {
+    repairRun = null;
+  });
+  return repairRun;
 }
 
 function resolveActiveTab(tabId) {
@@ -449,260 +519,71 @@ async function handleSuggestions(payload, tabId) {
   }
 }
 
-const LAUNCHER_HISTORY_DAYS = 14;
-const LAUNCHER_HISTORY_MAX = 6;
-const LAUNCHER_RECENT_BOOKMARKS = 6;
-
-// The launcher used to hit chrome.tabs/bookmarks/history on every debounced
-// keystroke. chrome.history.search in particular is a real DB read. These
-// short TTLs absorb backspace/retype bursts and the repeat queries that come
-// with re-opening the overlay, without changing what the user ever sees:
-// tab/bookmark state only changes on a user action, so a sub-second snapshot
-// is indistinguishable from a live read.
-const LAUNCHER_TABS_TTL_MS = 1000;
-const LAUNCHER_BOOKMARKS_TTL_MS = 5000;
-const LAUNCHER_HISTORY_TTL_MS = 2000;
-const LAUNCHER_MEM_MAX = 24;
-
-function launcherCfg() {
-  try {
-    const s = settingsMemo && settingsMemo.settings ? settingsMemo.settings : null;
-    if (s && s.launcher && typeof s.launcher === 'object' && typeof QLENS.sanitizeLauncher === 'function') {
-      return QLENS.sanitizeLauncher(s.launcher);
-    }
-  } catch (err) {}
-  return QLENS.sanitizeLauncher({});
-}
-
-function memoGet(store, key, ttlMs) {
-  const entry = store.get(key);
-  if (!entry) return null;
-  if (Date.now() - entry.ts > ttlMs) {
-    store.delete(key);
-    return null;
-  }
-  return entry.items;
-}
-
-function memoSet(store, key, items) {
-  store.set(key, { items, ts: Date.now() });
-  while (store.size > LAUNCHER_MEM_MAX) {
-    const oldest = store.keys().next();
-    if (oldest.done) break;
-    store.delete(oldest.value);
-  }
-  return items;
-}
-
-let tabsSnapshot = null;
-
-async function fetchLauncherTabs() {
-  if (tabsSnapshot && Date.now() - tabsSnapshot.ts < LAUNCHER_TABS_TTL_MS) {
-    return tabsSnapshot.items;
-  }
-  try {
-    const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
-    const items = Array.isArray(tabs)
-      ? tabs
-        .filter((t) => t && !t.incognito && typeof t.url === 'string' && QLENS.isSafeHttpUrl(t.url))
-        .map((t) => ({ title: typeof t.title === 'string' ? t.title : '', url: t.url, tabId: t.id }))
-      : [];
-    tabsSnapshot = { items, ts: Date.now() };
-    return items;
-  } catch (err) {
-    return [];
-  }
-}
-
-const bookmarksMemo = new Map();
-
-function memoPrefixHit(store, key, ttlMs) {
-  if (typeof key !== 'string' || !key) return null;
-  let best = null;
-  for (const [memKey, entry] of store) {
-    if (!memKey || key.indexOf(memKey) !== 0) continue;
-    if (Date.now() - entry.ts > ttlMs) {
-      store.delete(memKey);
-      continue;
-    }
-    if (!best || memKey.length > best.length) best = memKey;
-  }
-  if (!best) return null;
-  const entry = store.get(best);
-  if (!entry) return null;
-  const needle = key.toLowerCase();
-  return (entry.items || []).filter((item) => {
-    if (!item || typeof item !== 'object') return false;
-    const title = typeof item.title === 'string' ? item.title.toLowerCase() : '';
-    const url = typeof item.url === 'string' ? item.url.toLowerCase() : '';
-    return title.indexOf(needle) !== -1 || url.indexOf(needle) !== -1;
-  });
-}
-
-async function fetchLauncherBookmarks(query) {
-  const key = String(query == null ? '' : query).trim().toLowerCase();
-  const hit = memoGet(bookmarksMemo, key, LAUNCHER_BOOKMARKS_TTL_MS);
-  if (hit) return hit;
-  // chrome.bookmarks.search is word-based: a longer query can match items its
-  // prefix never returned, so the substring filter would drop real matches.
-  // Only reuse the prefix cache for single-token queries; bypass on whitespace.
-  if (key.indexOf(' ') === -1) {
-    const prefix = memoPrefixHit(bookmarksMemo, key, LAUNCHER_BOOKMARKS_TTL_MS);
-    if (prefix) return prefix;
-  }
-  try {
-    if (!chrome.bookmarks || typeof chrome.bookmarks.search !== 'function') return [];
-    // Revoked optional permission: fail fast instead of paying a throwing
-    // DB call on every keystroke.
-    try {
-      if (chrome.permissions && typeof chrome.permissions.contains === 'function') {
-        const granted = await chrome.permissions.contains({ permissions: ['bookmarks'] });
-        if (!granted) return [];
-      }
-    } catch (err) {}
-    let nodes = [];
-    if (key) {
-      nodes = await chrome.bookmarks.search(key);
-    } else if (typeof chrome.bookmarks.getRecent === 'function') {
-      nodes = await chrome.bookmarks.getRecent(LAUNCHER_RECENT_BOOKMARKS);
-    }
-    if (!Array.isArray(nodes)) return [];
-    const flat = [];
-    const walk = (list) => {
-      for (const n of list) {
-        if (!n || typeof n !== 'object') continue;
-        if (typeof n.url === 'string' && n.url) flat.push({ title: typeof n.title === 'string' ? n.title : '', url: n.url, id: n.id });
-        if (Array.isArray(n.children)) walk(n.children);
-      }
-    };
-    walk(nodes);
-    if (flat.length > 50) flat.length = 50;
-    return memoSet(bookmarksMemo, key, flat);
-  } catch (err) {
-    return [];
-  }
-}
-
-const historyMemo = new Map();
-
-async function fetchLauncherHistory(query) {
-  const key = String(query == null ? '' : query).trim().toLowerCase();
-  if (!key) return [];
-  const hit = memoGet(historyMemo, key, LAUNCHER_HISTORY_TTL_MS);
-  if (hit) return hit;
-  if (key.indexOf(' ') === -1) {
-    const prefix = memoPrefixHit(historyMemo, key, LAUNCHER_HISTORY_TTL_MS);
-    if (prefix) return prefix;
-  }
-  try {
-    if (!chrome.history || typeof chrome.history.search !== 'function') return [];
-    try {
-      if (chrome.permissions && typeof chrome.permissions.contains === 'function') {
-        const granted = await chrome.permissions.contains({ permissions: ['history'] });
-        if (!granted) return [];
-      }
-    } catch (err) {}
-    const items = await chrome.history.search({
-      text: key,
-      maxResults: LAUNCHER_HISTORY_MAX,
-      startTime: Date.now() - LAUNCHER_HISTORY_DAYS * 24 * 60 * 60 * 1000
-    });
-    if (!Array.isArray(items)) return [];
-    const flat = items
-      .filter((h) => h && typeof h.url === 'string')
-      .map((h) => ({ title: typeof h.title === 'string' ? h.title : '', url: h.url, id: h.id }));
-    return memoSet(historyMemo, key, flat);
-  } catch (err) {
-    return [];
-  }
-}
-
-async function handleLauncherQuery(payload) {
-  const p = payload || {};
-  const query = typeof p.query === 'string' ? p.query : '';
-  let cfg;
-  try {
-    // Stored settings are authoritative: a stale renderer must not be able
-    // to re-enable history/bookmark reads the user disabled (privacy), and
-    // re-sanitizing per keystroke is wasted work on a hot path.
-    cfg = launcherCfg();
-  } catch (err) {
-    cfg = QLENS.sanitizeLauncher({});
-  }
-  if (!cfg.enabled) return [];
-  if (!String(query == null ? '' : query).trim()) return [];
-  const [tabs, bookmarks, history] = await Promise.all([
-    cfg.tabs ? fetchLauncherTabs() : Promise.resolve([]),
-    cfg.bookmarks ? fetchLauncherBookmarks(query) : Promise.resolve([]),
-    cfg.history ? fetchLauncherHistory(query) : Promise.resolve([])
-  ]);
-  try {
-    return QLENS.rankLauncherResults(query, tabs, bookmarks, history, cfg) || [];
-  } catch (err) {
-    return [];
-  }
-}
-
-async function handleLauncherActivate(payload) {
-  const p = payload || {};
-  try {
-    if (typeof p.tabId === 'number' && chrome.tabs && typeof chrome.tabs.update === 'function') {
-      const tab = await chrome.tabs.update(p.tabId, { active: true }).catch(() => null);
-      if (tab && typeof tab.windowId === 'number' && chrome.windows && typeof chrome.windows.update === 'function') {
-        await chrome.windows.update(tab.windowId, { focused: true }).catch(() => {});
-      }
-      return true;
-    }
-  } catch (err) {
-    return false;
-  }
-  return false;
-}
-
-async function handleLauncherClose(payload) {
-  const p = payload || {};
-  if (typeof p.tabId !== 'number') return false;
-  try {
-    if (chrome.tabs && typeof chrome.tabs.remove === 'function') {
-      await chrome.tabs.remove(p.tabId);
-      return true;
-    }
-  } catch (err) {
-    return false;
-  }
-  return false;
-}
-
-const SW_LENS_FALLBACK = 'https://lens.google.com/';
 const SW_LENS_UPLOAD = 'https://lens.google.com/v3/upload';
 const SW_LENS_UPLOAD_ALT = (globalThis.QLENS && QLENS.LENS_UPLOAD) ? QLENS.LENS_UPLOAD : 'https://www.google.com/searchbyimage/upload';
 const IMAGE_UPLOAD_TIMEOUT_MS = QLENS.CONFIG.IMAGE_SEARCH_TIMEOUT_MS || 20000;
+// Where the last-resort upload runs: Google's own page origin, because the
+// upload endpoint refuses some extension-origin POSTs.
+const LENS_HELPER_URL = 'https://www.google.com/';
+const LENS_HELPER_COMMIT_MS = 6000;
+const LENS_HELPER_MAX_MS = 12000;
+// Per-endpoint budget inside the in-page uploader, which tries two endpoints.
+const LENS_FUNC_ENDPOINT_MS = 6000;
+// How long the helper tab is watched for a stolen view.
+const LENS_HELPER_GUARD_MS = 8000;
 
-// Fire-and-forget TLS warm-up so the Lens upload connects instantly.
+// Fire-and-forget TLS warm-up so the first Lens upload pays no handshake.
+// Runs at SW start, not on the first search, so the connection is already up
+// when an image is attached.
 let lensWarmed = false;
 function warmLens() {
   if (lensWarmed) return;
   lensWarmed = true;
   try {
-    fetch(QLENS.CONFIG.LENS_WARM_URL || 'https://www.google.com/generate_204', { mode: 'no-cors', credentials: 'omit', cache: 'no-store', keepalive: true }).catch(() => {});
+    fetch(QLENS.CONFIG.LENS_WARM_URL || 'https://lens.google.com/generate_204', { mode: 'no-cors', credentials: 'omit', cache: 'no-store', keepalive: true }).catch(() => {});
   } catch (err) {}
+}
+
+// One deadline bounds every step of a single search, so a slow network can
+// never leave the overlay waiting without an answer.
+function imageSearchDeadline() {
+  return Date.now() + (QLENS.CONFIG.IMAGE_SEARCH_TOTAL_MS || 24000);
+}
+
+function remainingMs(deadline) {
+  const left = Number(deadline) - Date.now();
+  return Number.isFinite(left) ? left : 0;
 }
 
 // Session cache: hash -> { url, ts }
 const lensCache = new Map();
 
-function cacheGet(hash) {
+async function cacheGet(hash) {
   if (typeof hash !== 'string' || !hash) return null;
   const entry = lensCache.get(hash);
-  if (!entry) return null;
   const ttl = QLENS.CONFIG.IMAGE_CACHE_TTL_MS || 5 * 60 * 1000;
-  try {
-    if (Date.now() - entry.ts > ttl) lensCache.delete(hash);
-    else return entry.url;
-  } catch (err) {
-    try { lensCache.delete(hash); } catch (e) {}
+  if (entry) {
+    try {
+      if (Date.now() - entry.ts <= ttl) return entry.url;
+      lensCache.delete(hash);
+    } catch (err) {
+      try { lensCache.delete(hash); } catch (e) {}
+    }
   }
-  return null;
+  try {
+    if (!chrome.storage || !chrome.storage.session || typeof chrome.storage.session.get !== 'function') return null;
+    const stored = await chrome.storage.session.get('qlensLens:' + hash);
+    const hit = stored ? stored['qlensLens:' + hash] : null;
+    if (!hit || typeof hit.url !== 'string' || !hit.url) return null;
+    if (Date.now() - hit.ts > ttl) {
+      try { chrome.storage.session.remove('qlensLens:' + hash).catch(() => {}); } catch (e) {}
+      return null;
+    }
+    try { lensCache.set(hash, { url: hit.url, ts: hit.ts }); } catch (e) {}
+    return hit.url;
+  } catch (err) {
+    return null;
+  }
 }
 
 function cacheSet(hash, url) {
@@ -716,11 +597,39 @@ function cacheSet(hash, url) {
       lensCache.delete(oldest.value);
     }
   } catch (err) {}
+  try {
+    if (chrome.storage && chrome.storage.session && typeof chrome.storage.session.set === 'function') {
+      chrome.storage.session.set({ ['qlensLens:' + hash]: { url, ts: Date.now() } }).catch(() => {});
+    }
+  } catch (err) {}
 }
 
-// Single-flight guard (keyed by image hash)
-let imageInFlight = false;
-let imageFlightKey = '';
+// Per-key single-flight uploads: the attach-time preflight and the search that
+// follows it share one flight, so an image is never uploaded twice.
+const lensFlights = new Map();
+
+function startLensFlight(key, raw, text, name, deadline) {
+  const running = lensFlights.get(key);
+  if (running) return running;
+  const flight = (async () => {
+    let url = null;
+    try {
+      url = await handleImageSearchDirect(raw, text, name, deadline);
+    } catch (err) {
+      url = null;
+    }
+    if (url && isSafeLensResultUrl(url)) {
+      try { cacheSet(key, url); } catch (err) {}
+      return url;
+    }
+    return null;
+  })();
+  const tracked = flight.finally(() => {
+    try { lensFlights.delete(key); } catch (err) {}
+  });
+  lensFlights.set(key, tracked);
+  return tracked;
+}
 
 function imageHashKey(p, b64, bytes, text, name) {
   const h = p && typeof p.hash === 'string' ? p.hash : '';
@@ -736,30 +645,115 @@ function imageHashKey(p, b64, bytes, text, name) {
       }
     }
   } catch (err) {}
-  let prefix = b64 ? b64.slice(0, 64) : '';
+  let prefix = b64 ? b64.slice(0, 512) + '#' + b64.length : '';
   if (!prefix && bytes && bytes.length) {
     try { prefix = bytesToBase64(bytes.subarray(0, 48)); } catch (err) {}
   }
   return prefix + '|' + text + '|' + name;
 }
 
-async function settleJobTab(jobTab, finalUrl) {
-  if (jobTab && typeof jobTab.id === 'number') {
-    try {
-      // If the user closed the interstitial mid-upload, respect the cancel:
-      // do NOT reopen a new tab they already dismissed.
-      const live = await chrome.tabs.get(jobTab.id).catch(() => null);
-      if (!live) return false;
-      await chrome.tabs.update(jobTab.id, { url: finalUrl });
-      return true;
-    } catch (err) {}
-  }
+// The only tab this feature ever opens for the user: the results page itself,
+// focused once it is already the tab's committed URL. No interstitial page, no
+// helper-tab flash, no "Opened Google first" detour.
+async function openResultTab(finalUrl) {
+  if (!isSafeLensResultUrl(finalUrl)) return false;
   try {
     await chrome.tabs.create({ url: finalUrl, active: true });
+    return true;
   } catch (err) {
     return false;
   }
-  return true;
+}
+
+// Navigate the (still background) helper tab to the results URL and focus it
+// only after that URL has committed. Focusing before the commit is what makes
+// the loading Google document visible for a beat.
+async function navigateThenFocus(tabId, finalUrl, timeoutMs) {
+  const want = finalUrl.split('#')[0];
+  try {
+    await chrome.tabs.update(tabId, { url: finalUrl });
+  } catch (err) {
+    return false;
+  }
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const cur = await chrome.tabs.get(tabId).catch(() => null);
+    if (!cur) return false;
+    const committed = typeof cur.url === 'string' ? cur.url.split('#')[0] : '';
+    if (committed === want) {
+      try {
+        await chrome.tabs.update(tabId, { active: true });
+        return true;
+      } catch (err) {
+        return false;
+      }
+    }
+    if (Date.now() > deadline) return false;
+    await sleep(60);
+  }
+}
+
+async function closeTab(tabId) {
+  try {
+    await chrome.tabs.remove(tabId);
+  } catch (err) {}
+}
+
+// The window the user is looking at, read before the helper exists so its
+// focus can be restored if it is ever taken.
+async function userWindowTab() {
+  try {
+    const active = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    const first = Array.isArray(active) ? active[0] : null;
+    if (first && typeof first.id === 'number') return first.id;
+  } catch (err) {}
+  return null;
+}
+
+// The page-origin upload runs in a background tab created with active:false.
+// Measured in Chrome, that tab reports visibilityState 'hidden' and never takes
+// focus. Some browsers (Edge) still pull a worker-created tab to the front, and
+// the whole point of this path is that Google is never on screen — so watch the
+// helper for a while and hand the view back. It only ever restores the tab that
+// was active before the helper was created, so a deliberate tab switch wins.
+async function guardHelperFocus(tabId, restoreId, guard) {
+  if (typeof restoreId !== 'number') return;
+  const deadline = Date.now() + LENS_HELPER_GUARD_MS;
+  // Bounded twice over so the watchdog can never outlive the search it guards.
+  for (let tick = 0; !guard.stop && Date.now() < deadline && tick < 40; tick++) {
+    await sleep(300);
+    if (guard.stop) return;
+    let cur = null;
+    try {
+      const active = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      cur = Array.isArray(active) ? active[0] : null;
+    } catch (err) {
+      return;
+    }
+    if (cur && cur.id === tabId) {
+      try { await chrome.tabs.update(restoreId, { active: true }); } catch (err) {}
+    }
+  }
+}
+
+async function openLensHelper(guard) {
+  const restoreId = await userWindowTab();
+  let tab = null;
+  try {
+    tab = await chrome.tabs.create({ url: LENS_HELPER_URL, active: false });
+  } catch (err) {
+    return null;
+  }
+  if (!tab || typeof tab.id !== 'number') return null;
+  // Fire and forget: the upload must not wait on the watchdog.
+  guardHelperFocus(tab.id, restoreId, guard).catch(() => {});
+  return tab.id;
+}
+
+// The helper is a background tab, so nothing it shows has been on screen. Point
+// it at the results URL and focus it only after that URL has committed.
+async function adoptLensHelper(tabId, finalUrl) {
+  return navigateThenFocus(tabId, finalUrl, 4000);
 }
 
 function safeLensFilename(name, mimeFallback) {
@@ -789,32 +783,66 @@ function applyLensText(url, text) {
 
 // Legacy tab-based path kept as fallback only (if direct fetch is blocked)
 // Serialized into the page by executeScript, so it must stay self-contained.
-// Posts to the absolute Lens endpoint: the old relative /searchbyimage/upload
-// now 302s to a dead-end prompt page, and a relative fetch against a
-// slow-loading tab can resolve against about:blank instead of google.com.
-function lensUploadFunc(b64Data, queryText, fileName) {
+// Posts to absolute upload endpoints: a relative /searchbyimage/upload 302s to
+// a dead-end prompt page, and a relative fetch against a slow-loading tab can
+// resolve against about:blank instead of google.com.
+//
+// Both endpoints are tried, in order, because they fail differently by origin.
+// Measured in Chrome 155 from a google.com page: /v3/upload is refused outright
+// while /searchbyimage/upload answers a 303 that lands on the results page — so
+// a single-endpoint uploader cannot succeed in that environment at all. The
+// caller has already tried /v3/upload from the extension origin by this point.
+// The first endpoint that resolves to a result page wins; anything else costs
+// one request and falls through to the next endpoint.
+// The endpoints arrive as an argument because this function is serialized into
+// the page: it can only see its own scope and the page's globals.
+function lensUploadFunc(b64Data, queryText, fileName, endpoints, timeoutMs) {
+  const list = Array.isArray(endpoints) && endpoints.length ? endpoints : ['https://lens.google.com/v3/upload'];
+  const perEndpointMs = typeof timeoutMs === 'number' && timeoutMs > 0 ? timeoutMs : 6000;
+  let raw = null;
   try {
-    const raw = Uint8Array.from(atob(b64Data), function(c) { return c.charCodeAt(0); });
-    let mime = 'image/jpeg';
-    if (raw.length >= 8 && raw[0] === 0x89 && raw[1] === 0x50 && raw[2] === 0x4e && raw[3] === 0x47) mime = 'image/png';
-    else if (raw.length >= 3 && raw[0] === 0xff && raw[1] === 0xd8 && raw[2] === 0xff) mime = 'image/jpeg';
-    else if (raw.length >= 4 && raw[0] === 0x47 && raw[1] === 0x49 && raw[2] === 0x46 && raw[3] === 0x38) mime = 'image/gif';
-    const fname = typeof fileName === 'string' && fileName ? fileName : ('qlens-search.' + (mime === 'image/png' ? 'png' : 'jpg'));
-    const form = new FormData();
-    form.append('encoded_image', new Blob([raw], { type: mime }), fname);
-    if (queryText) form.append('image_content', queryText);
+    raw = Uint8Array.from(atob(b64Data), function(c) { return c.charCodeAt(0); });
+  } catch (e) { return Promise.resolve(null); }
+  let mime = 'image/jpeg';
+  if (raw.length >= 8 && raw[0] === 0x89 && raw[1] === 0x50 && raw[2] === 0x4e && raw[3] === 0x47) mime = 'image/png';
+  else if (raw.length >= 3 && raw[0] === 0xff && raw[1] === 0xd8 && raw[2] === 0xff) mime = 'image/jpeg';
+  else if (raw.length >= 4 && raw[0] === 0x47 && raw[1] === 0x49 && raw[2] === 0x46 && raw[3] === 0x38) mime = 'image/gif';
+  const fname = typeof fileName === 'string' && fileName ? fileName : ('qlens-search.' + (mime === 'image/png' ? 'png' : 'jpg'));
+  // Local mirror of the SW's URL gate: an upload endpoint that answers without
+  // redirecting is not a result, and must not end the endpoint search.
+  function isResultPage(u) {
+    if (typeof u !== 'string' || !u || list.indexOf(u) >= 0) return false;
+    try {
+      const parsed = new URL(u);
+      if (parsed.protocol !== 'https:') return false;
+      if (parsed.hostname === 'lens.google.com') return true;
+      return /(^|\.)google\./.test(parsed.hostname) && parsed.pathname.indexOf('/search') === 0;
+    } catch (e2) { return false; }
+  }
+  function post(endpoint) {
+    let form = null;
+    try {
+      form = new FormData();
+      form.append('encoded_image', new Blob([raw], { type: mime }), fname);
+      if (queryText) form.append('image_content', queryText);
+    } catch (e2) { return Promise.resolve(null); }
     const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
     let timer = 0;
     try {
-      if (ctrl) timer = setTimeout(function() { try { ctrl.abort(); } catch (e2) {} }, 10000);
-    } catch (e2) {}
+      if (ctrl) timer = setTimeout(function() { try { ctrl.abort(); } catch (e3) {} }, perEndpointMs);
+    } catch (e3) {}
     const opts = { method: 'POST', body: form, redirect: 'follow', credentials: 'include' };
     if (ctrl) opts.signal = ctrl.signal;
-    return fetch('https://lens.google.com/v3/upload', opts)
-      .then(function(resp) { return resp.url || null; })
+    return fetch(endpoint, opts)
+      .then(function(resp) { return isResultPage(resp && resp.url) ? resp.url : null; })
       .catch(function() { return null; })
       .then(function(url) { try { if (timer) clearTimeout(timer); } catch (e3) {} return url; });
-  } catch (e) { return Promise.resolve(null); }
+  }
+  let chain = Promise.resolve(null);
+  for (let i = 0; i < list.length; i++) {
+    chain = chain.then(function(found) { return found || post(list[i]); });
+  }
+  return chain;
 }
 
 function b64ToBytesSW(b64) {
@@ -865,6 +893,14 @@ function isLensResultUrl(s) {
   return u.pathname.startsWith('/search') && isGoogleSearchHost(u.hostname);
 }
 
+// Single accept-predicate for every URL that may open a tab or enter a cache:
+// http(s)-safe, and never an upload endpoint — /searchbyimage/upload and
+// /v3/upload satisfy isLensResultUrl yet are posts, not results.
+function isSafeLensResultUrl(s) {
+  if (!isLensResultUrl(s) || !QLENS.isSafeHttpUrl(s)) return false;
+  return s !== SW_LENS_UPLOAD && s !== SW_LENS_UPLOAD_ALT;
+}
+
 // --- LIGHTSPEED direct path: no hidden tab, no google.com flash ---
 function searchResultUrl(resp, endpoint) {
   let finalUrl = null;
@@ -881,7 +917,7 @@ function searchResultUrl(resp, endpoint) {
   return finalUrl;
 }
 
-async function postLensUpload(endpoint, raw, mime, fname, q) {
+async function postLensUpload(endpoint, raw, mime, fname, q, deadline) {
   let form = null;
   try {
     form = new FormData();
@@ -890,8 +926,9 @@ async function postLensUpload(endpoint, raw, mime, fname, q) {
   } catch (err) {
     return { status: 'fatal' };
   }
+  const budget = Number.isFinite(deadline) ? remainingMs(deadline) : IMAGE_UPLOAD_TIMEOUT_MS;
   const ctrl = new AbortController();
-  const timer = setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, IMAGE_UPLOAD_TIMEOUT_MS);
+  const timer = setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, Math.max(1000, Math.min(IMAGE_UPLOAD_TIMEOUT_MS, budget)));
   try {
     const resp = await fetch(endpoint, {
       method: 'POST',
@@ -912,14 +949,14 @@ async function postLensUpload(endpoint, raw, mime, fname, q) {
   }
 }
 
-async function handleImageSearchDirect(raw, text, name) {
+async function handleImageSearchDirect(raw, text, name, deadline) {
   if (!(raw instanceof Uint8Array) || !raw.length) return null;
   const mime = sniffMimeSW(raw);
   const fname = safeLensFilename(name, mime);
   const q = typeof text === 'string' ? text.trim().slice(0, 2000) : '';
   // Primary endpoint only; the alt is a network-failure fallback, NOT a
   // bad-page fallback (a non-search page means the upload was rejected).
-  const primary = await postLensUpload(SW_LENS_UPLOAD, raw, mime, fname, q);
+  const primary = await postLensUpload(SW_LENS_UPLOAD, raw, mime, fname, q, deadline);
   if (primary.status === 'fatal') return null;
   if (primary.status === 'ok') {
     const url = searchResultUrl(primary.resp, SW_LENS_UPLOAD);
@@ -929,69 +966,93 @@ async function handleImageSearchDirect(raw, text, name) {
   // A timeout/abort means the network path itself is wedged — retrying the
   // alt would just double the stall. Only a network throw tries the alt once.
   if (primary.status !== 'threw') return null;
+  if (Number.isFinite(deadline) && remainingMs(deadline) < 1500) return null;
   // Primary fetch THREW (network-level TypeError) — try the alt once.
-  const alt = await postLensUpload(SW_LENS_UPLOAD_ALT, raw, mime, fname, q);
+  const alt = await postLensUpload(SW_LENS_UPLOAD_ALT, raw, mime, fname, q, deadline);
   if (alt.status !== 'ok') return null;
   const url = searchResultUrl(alt.resp, SW_LENS_UPLOAD_ALT);
   if (url) return applyLensText(url, q) || url;
   return null;
 }
 
-async function handleImageSearchFallback(b64, text, name) {
-  // Only if direct fetch blocked — reuse hidden tab directly (no double-tab flash)
-  let tab = null;
-  try {
-    tab = await chrome.tabs.create({ url: 'https://www.google.com/', active: false });
-  } catch (err) { return null; }
-  if (!tab || typeof tab.id !== 'number') return null;
+// Last resort when the extension-origin POST is refused (Google answers 403 to
+// some non-page clients): run the same upload from Google's own page origin in
+// a helper tab that stays in the background for its whole life. The user only
+// ever sees that tab once it is already on the results URL — never the helper
+// page, never a Google homepage in between.
+async function handleImageSearchFallback(b64, text, name, deadline) {
+  const guard = { stop: false };
+  const tabId = await openLensHelper(guard);
+  if (typeof tabId !== 'number') return null;
   // Readiness gate: injecting into a still-loading google.com tab makes the
-  // page-world fetch resolve against about:blank and fail. Wait for a
-  // committed google.com load first (8 s cap), then run the upload attempts.
-  for (let w = 0; w < 80; w++) {
-    let cur = null;
-    try {
-      cur = await chrome.tabs.get(tab.id);
-    } catch (e) {
-      return null;
-    }
-    if (cur && cur.status === 'complete' && typeof cur.url === 'string' && /^https:\/\/www\.google\.com/i.test(cur.url)) break;
-    if (w === 79) {
-      try { await chrome.tabs.remove(tab.id); } catch (e) {}
-      return null;
-    }
-    await new Promise((r) => setTimeout(r, 100));
+  // page-world fetch resolve against about:blank and fail. Wait for the
+  // google.com document to commit (6 s cap), then run the upload attempts.
+  const commitDeadline = Math.min(Date.now() + LENS_HELPER_COMMIT_MS, Number.isFinite(deadline) ? deadline : Infinity);
+  let ready = false;
+  let alive = true;
+  for (;;) {
+    const cur = await chrome.tabs.get(tabId).catch(() => null);
+    if (!cur) { alive = false; break; }
+    if (typeof cur.url === 'string' && /^https:\/\/www\.google\.com\//i.test(cur.url)) { ready = true; break; }
+    if (Date.now() > commitDeadline) break;
+    await sleep(100);
   }
-  for (let i = 0; i < 12; i++) {
+  if (!alive) return null;
+  if (!ready) {
+    await closeTab(tabId);
+    return null;
+  }
+  const attemptDeadline = Math.min(Date.now() + LENS_HELPER_MAX_MS, Number.isFinite(deadline) ? deadline : Infinity);
+  const fname = safeLensFilename(name, 'image/jpeg');
+  // The in-page uploader tries two endpoints, so each one gets half of what is
+  // left of the search budget: the pair has to fit inside the deadline.
+  const perEndpointMs = Math.max(1000, Math.min(LENS_FUNC_ENDPOINT_MS, Math.floor(remainingMs(deadline) / 2)));
+  for (let i = 0; i < 3; i++) {
+    if (Date.now() > attemptDeadline) break;
     try {
       const res = await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
+        target: { tabId: tabId },
         world: 'MAIN',
         func: lensUploadFunc,
-        args: [b64, text, safeLensFilename(name, 'image/jpeg')]
+        args: [b64, text, fname, [SW_LENS_UPLOAD, SW_LENS_UPLOAD_ALT], perEndpointMs]
       });
       const url = res && res[0] && res[0].result;
-      if (isLensResultUrl(url)) {
+      if (isSafeLensResultUrl(url)) {
         const finalUrl = applyLensText(url, text) || url;
-        try {
-          await chrome.tabs.update(tab.id, { url: finalUrl, active: true });
-        } catch (e) {
-          try { await chrome.tabs.create({ url: finalUrl, active: true }); } catch (e2) {}
-          try { await chrome.tabs.remove(tab.id); } catch (e3) {}
-        }
-        return finalUrl; // signal reused
+        // The helper is about to become the visible tab on purpose.
+        guard.stop = true;
+        if (await adoptLensHelper(tabId, finalUrl)) return finalUrl;
+        // The tab could not be pointed at the result: fall back to a plain
+        // results tab rather than leaving the user on a Google page.
+        await closeTab(tabId);
+        return (await openResultTab(finalUrl)) ? finalUrl : null;
       }
-    } catch (e) {}
-    await new Promise((r) => setTimeout(r, 120));
+    } catch (err) {}
+    await sleep(120);
   }
-  try { await chrome.tabs.remove(tab.id); } catch (e) {}
+  guard.stop = true;
+  await closeTab(tabId);
   return null;
 }
 
 async function handleImageSearch(payload) {
   const p = payload || {};
+  const isPreflight = p.preflight === true;
   const text = typeof p.text === 'string' ? p.text.trim().slice(0, 2000) : '';
   const name = typeof p.name === 'string' ? p.name : '';
   warmLens();
+  const deadline = imageSearchDeadline();
+
+  // Preflight result already known by the caller: the upload finished while
+  // the user was still deciding — open the results tab with zero network wait.
+  if (!isPreflight && typeof p.url === 'string' && p.url && p.url !== SW_LENS_UPLOAD) {
+    if (isSafeLensResultUrl(p.url)) {
+      const finalUrl = applyLensText(p.url, text) || p.url;
+      try { cacheSet(imageHashKey(p, '', null, text, name), p.url); } catch (err) {}
+      return { ok: await openResultTab(finalUrl) };
+    }
+  }
+
   // Payload intake: `bytes` is the base64 transport (overlay comment notes
   // extension messaging is JSON-only — typed arrays do not survive clone, so
   // base64 is the primary and only safe transport for the image payload).
@@ -1000,78 +1061,72 @@ async function handleImageSearch(payload) {
   const maxB64 = Math.ceil(rawMax * 4 / 3) + 64;
   // Invalid payload: report failure so the caller can surface the true cause.
   // Opening the Lens homepage here would mask oversize/corrupt pastes as success.
-  if (!b64 || b64.length > maxB64) return false;
-  if (!/^[A-Za-z0-9+/=]+$/.test(b64)) return false;
-  const raw = b64ToBytesSW(b64);
-  if (!raw) return false;
-  const b64ForFallback = b64;
-  // --- Hash key: payload.hash > fnv1a32 (feature-detected) > legacy slice ---
-  const key = imageHashKey(p, b64, raw, text, name);
-  if (imageInFlight) {
-    if (imageFlightKey === key) return true;
-    // A second image while one is uploading: report busy instead of throwing
-    // so the caller can surface it. The overlay re-opens with the message.
-    return { ok: false, busy: true };
+  if (!b64 || b64.length > maxB64) return isPreflight ? { ok: false } : { ok: false, error: 'bad-payload' };
+  if (!/^[A-Za-z0-9+/=]+$/.test(b64)) return isPreflight ? { ok: false } : { ok: false, error: 'bad-payload' };
+  // Hash key: payload.hash > fnv1a32 (feature-detected) > legacy slice.
+  // Bytes stay undecoded here — a cached result or a live flight settles the
+  // search without ever paying the base64 decode.
+  const key = imageHashKey(p, b64, null, text, name);
+
+  if (isPreflight) {
+    const running = lensFlights.get(key);
+    if (running) {
+      const flown = await running;
+      return flown ? { ok: true, url: flown } : { ok: false };
+    }
+    try {
+      const cached = await cacheGet(key);
+      if (cached && isSafeLensResultUrl(cached)) return { ok: true, url: cached };
+    } catch (err) {}
+    const raw = b64ToBytesSW(b64);
+    if (!raw) return { ok: false };
+    const url = await startLensFlight(key, raw, '', name, deadline);
+    return url ? { ok: true, url: url } : { ok: false };
   }
+
   // --- Cache hit: zero upload, instant ---
   try {
-    const cached = cacheGet(key);
-    if (cached && QLENS.isSafeHttpUrl(cached)) {
-      try {
-        await chrome.tabs.create({ url: cached, active: true });
-      } catch (err) {
-        return false;
-      }
-      return true;
+    const cached = await cacheGet(key);
+    if (cached && isSafeLensResultUrl(cached)) {
+      const finalUrl = applyLensText(cached, text) || cached;
+      return { ok: await openResultTab(finalUrl) };
     }
   } catch (err) {}
-  imageInFlight = true;
-  imageFlightKey = key;
-  const flightTimer = setTimeout(() => { imageInFlight = false; imageFlightKey = ''; }, IMAGE_UPLOAD_TIMEOUT_MS + 2000);
-  // --- Instant interstitial FIRST (perceived flash <100ms), upload after ---
-  let jobTab = null;
+
+  // Resolve the results URL, then open ONE tab on it. No interstitial page is
+  // ever created: if this cannot produce a results URL, no tab opens at all and
+  // the overlay surfaces the failure.
+  const running = lensFlights.get(key);
+  let raw = null;
+  if (!running) {
+    // Charset-valid base64 can still fail to decode — fail closed before any
+    // tab opens, matching the intake checks above.
+    raw = b64ToBytesSW(b64);
+    if (!raw) return { ok: false, error: 'bad-payload' };
+  }
+  let directTarget = null;
   try {
-    jobTab = await chrome.tabs.create({ url: chrome.runtime.getURL('src/lens/loading.html'), active: true }).catch(() => null);
+    // A preflight (or another search) is already uploading this image —
+    // join it instead of uploading twice.
+    directTarget = running ? await running : await startLensFlight(key, raw, text, name, deadline);
   } catch (err) {
-    jobTab = null;
+    directTarget = null;
   }
+  if (directTarget && isSafeLensResultUrl(directTarget)) {
+    const finalUrl = applyLensText(directTarget, text) || directTarget;
+    if (await openResultTab(finalUrl)) return { ok: true };
+  }
+  // The extension-origin POST was refused or answered with nothing usable.
+  // Upload from Google's own page origin instead — in a helper tab that is
+  // only ever shown once it is already on the results page.
+  let fallbackUrl = null;
   try {
-    // LIGHTSPEED: direct SW fetch — zero google.com flash, zero waitFor tab
-    const directTarget = await handleImageSearchDirect(raw, text, name);
-    if (directTarget) {
-      const valid = isLensResultUrl(directTarget) && directTarget !== SW_LENS_UPLOAD && QLENS.isSafeHttpUrl(directTarget);
-      const finalUrl = valid ? directTarget : SW_LENS_FALLBACK;
-      if (valid) {
-        try { cacheSet(key, finalUrl); } catch (err) {}
-      }
-      await settleJobTab(jobTab, finalUrl);
-      return true;
-    }
-    // Direct fetch unavailable/blocked — last-resort hidden-tab fallback
-    let fallbackUrl = null;
-    try {
-      if (b64ForFallback) fallbackUrl = await handleImageSearchFallback(b64ForFallback, text, name);
-    } catch (err) {
-      fallbackUrl = null;
-    }
-    if (fallbackUrl) {
-      // Hidden-tab path already reused/closed its tab; jobTab interstitial is spare.
-      try {
-        if (jobTab && typeof jobTab.id === 'number') await chrome.tabs.remove(jobTab.id);
-      } catch (err) {}
-      try { cacheSet(key, fallbackUrl); } catch (err) {}
-      return true;
-    }
-    try {
-      await settleJobTab(jobTab, SW_LENS_FALLBACK);
-    } catch (err) {
-      return false;
-    }
-    return true;
-  } finally {
-    clearTimeout(flightTimer);
-    setTimeout(() => { imageInFlight = false; imageFlightKey = ''; }, 400);
+    fallbackUrl = await handleImageSearchFallback(b64, text, name, deadline);
+  } catch (err) {
+    fallbackUrl = null;
   }
+  if (fallbackUrl) return { ok: true };
+  return { ok: false, error: 'lens-unreachable' };
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -1123,24 +1178,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       .catch(() => sendResponse({ ok: false, items: [] }));
     return true;
   }
-  if (msg.type === QLENS.MSG.LAUNCHER_QUERY) {
-    handleLauncherQuery(msg.payload)
-      .then((results) => sendResponse({ ok: true, id: payloadId(msg.payload), results }))
-      .catch(() => sendResponse({ ok: false, id: payloadId(msg.payload), results: [] }));
-    return true;
-  }
-  if (msg.type === QLENS.MSG.LAUNCHER_ACTIVATE) {
-    handleLauncherActivate(msg.payload)
-      .then((ok) => sendResponse({ ok }))
-      .catch(() => sendResponse({ ok: false }));
-    return true;
-  }
-  if (msg.type === QLENS.MSG.LAUNCHER_CLOSE) {
-    handleLauncherClose(msg.payload)
-      .then((ok) => sendResponse({ ok }))
-      .catch(() => sendResponse({ ok: false }));
-    return true;
-  }
   if (msg.type === QLENS.MSG.OPEN_OPTIONS) {
     try {
       if (chrome.runtime && typeof chrome.runtime.openOptionsPage === 'function') {
@@ -1167,17 +1204,27 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 });
 
 chrome.commands.onCommand.addListener((command, tab) => {
-  if (command === 'open-quick-search') {
-    // Chrome hands us the tab the shortcut was pressed on: use it directly so
-    // a cold-SW empty tabs.query can never leave the command path tab-less.
-    let tabId;
-    try {
-      tabId = tab && typeof tab.id === 'number' ? tab.id : undefined;
-    } catch (err) {
-      tabId = undefined;
-    }
-    openQuickSearch(undefined, tabId);
+  if (command !== 'open-quick-search') return;
+  // Chrome hands us the tab the shortcut was pressed on: use it directly so
+  // a cold-SW empty tabs.query can never leave the command path tab-less.
+  let tabId;
+  try {
+    tabId = tab && typeof tab.id === 'number' ? tab.id : undefined;
+  } catch (err) {
+    tabId = undefined;
   }
+  const resolved = shortcutMemo
+    ? Promise.resolve(shortcutMemo)
+    : QLENS.storage.getShortcut().catch(() => QLENS.CONFIG.SHORTCUT_DEFAULT);
+  resolved.then((combo) => {
+    if (!shortcutMemo && combo) shortcutMemo = combo;
+    // A custom combo is delivered by the content script. Honoring the manifest
+    // command as well would leave the old Ctrl+Shift+K active after rebinding.
+    if (combo && combo !== QLENS.CONFIG.SHORTCUT_DEFAULT) return;
+    openQuickSearch(undefined, tabId);
+  }).catch(() => {
+    openQuickSearch(undefined, tabId);
+  });
 });
 
 // If Chrome never bound the manifest shortcut, onCommand can never fire and the
@@ -1232,7 +1279,7 @@ function escapeOmniboxText(value) {
 
 function describeOmniboxSuggestion(parsed, rawQuery) {
   const q = typeof rawQuery === 'string' ? rawQuery.trim() : '';
-  if (!q) return 'Type a query —QLens searches your default engine';
+  if (!q) return 'Type a query — QLens searches your default engine';
   if (parsed && parsed.url) return 'Go to ' + escapeOmniboxText(parsed.url) + ' — QLens';
   const label = (parsed && parsed.engineId && QLENS.ENGINES[parsed.engineId]
     ? QLENS.ENGINES[parsed.engineId].name
@@ -1406,6 +1453,7 @@ function ensureContextMenu() {
 chrome.runtime.onInstalled.addListener(() => {
   ensureContextMenu();
   safeRemoveKeydownScript();
+  repairOpenTabs().catch(() => {});
 });
 
 try {

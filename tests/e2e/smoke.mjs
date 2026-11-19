@@ -36,14 +36,15 @@ function chromeCandidates() {
   return list.filter((p) => p && existsSync(p));
 }
 
+// Chrome derives an unpacked extension's id from the absolute folder path:
+// SHA-256 over the wide (UTF-16LE) path, first 128 bits, each nibble mapped
+// 0-f -> a-p. Checked against ids Chrome reported for three folders on this
+// machine, including this checkout. Only used when the worker never appeared -
+// which is exactly the state where a correct id is needed to wake it.
 function computeExtId(absPath) {
-  const norm = absPath.replace(/\\/g, '/').replace(/\/+$/, '') + '/';
-  const digest = createHash('sha256').update(norm, 'utf8').digest('hex').slice(0, 32);
-  const chars = 'abcdefghijklmnop';
+  const digest = createHash('sha256').update(Buffer.from(absPath, 'utf16le')).digest('hex').slice(0, 32);
   let out = '';
-  for (let i = 0; i < 32; i += 2) {
-    out += chars[parseInt(digest.slice(i, i + 2), 16) % 16];
-  }
+  for (const nibble of digest) out += String.fromCharCode(97 + parseInt(nibble, 16));
   return out;
 }
 
@@ -96,9 +97,8 @@ for (const headless of [true, false]) {
       browser = await puppeteer.launch({
         executablePath: exe,
         headless,
+        enableExtensions: [ROOT],
         args: [
-          '--disable-extensions-except=' + ROOT,
-          '--load-extension=' + ROOT,
           '--no-sandbox',
           '--disable-dev-shm-usage',
           '--window-size=1000,800'
@@ -118,6 +118,7 @@ if (!browser) {
   process.exit(0);
 }
 console.log('launched: ' + launchedPath);
+await browser.defaultBrowserContext().overridePermissions(pageUrl, ['clipboard-read', 'clipboard-write']);
 
 let extId = null;
 function targetUrls() {
@@ -237,6 +238,24 @@ async function overlayState(page) {
   });
 }
 
+async function calculatorState(page) {
+  return page.evaluate(() => {
+    const host = Array.from(document.documentElement.children).find(
+      (n) => n.shadowRoot && n.shadowRoot.querySelector('.ql-panel')
+    );
+    if (!host) return { visible: false };
+    const zone = host.shadowRoot.querySelector('.ql-calc-zone');
+    const btn = host.shadowRoot.querySelector('.ql-calc');
+    return {
+      visible: true,
+      open: Boolean(zone && zone.classList.contains('is-open')),
+      copied: Boolean(btn && btn.classList.contains('is-copied')),
+      value: (host.shadowRoot.querySelector('.ql-calc-value') || {}).textContent || '',
+      hint: (host.shadowRoot.querySelector('.ql-calc-hint') || {}).textContent || ''
+    };
+  });
+}
+
 const target = await ensureWorker();
 check('extension service worker alive', Boolean(target), targetUrls().join(' | '));
 if (!target) {
@@ -304,6 +323,35 @@ check('old tab is clean after search (zero residue)', !state.visible);
 
 const third = await triggerOverlay(mainPage);
 check('overlay opens again (third trigger)', third.ok && (await overlayState(mainPage)).visible);
+
+await mainPage.keyboard.type('2+2', { delay: 5 });
+await new Promise((r) => setTimeout(r, 200));
+let calc = await calculatorState(mainPage);
+check('calculator row evaluates 2+2', calc.open && calc.value === '4', JSON.stringify(calc));
+await mainPage.keyboard.press('Enter');
+await new Promise((r) => setTimeout(r, 250));
+calc = await calculatorState(mainPage);
+check(
+  'Enter copies the result and keeps the overlay open',
+  calc.visible && calc.open && calc.copied && calc.hint === 'Copied to clipboard',
+  JSON.stringify(calc)
+);
+let clip = '';
+try {
+  clip = await mainPage.evaluate(() => navigator.clipboard.readText());
+} catch (err) {
+  clip = 'read-failed';
+}
+check('clipboard holds the raw result', clip === '4', clip);
+check(
+  'calculator Enter does not open a search tab',
+  !targetUrls().some((u) => u.includes('google.com/search') && u.includes('2%2B2')),
+  targetUrls().join(' | ')
+);
+
+await mainPage.keyboard.down('Control');
+await mainPage.keyboard.press('KeyA');
+await mainPage.keyboard.up('Control');
 await mainPage.keyboard.type('github.com/some/repo', { delay: 5 });
 await new Promise((r) => setTimeout(r, 200));
 const actionRow = await mainPage.evaluate(() => {
@@ -368,6 +416,33 @@ await popupPage.close().catch(() => {});
 
 const optionsPage = await browser.newPage();
 await optionsPage.goto('chrome-extension://' + extId + '/src/options/options.html', { waitUntil: 'domcontentloaded' });
+await optionsPage.waitForFunction(() => {
+  const input = document.getElementById('shortcut-input');
+  return input && input.value === 'Ctrl+Shift+K';
+}, { timeout: 5000 });
+await optionsPage.click('#shortcut-input');
+await optionsPage.keyboard.down('Control');
+await optionsPage.keyboard.press('Space');
+await optionsPage.keyboard.up('Control');
+const captured = await optionsPage.evaluate(() => {
+  const input = document.getElementById('shortcut-input');
+  return {
+    value: input.value,
+    pending: input.classList.contains('is-pending'),
+    saveDisabled: document.getElementById('shortcut-save').disabled
+  };
+});
+check(
+  'options field captures Ctrl+Space',
+  captured.value === 'Ctrl+Space' && captured.pending && captured.saveDisabled === false,
+  JSON.stringify(captured)
+);
+await optionsPage.click('#shortcut-save');
+await new Promise((r) => setTimeout(r, 250));
+const uiSaved = await optionsPage.evaluate(async () => QLENS.storage.getShortcut());
+check('options Save persists the captured combo', uiSaved === 'Ctrl+Space', String(uiSaved));
+await optionsPage.click('#shortcut-reset');
+await new Promise((r) => setTimeout(r, 250));
 const setRes = await optionsPage.evaluate(async () => {
   const ok = await QLENS.storage.setShortcut('Ctrl+Alt+Q');
   const cur = await QLENS.storage.getShortcut();

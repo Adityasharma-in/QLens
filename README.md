@@ -13,7 +13,7 @@ current selection), press **Enter** — results open in Google, Brave, Bing, or 
 
 1. Open `chrome://extensions`, enable **Developer mode**.
 2. Click **Load unpacked** and select this folder (`QLens/`).
-3. Press `Ctrl+Shift+K` on any webpage (rebindable at `chrome://extensions/shortcuts`).
+3. Press `Ctrl+Shift+K` on any webpage (rebind it in Settings → Shortcut, or at `chrome://extensions/shortcuts`).
 
 ## Features
 
@@ -25,8 +25,9 @@ current selection), press **Enter** — results open in Google, Brave, Bing, or 
 | Suggestions | Debounced 250 ms, silent when offline; Brave labeled "via Google" |
 | Recent searches | Last 10 queries, one click re-searches; delete per-item or clear all |
 | Smart URL | Type `github.com/foo` → "Go to site" (http/https only, always) |
+| Calculator | Type `2+2`, `sqrt(81)+1`, `25% of 80`, or `= 12*8` → inline result; Enter copies, Shift+Enter searches the expression |
 | Quick modes | `images:` `videos:` `news:` `yt:` `wiki:` prefixes + pills |
-| Image search | Camera button in overlay — file picker, paste, or drop an image (PNG/JPEG/GIF/WebP/BMP/AVIF/HEIC/SVG); instant thumbnail, queued Enter, instant loading tab, repeat-search cache; optional text; Enter → Google Lens |
+| Image search | Camera button in overlay — file picker, paste, or drop an image (PNG/JPEG/GIF/WebP/BMP/AVIF/HEIC/SVG); instant thumbnail, queued Enter, background pre-upload at attach, repeat-search cache; optional text; Enter → Google Lens results open directly, with no interstitial and no google.com detour ([method](docs/image-search.md)) |
 | Options | `chrome://extensions` → Details → Extension options |
 | Context menu | Right-click selected text → "Search with QLens" (overlay or direct, setting) |
 
