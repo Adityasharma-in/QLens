@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Fixed (a saved custom shortcut died after an extension update)
+- **A custom combo stopped opening the overlay after QLens updated, and only a reset + reapply brought it back.** Chrome does not re-inject content scripts into tabs that were already open when an extension is reloaded or updated, so those pages kept the old injector: its `keydown` handler still lived in the page, but its `chrome` context was dead. The old handler read the combo through the page's stale `QLENS.storage.getShortcut()`, which silently resolves to the default — and a custom combo never reaches `chrome.commands`, so nothing opened until the page was reloaded or the combo was saved again.
+- The injector now always replaces its previous `keydown` handler and `chrome.storage.onChanged` listener on re-injection instead of early-returning, and it reads the combo through live `chrome.storage.local` first (`src/content/injector.js`). Saving a new combo also swaps it in open pages without a reload.
+- The service worker now repairs already-open tabs: `repairOpenTabs()` re-injects the message bridge into up to 80 normal http(s) tabs (4 at a time) on `chrome.runtime.onInstalled` and whenever the shortcut storage key changes, so the shortcut works immediately after an update with no reset or reapply.
+- Version bumped to `1.1.1` across `manifest.json`, `package.json`, and the config fallback.
+
 ### Fixed (polish + correctness audit)
 - The overlay no longer washes out to light when the operating system is in light mode and the extension's Appearance is set to Dark: the system-light token block now only applies when no explicit theme is chosen (the same guard `options.css` already used), and the duplicated input-row overrides were collapsed.
 - If a search tab cannot be opened (popup blocked, a rejected message), the overlay now comes back with the typed query and "Could not open a new tab." instead of vanishing into a blank page. The URL is validated before the overlay is torn down.

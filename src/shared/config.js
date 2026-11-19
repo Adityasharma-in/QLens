@@ -1,7 +1,7 @@
 globalThis.QLENS = globalThis.QLENS || {};
 
 QLENS.CONFIG = {
-  VERSION: '1.1.0',
+  VERSION: '1.1.1',
   NAME: 'QLens',
   SHORTCUT_DEFAULT: 'Ctrl+Shift+K',
   SHORTCUT_COMMAND: 'open-quick-search',

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-labelledby="qlens-search-title">
+  <title id="qlens-search-title">QLens search</title>
+  <desc>A magnifier whose inner lens rim refracts mint, blue, and violet light.</desc>
+  <defs>
+    <linearGradient id="qlens-refraction" x1="20" y1="46" x2="44" y2="24" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4FE0B0"/>
+      <stop offset=".55" stop-color="#59C7FF"/>
+      <stop offset="1" stop-color="#7A6CFF"/>
+    </linearGradient>
+  </defs>
+  <g fill="none">
+    <circle cx="26" cy="26" r="15.25" stroke="currentColor" stroke-width="6.4"/>
+    <path d="M33.32 40.24 50.69 54.51 54.51 50.69 40.24 33.32Z" fill="currentColor"/>
+    <circle cx="51.9" cy="51.9" r="2.7" fill="currentColor"/>
+    <path d="M39.25 30.82A14.1 14.1 0 0 1 24.77 40.05" stroke="url(#qlens-refraction)" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M22.65 16.79A9.8 9.8 0 0 1 33.51 19.7" stroke="#FFFFFF" stroke-opacity=".5" stroke-width="1.4" stroke-linecap="round"/>
+  </g>
+</svg>

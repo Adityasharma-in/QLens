@@ -60,6 +60,7 @@ try {
       shortcutMemo = typeof next === 'string' && QLENS.isValidCombo(next)
         ? next
         : QLENS.CONFIG.SHORTCUT_DEFAULT;
+      repairOpenTabs().catch(() => {});
     }
   });
 } catch (err) {
@@ -258,6 +259,47 @@ async function injectContent(tabId) {
     warnOpen('script injection failed', err);
     return false;
   }
+}
+
+// After an extension update the pages that were already open keep their old
+// content scripts: the JS listener survives but its chrome context is dead, so
+// a custom combo (which never reaches chrome.commands) looks broken until the
+// page is reloaded. Re-running injector.js in those tabs installs a live
+// keydown handler that reads the stored combo through live storage APIs; the
+// SW also does this when the shortcut changes so a new combo works immediately.
+const REPAIR_TAB_LIMIT = 80;
+let repairRun = null;
+
+function repairOpenTabs() {
+  if (repairRun) return repairRun;
+  repairRun = (async () => {
+    let tabs = [];
+    try {
+      tabs = await chrome.tabs.query({});
+    } catch (err) {
+      return 0;
+    }
+    const targets = [];
+    for (const tab of tabs) {
+      if (!tab || typeof tab.id !== 'number' || tab.discarded) continue;
+      // Host grants cover all http(s) tabs, so a normal tab always exposes its
+      // URL. Anything else (chrome://, the Web Store, extension pages) is not
+      // injectable and is skipped instead of costing a failed executeScript.
+      if (!isAllowedTabUrl(tab.url)) continue;
+      targets.push(tab.id);
+      if (targets.length >= REPAIR_TAB_LIMIT) break;
+    }
+    let repaired = 0;
+    for (let i = 0; i < targets.length; i += 4) {
+      const batch = targets.slice(i, i + 4).map((tabId) => injectContent(tabId));
+      const results = await Promise.all(batch);
+      for (const ok of results) if (ok) repaired++;
+    }
+    return repaired;
+  })().finally(() => {
+    repairRun = null;
+  });
+  return repairRun;
 }
 
 function resolveActiveTab(tabId) {
@@ -1411,6 +1453,7 @@ function ensureContextMenu() {
 chrome.runtime.onInstalled.addListener(() => {
   ensureContextMenu();
   safeRemoveKeydownScript();
+  repairOpenTabs().catch(() => {});
 });
 
 try {

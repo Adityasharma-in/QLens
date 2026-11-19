@@ -834,30 +834,57 @@ test('sw: a stored custom combo suppresses the manifest command', () => {
    getShortcut() throw synchronously. */
 function makeInjectorCtx(opts) {
   const o = opts || {};
-  const calls = { show: 0, destroy: 0, sendMessage: 0 };
+  const calls = { show: 0, destroy: 0, sendMessage: 0, storageReads: 0 };
   const docHandlers = [];
+  const changeListeners = [];
   let visible = o.initiallyVisible === true;
+  let storedShortcut = o.shortcut || 'Ctrl+Shift+K';
   const overlay = {
     isVisible: () => visible,
     show: () => { calls.show++; visible = true; },
     destroy: () => { calls.destroy++; visible = false; },
   };
+  const storageEvents = {
+    addListener: (f) => { changeListeners.push(f); },
+    removeListener: (f) => {
+      const i = changeListeners.indexOf(f);
+      if (i !== -1) changeListeners.splice(i, 1);
+    }
+  };
   const ctx = vm.createContext({
-    document: { addEventListener: (t, f) => { if (t === 'keydown') docHandlers.push(f); } },
+    document: {
+      addEventListener: (t, f) => { if (t === 'keydown') docHandlers.push(f); },
+      removeEventListener: (t, f) => {
+        const i = docHandlers.indexOf(f);
+        if (i !== -1) docHandlers.splice(i, 1);
+      }
+    },
     chrome: {
       runtime: {
         id: 'test-extension-id',
         sendMessage: () => { calls.sendMessage++; return Promise.resolve({}); },
         onMessage: { addListener: () => {}, removeListener: () => {} }
       },
-      storage: { onChanged: { addListener: () => {} }, local: { get: () => Promise.resolve({}) } }
+      storage: o.storageThrows
+        ? { onChanged: storageEvents }
+        : {
+            onChanged: storageEvents,
+            local: {
+              get: (key) => {
+                calls.storageReads++;
+                return Promise.resolve({ [key]: storedShortcut });
+              }
+            }
+          }
     },
     QLENS: {
       MSG: { OPEN_OVERLAY: 'OPEN_OVERLAY', CLOSE_OVERLAY: 'CLOSE_OVERLAY' },
       CONFIG: { SHORTCUT_DEFAULT: 'Ctrl+Shift+K', STORAGE_KEYS: { SHORTCUT: 'shortcut' } },
+      // Deliberately stale (the old default): the injector must read the combo
+      // through live chrome.storage, not through this page's dead copy.
       storage: o.storageThrows
         ? { getShortcut: () => { throw new Error('storage exploded'); } }
-        : { getShortcut: () => Promise.resolve(o.shortcut || 'Ctrl+Shift+K') },
+        : { getShortcut: () => Promise.resolve('Ctrl+Shift+K') },
       matchesCombo: (e, combo) => {
         const parts = combo.split('+');
         const main = parts.pop();
@@ -876,8 +903,21 @@ function makeInjectorCtx(opts) {
   // refreshCombo() resolves the shortcut through a promise, and comboReady
   // gates the keydown handler. Let those microtasks settle before pressing.
   const settled = () => new Promise((r) => setTimeout(r, 0));
-  const press = (e) => { for (const f of docHandlers) f({ preventDefault() {}, stopPropagation() {}, stopImmediatePropagation() {}, ...e }); };
-  return { ctx, calls, press, handlers: docHandlers, settled, isVisible: () => visible };
+  const press = (e) => { for (const f of docHandlers.slice()) f({ preventDefault() {}, stopPropagation() {}, stopImmediatePropagation() {}, ...e }); };
+  return {
+    ctx,
+    calls,
+    press,
+    handlers: docHandlers,
+    settled,
+    isVisible: () => visible,
+    rerun: () => vm.runInContext(src, ctx),
+    setStoredShortcut: (combo) => { storedShortcut = combo; },
+    emitShortcutChange: () => {
+      for (const f of changeListeners.slice()) f({ shortcut: { newValue: storedShortcut } }, 'local');
+    },
+    storageListenerCount: () => changeListeners.length
+  };
 }
 
 const DEFAULT_PRESS = { key: 'K', ctrlKey: true, altKey: false, shiftKey: true, metaKey: false, defaultPrevented: false };
@@ -926,6 +966,63 @@ await testAsync('shortcut: default combo with no overlay loaded routes through t
   await h.settled();
   h.press(DEFAULT_PRESS);
   assert.equal(h.calls.sendMessage, 1, 'must ask the SW to inject + open');
+});
+await testAsync('shortcut: re-injection replaces the dead handler and reads the live combo', async () => {
+  // After an extension update the SW re-runs injector.js in already-open tabs.
+  // The old handler belongs to the dead extension context; it must be replaced
+  // (not kept behind an early return) and the new one must read the combo
+  // through live chrome.storage instead of the page's stale QLENS copy.
+  const h = makeInjectorCtx({ shortcut: 'Ctrl+Shift+K' });
+  await h.settled();
+  h.setStoredShortcut('Ctrl+Alt+J');
+  h.rerun();
+  await h.settled();
+  assert.equal(h.handlers.length, 1, 're-injection must leave exactly one keydown handler');
+  assert.equal(h.storageListenerCount(), 1, 're-injection must leave exactly one storage listener');
+  h.press({ key: 'J', ctrlKey: true, altKey: true, shiftKey: false, metaKey: false, defaultPrevented: false });
+  assert.equal(h.calls.show, 1, 'the custom combo must work again without reloading the page');
+  h.press(DEFAULT_PRESS);
+  assert.equal(h.calls.show, 1, 'the stale default combo must not fire once a custom one is stored');
+});
+await testAsync('shortcut: a live storage change swaps the combo without a page reload', async () => {
+  // Saving a new combo in options must reach pages that are already open. The
+  // storage listener rebuilds the memo, so the old combo dies immediately.
+  const h = makeInjectorCtx({ shortcut: 'Ctrl+Shift+K' });
+  await h.settled();
+  h.setStoredShortcut('Ctrl+Alt+J');
+  h.emitShortcutChange();
+  await h.settled();
+  h.press(DEFAULT_PRESS);
+  assert.equal(h.calls.show, 0, 'the previous combo must stop working');
+  h.press({ key: 'J', ctrlKey: true, altKey: true, shiftKey: false, metaKey: false, defaultPrevented: false });
+  assert.equal(h.calls.show, 1, 'the new combo must open without a reload');
+});
+test('sw: extension updates and shortcut changes repair already-open tabs', () => {
+  const injector = readFileSync(join(ROOT, 'src/content/injector.js'), 'utf8');
+  assert.ok(
+    injector.includes('chrome.storage.local.get('),
+    'the injector reads the combo through live storage, not the dead page copy'
+  );
+  assert.ok(
+    injector.includes("document.removeEventListener('keydown'"),
+    're-injection must remove the previous keydown handler before installing a new one'
+  );
+  const sw = readFileSync(join(ROOT, 'src/background/service-worker.js'), 'utf8');
+  assert.ok(sw.includes('function repairOpenTabs('), 'the SW owns the open-tab repair');
+  assert.ok(sw.includes('chrome.tabs.query({})'), 'repair enumerates every open tab');
+  assert.ok(
+    /for \(const tab of tabs\)[\s\S]*?isAllowedTabUrl\(tab\.url\)[\s\S]*?targets\.push\(tab\.id\)/.test(sw),
+    'repair only touches normal http(s) tabs'
+  );
+  const installedStart = sw.indexOf('chrome.runtime.onInstalled.addListener');
+  assert.ok(installedStart >= 0, 'onInstalled listener exists');
+  const installedEnd = sw.indexOf('});', installedStart);
+  const installed = sw.slice(installedStart, installedEnd);
+  assert.ok(installed.includes('repairOpenTabs()'), 'an extension update repairs open tabs');
+  const changeStart = sw.indexOf('if (changes[QLENS.CONFIG.STORAGE_KEYS.SHORTCUT])');
+  assert.ok(changeStart >= 0, 'shortcut storage branch exists');
+  const change = sw.slice(changeStart, sw.indexOf('});', changeStart));
+  assert.ok(change.includes('repairOpenTabs()'), 'saving a shortcut repairs already-open tabs');
 });
 test('sw: warns once when Chrome has not bound the manifest shortcut', () => {
   const sw = readFileSync(join(ROOT, 'src/background/service-worker.js'), 'utf8');
